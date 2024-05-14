@@ -36,6 +36,7 @@
 struct server_local {
 	struct random_gen rand_src;
 	struct {
+		int health;
 		double x, y, z;
 		float rx, ry;
 		enum world_dim dimension;

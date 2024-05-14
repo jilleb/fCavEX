@@ -286,6 +286,8 @@ static void server_local_process(struct server_rpc* call, void* user) {
 			level_archive_write_inventory(&s->level, &s->player.inventory);
 			level_archive_write(&s->level, LEVEL_TIME, &s->world_time);
 
+			//TODO: write health to level archive
+
 			dict_entity_reset(s->entities);
 			server_world_destroy(&s->world);
 			level_archive_destroy(&s->level);
@@ -316,6 +318,9 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				}
 
 				level_archive_read(&s->level, LEVEL_TIME, &s->world_time, 0);
+
+				//TODO: read health from level archive
+
 				dict_entity_reset(s->entities);
 				s->player.active_inventory = &s->player.inventory;
 
