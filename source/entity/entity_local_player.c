@@ -142,6 +142,11 @@ static bool entity_tick(struct entity* e) {
 	glm_vec3_copy(e->pos, new_pos);
 	glm_vec3_copy(e->vel, new_vel);
 
+	//temporary fix to position becoming 0 bug
+	if (!((int)new_pos[0]) && !((int)new_pos[1]) && !((int)new_pos[2])) {
+		new_pos[1] += 70.0F;
+	}
+
 	bool collision_xz = false;
 
 	for(int k = 0; k < 3; k++)
