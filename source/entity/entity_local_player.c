@@ -58,7 +58,7 @@ static bool test_in_liquid(struct AABB* entity, struct block_info* blk_info) {
 static bool entity_tick(struct entity* e) {
 	assert(e);
 
-	printf("%.3f %.3f %.3f\n", e->pos[0], e->pos[1], e->pos[2]);
+	printf("o%.3f %.3f %.3f\n", e->pos[0], e->pos[1], e->pos[2]);
 
 	glm_vec3_copy(e->pos, e->pos_old);
 	glm_vec2_copy(e->orient, e->orient_old);
@@ -173,6 +173,8 @@ static bool entity_tick(struct entity* e) {
 			glm_vec3_copy(new_vel, e->vel);
 		}
 	}
+
+	printf("n%.3f %.3f %.3f\n", new_pos[0], new_pos[1], new_pos[2]);
 
 	if(in_lava) {
 		e->vel[0] *= 0.5F;
