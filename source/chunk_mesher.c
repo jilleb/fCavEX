@@ -564,6 +564,7 @@ bool chunk_mesher_send(struct chunk* c) {
 	request->chunk = c;
 	request->request.blocks = bd;
 
+	//puts("Starting chunk lookup");
 	for(w_coord_t y = -1; y < CHUNK_SIZE + 1; y++) {
 		for(w_coord_t z = -1; z < CHUNK_SIZE + 1; z++) {
 			for(w_coord_t x = -1; x < CHUNK_SIZE + 1; x++) {

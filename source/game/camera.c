@@ -205,6 +205,8 @@ void camera_attach(struct camera* c, struct entity* e, float tick_delta,
 	c->y = pos_lerp[1];
 	c->z = pos_lerp[2];
 
+	printf("c%.03f %.03f %.03f\n", c->x, c->y, c->z);
+
 	float jdx, jdy;
 	if(e->data.local_player.capture_input && input_joystick(dt, &jdx, &jdy)) {
 		c->rx -= jdx * 2.0F;
