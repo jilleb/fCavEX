@@ -58,6 +58,8 @@ static bool test_in_liquid(struct AABB* entity, struct block_info* blk_info) {
 static bool entity_tick(struct entity* e) {
 	assert(e);
 
+	printf("%.3f %.3f %.3f\n", e->pos[0], e->pos[1], e->pos[2]);
+
 	glm_vec3_copy(e->pos, e->pos_old);
 	glm_vec2_copy(e->orient, e->orient_old);
 
@@ -141,11 +143,6 @@ static bool entity_tick(struct entity* e) {
 	vec3 new_pos, new_vel;
 	glm_vec3_copy(e->pos, new_pos);
 	glm_vec3_copy(e->vel, new_vel);
-
-	//temporary fix to position becoming 0 bug
-	if (!((int)new_pos[0]) && !((int)new_pos[1]) && !((int)new_pos[2])) {
-		new_pos[1] += 70.0F;
-	}
 
 	bool collision_xz = false;
 
