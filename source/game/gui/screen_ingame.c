@@ -422,12 +422,12 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 
 	for(int k = 0; k < 10; k++) {
 		// draw hearts
-		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
-					  height - 32 * 8 / 5 - (22 + 10) * 2, 16, 229, 9, 9, 9 * 2,
-					  9 * 2);
 		//gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
-		//			  height - 32 * 8 / 5 - (22 + 10) * 2, 52, 229, 9, 9, 9 * 2,
-		//			  9 * 2);
+			//	  height - 32 * 8 / 5 - (22 + 10) * 2, 16, 229, 9, 9, 9 * 2,
+			//		  9 * 2);
+		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
+					  height - 32 * 8 / 5 - (22 + 10) * 2, 52, 229, 9, 9, 9 * 2,
+				  9 * 2);
 	}
 }
 
