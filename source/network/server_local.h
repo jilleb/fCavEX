@@ -43,7 +43,7 @@ struct server_local {
 		bool finished_loading;
 		struct inventory inventory;
 		struct inventory* active_inventory;
-		int health;
+//		int health;
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
