@@ -36,7 +36,6 @@
 struct server_local {
 	struct random_gen rand_src;
 	struct {
-		int health;
 		double x, y, z;
 		float rx, ry;
 		enum world_dim dimension;
@@ -44,6 +43,7 @@ struct server_local {
 		bool finished_loading;
 		struct inventory inventory;
 		struct inventory* active_inventory;
+		int health;
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
