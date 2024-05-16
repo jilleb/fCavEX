@@ -65,6 +65,10 @@ size_t render_block_cross(struct displaylist* d, struct block_info* this,
 						  enum side side, struct block_info* it,
 						  uint8_t* vertex_light, bool count_only);
 
+size_t render_block_tree2d(struct displaylist* d, struct block_info* this,
+						  enum side side, struct block_info* it,
+						  uint8_t* vertex_light, bool count_only);
+
 size_t render_block_fluid(struct displaylist* d, struct block_info* this,
 						  enum side side, struct block_info* it,
 						  uint8_t* vertex_light, bool count_only);

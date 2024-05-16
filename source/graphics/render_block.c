@@ -379,6 +379,66 @@ size_t render_block_cross(struct displaylist* d, struct block_info* this,
 	return 2;
 }
 
+size_t render_block_tree2d(struct displaylist* d, struct block_info* this,
+						  enum side side, struct block_info* it,
+						  uint8_t* vertex_light, bool count_only) {
+	if(side != SIDE_TOP)
+		return 0;
+
+	if(!count_only) {
+		int16_t x = W2C_COORD(this->x) * BLK_LEN;
+		int16_t y = W2C_COORD(this->y) * BLK_LEN;
+		int16_t z = W2C_COORD(this->z) * BLK_LEN;
+
+		if(blocks[this->block->type]
+			   ->render_block_data.cross_random_displacement) {
+			uint32_t seed
+				= hash_u32(this->x) ^ hash_u32(this->y) ^ hash_u32(this->z);
+			x += (seed & 0xFFFF) % 129 - 64;
+			z += (seed >> 16) % 129 - 64;
+		}
+
+		uint8_t tex
+			= blocks[this->block->type]->getTextureIndex(this, SIDE_TOP);
+		uint8_t tex_x = TEX_OFFSET(TEXTURE_X(tex));
+		uint8_t tex_y = TEX_OFFSET(TEXTURE_Y(tex));
+		uint8_t light = (MAX_U8(this->block->torch_light,
+								blocks[this->block->type]->luminance)
+						 << 4)
+			| this->block->sky_light;
+
+		int16_t tree_height = BLK_LEN*(6+2*(this->block->metadata & 1));
+
+		displaylist_pos(d, x, y, z);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x, tex_y + 16);
+		displaylist_pos(d, x, y + tree_height, z);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x, tex_y);
+		displaylist_pos(d, x + BLK_LEN, y + BLK_LEN, z + BLK_LEN);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x + 16, tex_y);
+		displaylist_pos(d, x + BLK_LEN, y, z + BLK_LEN);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x + 16, tex_y + 16);
+
+		displaylist_pos(d, x + BLK_LEN, y, z);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x, tex_y + 16);
+		displaylist_pos(d, x + BLK_LEN, y + tree_height, z);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x, tex_y);
+		displaylist_pos(d, x, y + tree_height, z + BLK_LEN);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x + 16, tex_y);
+		displaylist_pos(d, x, y, z + BLK_LEN);
+		displaylist_color(d, light);
+		displaylist_texcoord(d, tex_x + 16, tex_y + 16);
+	}
+
+	return 2;
+}
+
 size_t render_block_torch(struct displaylist* d, struct block_info* this,
 						  enum side side, struct block_info* it,
 						  uint8_t* vertex_light, bool count_only) {

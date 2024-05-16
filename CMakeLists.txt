@@ -73,6 +73,7 @@ add_executable(cavex
 				source/block/block_water.c
 				source/block/block_wool.c
 				source/block/block_workbench.c
+				source/block/block_tree2d.c
 				source/block/face_occlusion.c
 
 				source/entity/entity.c

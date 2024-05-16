@@ -127,6 +127,7 @@ void blocks_init() {
 	// repeater
 	blocks[95] = &block_locked_chest;
 	blocks[96] = &block_trapdoor;
+	blocks[97] = &block_tree2d;
 
 	for(int k = 0; k < 256; k++) {
 		if(blocks[k]) {
