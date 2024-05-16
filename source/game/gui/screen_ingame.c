@@ -112,7 +112,7 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 								   -0.72F - sinHalfCircle * 0.2F});
 		glm_rotate_y(model, glm_rad(45.0F), model);
 		glm_rotate_y(model, glm_rad(-sinHalfCircleWeird * 20.0F), model);
-		glm_rotate_z(model, glm_rad(-sinf(sqrtLerpPI) * 20.0F), model);
+		//glm_rotate_z(model, glm_rad(-sinf(sqrtLerpPI) * 20.0F), model);
 		glm_rotate_x(model, glm_rad(-sinf(sqrtLerpPI) * 80.0F), model);
 
 		glm_scale_uni(model, 0.4F);

@@ -129,38 +129,16 @@ static void entity_render(struct entity* e, mat4 view, float tick_delta) {
 
 		mat4 model;
 		glm_translate_make(model, pos_lerp);
-		glm_translate_y(model, sinf(ticks / 30.0F * GLM_PIf) * 0.1F + 0.1F);
-		glm_rotate_y(model, glm_rad(ticks * 3.0F), model);
-		glm_scale_uni(model, 0.25F);
-		glm_translate(model, (vec3) {-0.5F, -0.5F, -0.5F});
+//		glm_translate_y(model, sinf(ticks / 30.0F * GLM_PIf) * 0.1F + 0.1F);
+//		glm_rotate_y(model, glm_rad(ticks * 3.0F), model);
+//		glm_scale_uni(model, 0.25F);
+//		glm_translate(model, (vec3) {-0.5F, -0.5F, -0.5F});
 
 		mat4 mv;
 		glm_mat4_mul(view, model, mv);
 
-		int amount = 1;
-		if(e->data.item.item.count > 20) {
-			amount = 4;
-		} else if(e->data.item.item.count > 5) {
-			amount = 3;
-		} else if(e->data.item.item.count > 1) {
-			amount = 2;
-		}
-
-		vec3 displacement[4] = {
-			{0.0F, 0.0F, 0.0F},
-			{-0.701F, -0.331F, -0.239F},
-			{0.139F, -0.276F, 0.211F},
-			{0.443F, 0.512F, -0.101F},
-		};
-
-		for(int k = 0; k < amount; k++) {
-			mat4 final;
-			glm_translate_make(final, displacement[k]);
-			glm_mat4_mul(mv, final, final);
-
-			it->renderItem(it, &e->data.item.item, final, false,
-						   R_ITEM_ENV_ENTITY);
-		}
+		it->renderItem(it, &e->data.item.item, mv, false,
+						 R_ITEM_ENV_ENTITY);
 
 		struct AABB bbox;
 		aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);

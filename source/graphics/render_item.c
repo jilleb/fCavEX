@@ -228,11 +228,7 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 				break;
 			case R_ITEM_ENV_FIRSTPERSON:
 				glm_translate_make(model, (vec3) {0.5F, 0.2F, 0.5F});
-				glm_scale_uni(model, 1.5F);
-				glm_rotate_y(model, glm_rad(50.0F), model);
-				glm_rotate_z(model, glm_rad(335.0F), model);
-				glm_translate(
-					model, (vec3) {1.0F / 16.0F - 1.0F, -1.0F / 16.0F, 0.0F});
+				glm_scale_uni(model, 0.5F);
 				break;
 			default: break;
 		}
