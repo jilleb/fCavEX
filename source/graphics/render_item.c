@@ -96,26 +96,6 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 
 		uint8_t light = fullbright ? *vertex_light_inv : *vertex_light;
 
-		// left layer
-		/*
-		displaylist_pos(&dl, 0, 256, -16);
-		displaylist_color(&dl, light);
-		displaylist_texcoord(&dl, s + 16, t);
-
-		displaylist_pos(&dl, 0, 0, -16);
-		displaylist_color(&dl, light);
-		displaylist_texcoord(&dl, s + 16, t + 16);
-
-		displaylist_pos(&dl, 256, 0, -16);
-		displaylist_color(&dl, light);
-		displaylist_texcoord(&dl, s, t + 16);
-
-		displaylist_pos(&dl, 256, 256, -16);
-		displaylist_color(&dl, light);
-		displaylist_texcoord(&dl, s, t);
-		*/
-
-		
 		// right layer
 		displaylist_pos(&dl, 0, 256, 0);
 		displaylist_color(&dl, light);
@@ -132,79 +112,6 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 		displaylist_pos(&dl, 0, 0, 0);
 		displaylist_color(&dl, light);
 		displaylist_texcoord(&dl, s + 16, t + 16);
-		/*
-
-		for(int k = 0; k < 16; k++) {
-			// front
-			displaylist_pos(&dl, 256 - (k + 1) * 16, 256, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k + 1, t);
-
-			displaylist_pos(&dl, 256 - (k + 1) * 16, 0, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k + 1, t + 16);
-
-			displaylist_pos(&dl, 256 - (k + 1) * 16, 0, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k, t + 16);
-
-			displaylist_pos(&dl, 256 - (k + 1) * 16, 256, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k, t);
-
-			// back
-			displaylist_pos(&dl, 256 - k * 16, 256, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k + 1, t);
-
-			displaylist_pos(&dl, 256 - k * 16, 256, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k, t);
-
-			displaylist_pos(&dl, 256 - k * 16, 0, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k, t + 16);
-
-			displaylist_pos(&dl, 256 - k * 16, 0, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_080));
-			displaylist_texcoord(&dl, s + k + 1, t + 16);
-
-			// top
-			displaylist_pos(&dl, 0, 256 - k * 16, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s + 16, t + k);
-
-			displaylist_pos(&dl, 0, 256 - k * 16, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s + 16, t + k + 1);
-
-			displaylist_pos(&dl, 256, 256 - k * 16, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s, t + k + 1);
-
-			displaylist_pos(&dl, 256, 256 - k * 16, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s, t + k);
-
-			// bottom
-			displaylist_pos(&dl, 0, 256 - (k + 1) * 16, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s + 16, t + k);
-
-			displaylist_pos(&dl, 256, 256 - (k + 1) * 16, 0);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s, t + k);
-
-			displaylist_pos(&dl, 256, 256 - (k + 1) * 16, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s, t + k + 1);
-
-			displaylist_pos(&dl, 0, 256 - (k + 1) * 16, -16);
-			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
-			displaylist_texcoord(&dl, s + 16, t + k + 1);
-		}
-		*/
-
 		mat4 model;
 
 		switch(env) {
@@ -222,7 +129,8 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 				break;
 			case R_ITEM_ENV_ENTITY:
 				glm_mat4_identity(model);
-				glm_scale_uni(model, 1.5F);
+				//glm_scale_uni(model, 1.5F);
+				if (item_is_block(stack)) glm_scale_uni(model, 0.25F);
 				glm_translate_make(model,
 								   (vec3) {0.0F, 0.0F, 0.5F + 1.0F / 32.0F});
 				break;
@@ -252,6 +160,8 @@ void render_item_block(struct item* item, struct item_data* stack, mat4 view,
 					   bool fullbright, enum render_item_env env) {
 	assert(item && stack && view);
 	assert(item_is_block(stack));
+	render_item_flat(item, stack, view, fullbright, env);
+	/*
 
 	struct block* b = blocks[stack->id];
 	assert(b);
@@ -341,4 +251,5 @@ void render_item_block(struct item* item, struct item_data* stack, mat4 view,
 	displaylist_render_immediate(&dl, vertices * 4);
 	gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 	gfx_lighting(false);
+	*/
 }
