@@ -31,7 +31,9 @@
 
 #define MAX_REGIONS 4
 #define MAX_VIEW_DISTANCE 5 // in chunks
+#define MAX_HIGH_DETAIL_VIEW_DISTANCE 2
 #define MAX_CHUNKS ((MAX_VIEW_DISTANCE * 2 + 2) * (MAX_VIEW_DISTANCE * 2 + 2))
+#define MAX_HIGH_DETAIL_CHUNKS ((MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2) * (MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2))
 
 struct server_local {
 	struct random_gen rand_src;
