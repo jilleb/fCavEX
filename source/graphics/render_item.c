@@ -97,6 +97,7 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 		uint8_t light = fullbright ? *vertex_light_inv : *vertex_light;
 
 		// left layer
+		/*
 		displaylist_pos(&dl, 0, 256, -16);
 		displaylist_color(&dl, light);
 		displaylist_texcoord(&dl, s + 16, t);
@@ -112,7 +113,9 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 		displaylist_pos(&dl, 256, 256, -16);
 		displaylist_color(&dl, light);
 		displaylist_texcoord(&dl, s, t);
+		*/
 
+		
 		// right layer
 		displaylist_pos(&dl, 0, 256, 0);
 		displaylist_color(&dl, light);
@@ -129,6 +132,7 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 		displaylist_pos(&dl, 0, 0, 0);
 		displaylist_color(&dl, light);
 		displaylist_texcoord(&dl, s + 16, t + 16);
+		/*
 
 		for(int k = 0; k < 16; k++) {
 			// front
@@ -199,6 +203,7 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 			displaylist_color(&dl, DIM_LIGHT(light, level_table_064));
 			displaylist_texcoord(&dl, s + 16, t + k + 1);
 		}
+		*/
 
 		mat4 model;
 
@@ -234,10 +239,13 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 
 		mat4 modelview;
 		glm_mat4_mul(view, model, modelview);
+		glm_mat4_ins3(GLM_MAT3_IDENTITY, modelview); //for billboarding
 		gfx_matrix_modelview(modelview);
 
 		gfx_lighting(true);
-		displaylist_render_immediate(&dl, (2 + 16 * 4) * 4);
+		//displaylist_render_immediate(&dl, (2 + 16 * 4) * 4);
+		//billboard item should need only 4 vertices
+		displaylist_render_immediate(&dl, 4);
 		gfx_lighting(false);
 	}
 
