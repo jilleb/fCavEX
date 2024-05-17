@@ -427,7 +427,7 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 					  9 * 2);
 	}
 	//TODO: use health variable instead of 10
-	for (int k = 0; k < 10; k++) {
+	for (int k = 0; k < gstate.local_player->health; k++) {
 		// draw red hearts
 		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
 					  height - 32 * 8 / 5 - (22 + 10) * 2, 52, 229, 9, 9, 9 * 2,

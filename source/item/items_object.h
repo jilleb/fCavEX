@@ -920,6 +920,8 @@ static struct item item_gold_boots = {
 	},
 };
 
+extern struct item item_porkchop;
+/*
 static struct item item_porkchop = {
 	.name = "Raw Porkchop",
 	.has_damage = false,
@@ -934,6 +936,7 @@ static struct item item_porkchop = {
 		},
 	},
 };
+*/
 
 static struct item item_porkchop_cooked = {
 	.name = "Cooked Porkchop",

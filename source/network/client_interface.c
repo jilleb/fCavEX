@@ -132,6 +132,8 @@ void clin_process(struct client_rpc* call) {
 			entity_local_player(call->payload.world_reset.local_entity,
 								gstate.local_player, &gstate.world);
 
+			gstate.local_player->health = 10;
+
 			if(gstate.current_screen == &screen_ingame)
 				screen_set(&screen_load_world);
 			break;
@@ -248,6 +250,9 @@ void clin_process(struct client_rpc* call) {
 			if(e)
 				glm_vec3_copy(call->payload.entity_move.pos, e->network_pos);
 		} break;
+		case CRPC_PLAYER_SET_HEALTH:
+			if (gstate.local_player) gstate.local_player->health = call->payload.player_set_health.health;
+		break;
 	}
 }
 

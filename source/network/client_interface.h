@@ -40,6 +40,7 @@ enum client_rpc_type {
 	CRPC_ENTITY_DESTROY,
 	CRPC_ENTITY_MOVE,
 	CRPC_OPEN_WINDOW,
+	CRPC_PLAYER_SET_HEALTH,
 };
 
 struct client_rpc {
@@ -100,6 +101,9 @@ struct client_rpc {
 			uint32_t entity_id;
 			vec3 pos;
 		} entity_move;
+		struct {
+			int32_t health;
+		} player_set_health;
 	} payload;
 };
 

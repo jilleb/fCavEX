@@ -320,6 +320,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				level_archive_read(&s->level, LEVEL_TIME, &s->world_time, 0);
 
 				//TODO: read health from level archive
+				s->player.health = 10;
 
 				dict_entity_reset(s->entities);
 				s->player.active_inventory = &s->player.inventory;
@@ -328,6 +329,11 @@ static void server_local_process(struct server_rpc* call, void* user) {
 					.type = CRPC_WORLD_RESET,
 					.payload.world_reset.dimension = dim,
 					.payload.world_reset.local_entity = 0,
+				});
+
+				clin_rpc_send(&(struct client_rpc) {
+					.type = CRPC_PLAYER_SET_HEALTH,
+					.payload.player_set_health.health = 10
 				});
 			}
 			break;
