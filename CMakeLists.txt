@@ -103,6 +103,7 @@ add_executable(cavex
 				source/item/recipe.c
 				source/item/items/item_sugarcane.c
 				source/item/items/item_porkchop.c
+				source/item/items/item_porkchop_cooked.c
 
 				source/network/client_interface.c
 				source/network/level_archive.c
