@@ -115,6 +115,49 @@ void server_local_send_inv_changes(set_inv_slot_t changes,
 	}
 }
 
+void server_local_set_player_health(struct server_local* s, int new_health) {
+	s->player.health = new_health;
+	if (s->player.health > 10) s->player.health = 10;
+	if (s->player.health <= 0) {
+		//TODO: code which runs when player dies
+		puts("dead");
+
+		//drop all items
+		for (int i = 0; i < INVENTORY_SIZE; i++) {
+			struct item_data item;
+			printf("get slot %i\n", i);
+			inventory_get_slot(&s->player.inventory, i, &item);
+
+			if (item.id != 0) {
+				printf("clear slot %i\n", i);
+				inventory_clear_slot(&s->player.inventory, i);
+				printf("send slot %i\n", i);
+				clin_rpc_send(&(struct client_rpc) {
+					.type = CRPC_INVENTORY_SLOT,
+					.payload.inventory_slot.window = WINDOWC_INVENTORY,
+					.payload.inventory_slot.slot = i,
+					.payload.inventory_slot.item = s->player.inventory.items[i]
+				});
+
+				printf("spawn slot %i\n", i);
+				server_local_spawn_item(
+					(vec3) {s->player.x, s->player.y, s->player.z}, &item, false, s);
+
+			}
+		}
+
+		//respawn with half health
+		puts("setting health for respawning");
+		s->player.health = 5;
+	}
+
+	//send updated health to client
+	clin_rpc_send(&(struct client_rpc) {
+		.type = CRPC_PLAYER_SET_HEALTH,
+		.payload.player_set_health.health = s->player.health
+	});
+}
+
 static void server_local_process(struct server_rpc* call, void* user) {
 	assert(call && user);
 

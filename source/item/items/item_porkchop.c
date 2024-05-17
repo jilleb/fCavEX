@@ -24,16 +24,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 						struct block_info* where, struct block_info* on,
 						enum side on_side) {
 	//health test - eating raw porkchop subtracts 1 health
-	s->player.health -= 1;
-	if (s->player.health < 0) s->player.health = 0;
-	
-	//send updated health to client
-	clin_rpc_send(&(struct client_rpc) {
-		.type = CRPC_PLAYER_SET_HEALTH,
-		.payload.player_set_health.health = s->player.health
-	});
-
-
+	server_local_set_player_health(s, s->player.health-1);
 	return true;
 }
 
