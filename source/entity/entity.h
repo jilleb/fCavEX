@@ -38,7 +38,7 @@ struct entity {
 	bool on_server;
 	void* world;
 	int delay_destroy;
-	int health;
+	short health;
 
 	vec3 pos;
 	vec3 pos_old;

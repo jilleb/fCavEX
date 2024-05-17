@@ -222,19 +222,14 @@ void clin_process(struct client_rpc* call) {
 
 			break;
 		case CRPC_SPAWN_ITEM: {
-			//BREAKPOINT
-			puts("CRPC_SPAWN_ITEM begin");
 			struct entity* e = dict_entity_safe_get(
 				gstate.entities, call->payload.spawn_item.entity_id);
+			//this can shuffle entities around in memory, so update player pointer
 			gstate.local_player = dict_entity_safe_get(
 				gstate.entities, 0);
-			puts("CRPC_SPAWN_ITEM dict_entity_safe_get"); //BREAKPOINT
 			entity_item(call->payload.spawn_item.entity_id, e, false,
 						&gstate.world, call->payload.spawn_item.item);
-			puts("CRPC_SPAWN_ITEM entity_item"); //BREAKPOINT
 			e->teleport(e, call->payload.spawn_item.pos);
-			puts("CRPC_SPAWN_ITEM teleport"); //BREAKPOINT
-			puts("CRPC_SPAWN_ITEM end");
 		} break;
 		case CRPC_PICKUP_ITEM: {
 			if(gstate.local_player

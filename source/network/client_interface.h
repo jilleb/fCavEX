@@ -102,7 +102,7 @@ struct client_rpc {
 			vec3 pos;
 		} entity_move;
 		struct {
-			int32_t health;
+			int16_t health;
 		} player_set_health;
 	} payload;
 };

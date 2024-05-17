@@ -45,7 +45,8 @@ struct server_local {
 		bool finished_loading;
 		struct inventory inventory;
 		struct inventory* active_inventory;
-		int health;
+		short health;
+		int spawn_x, spawn_y, spawn_z;
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
@@ -61,5 +62,5 @@ void server_local_spawn_block_drops(struct server_local* s,
 									struct block_info* blk_info);
 void server_local_send_inv_changes(set_inv_slot_t changes,
 								   struct inventory* inv, uint8_t window);
-void server_local_set_player_health(struct server_local* s, int new_health);
+void server_local_set_player_health(struct server_local* s, short new_health);
 #endif

@@ -115,23 +115,17 @@ void server_local_send_inv_changes(set_inv_slot_t changes,
 	}
 }
 
-void server_local_set_player_health(struct server_local* s, int new_health) {
+void server_local_set_player_health(struct server_local* s, short new_health) {
 	s->player.health = new_health;
 	if (s->player.health > 10) s->player.health = 10;
 	if (s->player.health <= 0) {
-		//TODO: code which runs when player dies
-		puts("dead");
-
-		//drop all items
+		//player dead, drop all items and move to spawn position
 		for (int i = 0; i < INVENTORY_SIZE; i++) {
 			struct item_data item;
-			printf("get slot %i\n", i);
 			inventory_get_slot(&s->player.inventory, i, &item);
 
 			if (item.id != 0) {
-				printf("clear slot %i\n", i);
 				inventory_clear_slot(&s->player.inventory, i);
-				printf("send slot %i\n", i);
 				clin_rpc_send(&(struct client_rpc) {
 					.type = CRPC_INVENTORY_SLOT,
 					.payload.inventory_slot.window = WINDOWC_INVENTORY,
@@ -139,16 +133,21 @@ void server_local_set_player_health(struct server_local* s, int new_health) {
 					.payload.inventory_slot.item = s->player.inventory.items[i]
 				});
 
-				printf("spawn slot %i\n", i);
 				server_local_spawn_item(
 					(vec3) {s->player.x, s->player.y, s->player.z}, &item, false, s);
-
 			}
 		}
 
 		//respawn with half health
-		puts("setting health for respawning");
 		s->player.health = 5;
+		s->player.x = s->player.spawn_x;
+		s->player.y = s->player.spawn_y;
+		s->player.z = s->player.spawn_z;
+		clin_rpc_send(&(struct client_rpc) {
+			.type = CRPC_PLAYER_POS,
+			.payload.player_pos.position = {s->player.x, s->player.y, s->player.z},
+			.payload.player_pos.rotation = {0, 0}
+		});
 	}
 
 	//send updated health to client
@@ -330,6 +329,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 			level_archive_write(&s->level, LEVEL_TIME, &s->world_time);
 
 			//TODO: write health to level archive
+			level_archive_write(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health);
 
 			dict_entity_reset(s->entities);
 			server_world_destroy(&s->world);
@@ -362,8 +362,18 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 				level_archive_read(&s->level, LEVEL_TIME, &s->world_time, 0);
 
-				//TODO: read health from level archive
+				//TODO: read health and spawn pos from level archive
+				/*
 				s->player.health = 10;
+				s->player.spawn_x = 0;
+				s->player.spawn_y = 69;
+				s->player.spawn_z = 0;
+				*/
+
+				level_archive_read(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health, 0);
+				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNX, &s->player.spawn_x, 0);
+				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNY, &s->player.spawn_y, 0);
+				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNZ, &s->player.spawn_z, 0);
 
 				dict_entity_reset(s->entities);
 				s->player.active_inventory = &s->player.inventory;
@@ -376,7 +386,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 				clin_rpc_send(&(struct client_rpc) {
 					.type = CRPC_PLAYER_SET_HEALTH,
-					.payload.player_set_health.health = 10
+					.payload.player_set_health.health = s->player.health
 				});
 			}
 			break;

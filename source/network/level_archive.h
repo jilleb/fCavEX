@@ -61,6 +61,18 @@ struct level_archive_tag {
 	(struct level_archive_tag) {                                               \
 		".Data.Player.Health", TAG_SHORT                                       \
 	}
+#define LEVEL_PLAYER_SPAWNX                                                    \
+	(struct level_archive_tag) {                                               \
+		".Data.SpawnX", TAG_INT                                                \
+	}
+#define LEVEL_PLAYER_SPAWNY                                                    \
+	(struct level_archive_tag) {                                               \
+		".Data.SpawnY", TAG_INT                                                \
+	}
+#define LEVEL_PLAYER_SPAWNZ                                                    \
+	(struct level_archive_tag) {                                               \
+		".Data.SpawnZ", TAG_INT                                                \
+	}
 #define LEVEL_PLAYER_POSITION                                                  \
 	(struct level_archive_tag) {                                               \
 		".Data.Player.Pos", TAG_LIST                                           \
