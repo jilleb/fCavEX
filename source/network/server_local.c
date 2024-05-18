@@ -537,7 +537,10 @@ static void server_local_update(struct server_local* s) {
 
 	//check if player is falling
 	if (s->player.has_pos) {
-		if (s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) {
+		//reset falling height if player is underwater
+		struct block_data blk;
+		server_world_get_block(&s->world, s->player.x, s->player.y, s->player.z, &blk);
+		if ((s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) || blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW) {
 			s->player.fall_y = s->player.y;
 		}
 		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
