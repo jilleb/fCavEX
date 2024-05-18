@@ -331,7 +331,6 @@ static void server_local_process(struct server_rpc* call, void* user) {
 			level_archive_write_inventory(&s->level, &s->player.inventory);
 			level_archive_write(&s->level, LEVEL_TIME, &s->world_time);
 
-			//TODO: write health to level archive
 			level_archive_write(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health);
 
 			dict_entity_reset(s->entities);
@@ -368,7 +367,6 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 				level_archive_read(&s->level, LEVEL_TIME, &s->world_time, 0);
 
-				//TODO: read health and spawn pos from level archive
 				/*
 				s->player.health = 10;
 				s->player.spawn_x = 0;
@@ -377,6 +375,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				*/
 
 				level_archive_read(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health, 0);
+				if (s->player.health > 10) s->player.health = 10;
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNX, &s->player.spawn_x, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNY, &s->player.spawn_y, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNZ, &s->player.spawn_z, 0);
@@ -539,12 +538,10 @@ static void server_local_update(struct server_local* s) {
 	//check if player is falling
 	if (s->player.has_pos) {
 		if (s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) {
-			puts("SETTING FALL Y");
 			s->player.fall_y = s->player.y;
 		}
 		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
 			int fall_distance = s->player.fall_y - s->player.y;
-			puts("FALL DAMAGE");
 			if (fall_distance >= 4) {
 				server_local_set_player_health(s, s->player.health-fall_distance+3);
 			}
