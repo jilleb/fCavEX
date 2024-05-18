@@ -62,17 +62,21 @@ static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
-	if (it->id == ITEM_SHEARS) {
-		server_local_spawn_item((vec3){where->x + 0.5F, where->y + 0.5F, where->z + 0.5F}, &(struct item_data){
-			.id = BLOCK_LEAVES,
-			.durability = where->block->metadata >> 1,
-			.count = 8
-		}, false, s);
-		server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
-			.type = BLOCK_SAPLING,
-			.metadata = on->block->metadata >> 1
-		});
+	server_local_spawn_item((vec3){where->x + 0.5F, where->y + 0.5F, where->z + 0.5F},
+	(it->id == ITEM_SHEARS) ? &(struct item_data){
+		.id = BLOCK_LEAVES,
+		.durability = where->block->metadata >> 1,
+		.count = 16
 	}
+	: &(struct item_data){
+		.id = ITEM_STICK,
+		.durability = 0,
+		.count = 8
+	}, false, s);
+	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
+		.type = BLOCK_SAPLING,
+		.metadata = on->block->metadata >> 1
+	});
 }
 
 struct block block_tree2d = {
