@@ -285,6 +285,7 @@ void clin_update() {
 			.payload.player_pos.z = gstate.camera.z,
 			.payload.player_pos.rx = -glm_deg(gstate.camera.rx),
 			.payload.player_pos.ry = glm_deg(gstate.camera.ry) - 90.0F,
+			.payload.player_pos.vel_y = gstate.local_player->vel[1]
 		});
 		last_pos_update = time_get();
 	}

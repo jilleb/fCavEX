@@ -47,6 +47,8 @@ struct server_local {
 		struct inventory* active_inventory;
 		short health;
 		int spawn_x, spawn_y, spawn_z;
+		float vel_y, old_vel_y;
+		int fall_y;
 	} player;
 	struct server_world world;
 	dict_entity_t entities;

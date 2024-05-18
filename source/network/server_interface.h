@@ -41,6 +41,7 @@ struct server_rpc {
 		struct {
 			double x, y, z;
 			float rx, ry;
+			float vel_y;
 		} player_pos;
 		struct {
 			string_t name;

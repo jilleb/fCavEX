@@ -170,7 +170,10 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				s->player.z = call->payload.player_pos.z;
 				s->player.rx = call->payload.player_pos.rx;
 				s->player.ry = call->payload.player_pos.ry;
+				s->player.old_vel_y = s->player.vel_y;
+				s->player.vel_y = call->payload.player_pos.vel_y;
 				s->player.has_pos = true;
+				//printf("%.03f %.03f %.03f\n", s->player.old_vel_y+0.079f, s->player.vel_y+0.079f, s->player.y);
 			}
 			break;
 		case SRPC_HOTBAR_SLOT:
@@ -357,6 +360,9 @@ static void server_local_process(struct server_rpc* call, void* user) {
 					s->player.rx = rot[0];
 					s->player.ry = rot[1];
 					s->player.dimension = dim;
+					s->player.fall_y = s->player.y;
+					s->player.old_vel_y = 0;
+					s->player.vel_y = 0;
 					s->player.has_pos = true;
 				}
 
@@ -528,6 +534,22 @@ static void server_local_update(struct server_local* s) {
 		}
 
 		s->player.finished_loading = true;
+	}
+
+	//check if player is falling
+	if (s->player.has_pos) {
+		if (s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) {
+			puts("SETTING FALL Y");
+			s->player.fall_y = s->player.y;
+		}
+		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
+			int fall_distance = s->player.fall_y - s->player.y;
+			puts("FALL DAMAGE");
+			if (fall_distance >= 4) {
+				server_local_set_player_health(s, s->player.health-fall_distance+3);
+			}
+			s->player.fall_y = s->player.y;
+		}
 	}
 }
 
