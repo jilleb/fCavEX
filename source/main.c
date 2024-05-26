@@ -211,10 +211,12 @@ int main(void) {
 			entities_client_render(gstate.entities, &gstate.camera, tick_delta);
 			gfx_fog(true);
 
-			world_render(&gstate.world, &gstate.camera, true);
+			//don't render animated textures
+			//world_render(&gstate.world, &gstate.camera, true);
 
-			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
-				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
+//disabling clouds
+//			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
+//				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
 		}
 
 		gfx_mode_gui();

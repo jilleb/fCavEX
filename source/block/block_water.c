@@ -33,14 +33,21 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 	int block_height = (this->block->metadata & 0x8) ?
 		16 :
 		(8 - this->block->metadata) * 2 * 7 / 8;
+	return (it->block->type == this->block->type) ?
+		face_occlusion_full() :
+		face_occlusion_empty(); 
+	/*
 	switch(side) {
 		case SIDE_TOP:
+		case SIDE_BOTTOM:
 			return (it->block->type == this->block->type) ?
 				face_occlusion_full() :
-				face_occlusion_empty();
-		case SIDE_BOTTOM: return face_occlusion_full();
-		default: return face_occlusion_rect(block_height);
+				face_occlusion_empty(); 
+//		case SIDE_BOTTOM: return face_occlusion_full();
+		default: return face_occlusion_empty();
+//		default: return (it->block->type == BLOCK_AIR) ? face_occlusion_rect(block_height) : face_occlusion_full();
 	}
+	*/
 }
 
 static uint8_t getTextureIndex1(struct block_info* this, enum side side) {
@@ -65,8 +72,8 @@ struct block block_water_still = {
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
 	.onRightClick = NULL,
-	.transparent = true,
-	.renderBlock = render_block_fluid,
+	.transparent = false,
+	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
 	.luminance = 0,
 	.double_sided = false,
@@ -98,8 +105,8 @@ struct block block_water_flowing = {
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
 	.onRightClick = NULL,
-	.transparent = true,
-	.renderBlock = render_block_fluid,
+	.transparent = false,
+	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
 	.luminance = 0,
 	.double_sided = false,

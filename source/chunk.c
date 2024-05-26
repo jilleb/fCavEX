@@ -248,7 +248,7 @@ void chunk_render(struct chunk* c, bool pass, float x, float y, float z) {
 	if(!pass && c->has_displist[12]) {
 		check_matrix_set(c, &needs_matrix);
 		gfx_cull_func(MODE_NONE);
-		displaylist_render(c->mesh + 12);
+		//displaylist_render(c->mesh + 12);
 		gfx_cull_func(MODE_BACK);
 	}
 }
