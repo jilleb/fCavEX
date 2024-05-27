@@ -24,6 +24,8 @@
 * ~~block placement~~ and destruction logic
 * ~~(random)~~ block updates
 * ~~item actions~~
+* health bar, respawning
+* 2D mobs, fighting
 * real texture pack support
 * Beta 1.7.3 multiplayer support
 
