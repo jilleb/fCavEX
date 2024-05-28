@@ -214,9 +214,10 @@ int main(void) {
 			//don't render animated textures
 			//world_render(&gstate.world, &gstate.camera, true);
 
-//disabling clouds
-//			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
-//				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
+#ifdef GFX_CLOUDS
+			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
+				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
+#endif
 		}
 
 		gfx_mode_gui();
