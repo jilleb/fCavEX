@@ -34,6 +34,7 @@
 #include "game/gui/screen.h"
 #include "graphics/gfx_util.h"
 #include "graphics/gui_util.h"
+#include "graphics/gfx_settings.h"
 #include "item/recipe.h"
 #include "network/client_interface.h"
 #include "network/server_interface.h"

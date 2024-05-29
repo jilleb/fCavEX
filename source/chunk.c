@@ -28,6 +28,7 @@
 #include "game/game_state.h"
 #include "platform/gfx.h"
 #include "stack.h"
+#include "graphics/gfx_settings.h"
 
 #define CHUNK_INDEX(x, y, z) ((x) + ((z) + (y) * CHUNK_SIZE) * CHUNK_SIZE)
 #define CHUNK_LIGHT_INDEX(x, y, z)                                             \
