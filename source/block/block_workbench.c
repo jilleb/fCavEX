@@ -62,7 +62,7 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 		});
 
 		struct inventory* inv = malloc(sizeof(struct inventory));
-		inventory_create(inv, &inventory_logic_crafting, s, CRAFTING_SIZE);
+		inventory_create(inv, &inventory_logic_crafting, s, CRAFTING_SIZE, 0, 0, 0);
 		s->player.active_inventory = inv;
 	}
 }
@@ -94,6 +94,7 @@ struct block block_workbench = {
 		.max_stack = 64,
 		.renderItem = render_item_block,
 		.onItemPlace = block_place_default,
+		.fuel = 1,
 		.render_data.block.has_default = true,
 		.render_data.block.default_metadata = 0,
 		.render_data.block.default_rotation = 2,

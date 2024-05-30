@@ -40,27 +40,14 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 
 static uint8_t getTextureIndex1(struct block_info* this, enum side side) {
 	switch(side) {
-		case SIDE_FRONT:
-			if(this->block->metadata == 2)
+		case SIDE_TOP:
+		case SIDE_BOTTOM:
+			return tex_atlas_lookup(TEXAT_FURNACE_TOP);
+		default:
+			if (this->block->metadata == 0)
 				return tex_atlas_lookup(TEXAT_FURNACE_FRONT);
 			else
-				return tex_atlas_lookup(TEXAT_FURNACE_SIDE);
-		case SIDE_BACK:
-			if(this->block->metadata == 3)
-				return tex_atlas_lookup(TEXAT_FURNACE_FRONT);
-			else
-				return tex_atlas_lookup(TEXAT_FURNACE_SIDE);
-		case SIDE_RIGHT:
-			if(this->block->metadata == 5)
-				return tex_atlas_lookup(TEXAT_FURNACE_FRONT);
-			else
-				return tex_atlas_lookup(TEXAT_FURNACE_SIDE);
-		case SIDE_LEFT:
-			if(this->block->metadata == 4)
-				return tex_atlas_lookup(TEXAT_FURNACE_FRONT);
-			else
-				return tex_atlas_lookup(TEXAT_FURNACE_SIDE);
-		default: return tex_atlas_lookup(TEXAT_FURNACE_TOP);
+				return tex_atlas_lookup(TEXAT_FURNACE_FRONT_LIT);
 	}
 }
 
@@ -90,51 +77,47 @@ static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
 	}
 }
 
-static bool onItemPlace(struct server_local* s, struct item_data* it,
-						struct block_info* where, struct block_info* on,
-						enum side on_side) {
-	int metadata = 0;
-	double dx = s->player.x - (where->x + 0.5);
-	double dz = s->player.z - (where->z + 0.5);
-
-	if(fabs(dx) > fabs(dz)) {
-		metadata = (dx >= 0) ? 5 : 4;
-	} else {
-		metadata = (dz >= 0) ? 3 : 2;
-	}
-
-	struct block_data blk = (struct block_data) {
-		.type = it->id,
-		.metadata = metadata,
-		.sky_light = 0,
-		.torch_light = 0,
-	};
-
-	struct block_info blk_info = *where;
-	blk_info.block = &blk;
-
-	if(entity_local_player_block_collide(
-		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
-		return false;
-
-	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
-	return true;
-}
-
 static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
-	if(s->player.active_inventory == &s->player.inventory) {
-		clin_rpc_send(&(struct client_rpc) {
-			.type = CRPC_OPEN_WINDOW,
-			.payload.window_open.window = WINDOWC_FURNACE,
-			.payload.window_open.type = WINDOW_TYPE_FURNACE,
-			.payload.window_open.slot_count = FURNACE_SIZE,
-		});
+	if(items[it->id] && items[it->id]->fuel && on->block->metadata < 15) {
+		uint8_t new_fuel = on->block->metadata + items[it->id]->fuel;
+		if (new_fuel > 15) new_fuel = 15;
+		server_world_set_block(&s->world, on->x, on->y, on->z,
+			(struct block_data) {
+				.type = BLOCK_FURNACE,
+				.metadata = new_fuel
+			});
 
-		struct inventory* inv = malloc(sizeof(struct inventory));
-		inventory_create(inv, &inventory_logic_furnace, s, FURNACE_SIZE);
-		s->player.active_inventory = inv;
+		size_t slot
+			= inventory_get_hotbar(&s->player.inventory);
+		inventory_consume(&s->player.inventory,
+							slot + INVENTORY_SLOT_HOTBAR);
+
+		clin_rpc_send(&(struct client_rpc) {
+			.type = CRPC_INVENTORY_SLOT,
+			.payload.inventory_slot.window = WINDOWC_INVENTORY,
+			.payload.inventory_slot.slot
+			= slot + INVENTORY_SLOT_HOTBAR,
+			.payload.inventory_slot.item
+			= s->player.inventory
+					.items[slot + INVENTORY_SLOT_HOTBAR],
+		});
+	} else {
+		if(on->block->metadata != 0) {
+			if(s->player.active_inventory == &s->player.inventory) {
+				clin_rpc_send(&(struct client_rpc) {
+					.type = CRPC_OPEN_WINDOW,
+					.payload.window_open.window = WINDOWC_FURNACE,
+					.payload.window_open.type = WINDOW_TYPE_FURNACE,
+					.payload.window_open.slot_count = FURNACE_SIZE,
+				});
+
+				struct inventory* inv = malloc(sizeof(struct inventory));
+				inventory_create(inv, &inventory_logic_furnace, s, FURNACE_SIZE, on->x, on->y, on->z);
+				s->player.active_inventory = inv;
+			}
+		}
 	}
 }
 
@@ -148,9 +131,9 @@ struct block block_furnaceoff = {
 	.onRandomTick = NULL,
 	.onRightClick = onRightClick,
 	.transparent = false,
-	.renderBlock = render_block_full,
+	.renderBlock = render_block_furnace,
 	.renderBlockAlways = NULL,
-	.luminance = 0,
+	.luminance = 0, //depends on metadata
 	.double_sided = false,
 	.can_see_through = false,
 	.ignore_lighting = false,
@@ -164,9 +147,10 @@ struct block block_furnaceoff = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_block,
-		.onItemPlace = onItemPlace,
+		.onItemPlace = block_place_default,
+		.fuel = 0,
 		.render_data.block.has_default = true,
-		.render_data.block.default_metadata = 2,
+		.render_data.block.default_metadata = 0,
 		.render_data.block.default_rotation = 0,
 		.armor.is_armor = false,
 		.tool.type = TOOL_TYPE_ANY,
@@ -199,7 +183,8 @@ struct block block_furnaceon = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_block,
-		.onItemPlace = onItemPlace,
+		.onItemPlace = block_place_default,
+		.fuel = 0,
 		.render_data.block.has_default = true,
 		.render_data.block.default_metadata = 2,
 		.render_data.block.default_rotation = 0,

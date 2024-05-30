@@ -150,6 +150,7 @@ struct item {
 	bool has_damage;
 	uint16_t max_damage;
 	uint8_t max_stack;
+	uint8_t fuel;
 	void (*renderItem)(struct item*, struct item_data*, mat4, bool,
 					   enum render_item_env);
 	bool (*onItemPlace)(struct server_local*, struct item_data*,

@@ -43,6 +43,7 @@ struct item item_sugarcane = {
 	.name = "Sugarcane",
 	.has_damage = false,
 	.max_stack = 64,
+	.fuel = 0,
 	.renderItem = render_item_flat,
 	.onItemPlace = onItemPlace,
 	.armor.is_armor = false,

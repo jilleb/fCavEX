@@ -571,7 +571,7 @@ void server_local_create(struct server_local* s) {
 	string_init(s->level_name);
 
 	inventory_create(&s->player.inventory, &inventory_logic_player, s,
-					 INVENTORY_SIZE);
+					 INVENTORY_SIZE, 0, 0, 0);
 	s->player.active_inventory = &s->player.inventory;
 	dict_entity_init(s->entities);
 

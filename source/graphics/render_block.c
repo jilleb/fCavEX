@@ -1534,6 +1534,20 @@ size_t render_block_full(struct displaylist* d, struct block_info* this,
 	return 1;
 }
 
+size_t render_block_furnace(struct displaylist* d, struct block_info* this,
+						 enum side side, struct block_info* it,
+						 uint8_t* vertex_light, bool count_only) {
+	//TODO: luminance equals to metadata
+	if(!count_only)
+		render_block_side(
+			d, W2C_COORD(this->x), W2C_COORD(this->y), W2C_COORD(this->z), 0,
+			BLK_LEN, blocks[this->block->type]->getTextureIndex(this, side),
+			blocks[this->block->type]->luminance, true, 0, false, 0, side,
+			vertex_light);
+	return 1;
+}
+
+
 static struct displaylist block_cracks_dl;
 static uint8_t block_cracks_light[24];
 

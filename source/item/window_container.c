@@ -70,7 +70,7 @@ bool windowc_new_action(struct window_container* wc, uint16_t* action_id,
 	if(!next)
 		return false;
 
-	if(!inventory_create(next, NULL, NULL, wc->slot_count))
+	if(!inventory_create(next, NULL, NULL, wc->slot_count, 0, 0, 0))
 		return false;
 
 	if(!ilist_inventory_empty_p(wc->invs))

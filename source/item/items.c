@@ -22,6 +22,7 @@
 #include "../block/blocks.h"
 #include "../graphics/render_item.h"
 #include "items_object.h"
+#include "../network/server_local.h"
 
 struct item* items[ITEMS_MAX];
 
@@ -158,3 +159,5 @@ bool item_is_block(struct item_data* item) {
 	assert(item);
 	return item_get(item) && item->id < 256 && blocks[item->id];
 }
+
+

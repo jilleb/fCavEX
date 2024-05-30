@@ -34,6 +34,7 @@ struct item item_porkchop_cooked = {
 	.name = "Cooked Porkchop",
 	.has_damage = false,
 	.max_stack = 64,
+	.fuel = 0,
 	.renderItem = render_item_flat,
 	.onItemPlace = onItemPlace,
 	.armor.is_armor = false,

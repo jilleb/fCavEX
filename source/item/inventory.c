@@ -22,7 +22,7 @@
 #include "inventory.h"
 
 bool inventory_create(struct inventory* inv, struct inventory_logic* logic,
-					  void* user, size_t capacity) {
+					  void* user, size_t capacity, w_coord_t x, w_coord_t y, w_coord_t z) {
 	assert(inv && capacity > 0);
 
 	inv->user = user;
@@ -32,6 +32,10 @@ bool inventory_create(struct inventory* inv, struct inventory_logic* logic,
 
 	if(!inv->items)
 		return false;
+
+	inv->x = x;
+	inv->y = y;
+	inv->z = z;
 
 	inventory_clear(inv);
 

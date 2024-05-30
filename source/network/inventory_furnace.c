@@ -24,8 +24,11 @@
 
 static bool inv_pre_action(struct inventory* inv, size_t slot, bool right,
 						   set_inv_slot_t changes) {
+	struct server_local* s = inv->user;
 	if(slot == FURNACE_SLOT_OUTPUT) {
 		struct item_data output;
+		struct block_data blk;
+		server_world_get_block(&s->world, inv->x, inv->y, inv->z, &blk);
 		if(!right && inventory_get_slot(inv, FURNACE_SLOT_OUTPUT, &output)) {
 			bool can_take = false;
 			bool default_action;
@@ -36,7 +39,8 @@ static bool inv_pre_action(struct inventory* inv, size_t slot, bool right,
 
 				if(it_type && picked.id == output.id
 				   && picked.durability == output.durability
-				   && picked.count + output.count <= it_type->max_stack) {
+				   && picked.count + output.count <= it_type->max_stack
+					 && blk.metadata != 0) {
 					picked.count += output.count;
 					inventory_set_picked_item(inv, picked);
 					set_inv_slot_push(changes, SPECIAL_SLOT_PICKED_ITEM);
@@ -47,6 +51,8 @@ static bool inv_pre_action(struct inventory* inv, size_t slot, bool right,
 				default_action = true;
 				can_take = true;
 			}
+
+			if(blk.metadata == 0) can_take = false;
 
 			if(can_take) {
 				struct item_data it;
@@ -59,6 +65,8 @@ static bool inv_pre_action(struct inventory* inv, size_t slot, bool right,
 				}
 
 				set_inv_slot_push(changes, FURNACE_SLOT_INPUT);
+				blk.metadata--;
+				server_world_set_block(&s->world, inv->x, inv->y, inv->z, blk);
 				return default_action;
 			}
 		}
@@ -122,10 +130,10 @@ static void inv_post_action(struct inventory* inv, size_t slot, bool right,
 			}
 		}
 
-		if(result.count > 0) {
-			inventory_set_slot(inv, FURNACE_SLOT_OUTPUT, result);
-		} else {
+		if(result.count <= 0) {
 			inventory_clear_slot(inv, FURNACE_SLOT_OUTPUT);
+		} else {
+			inventory_set_slot(inv, FURNACE_SLOT_OUTPUT, result);
 		}
 
 		set_inv_slot_push(changes, FURNACE_SLOT_OUTPUT);
