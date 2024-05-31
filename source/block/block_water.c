@@ -51,12 +51,12 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 }
 
 static uint8_t getTextureIndex1(struct block_info* this, enum side side) {
-	return tex_atlas_lookup(TEXAT_WOOL_11);
+	return tex_atlas_lookup(TEXAT_WATER_STATIC);
 	//return TEXTURE_INDEX(1, 0);
 }
 
 static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
-	return tex_atlas_lookup(TEXAT_WOOL_11);
+	return tex_atlas_lookup(TEXAT_WATER_STATIC);
 	//return TEXTURE_INDEX(5, 0);
 }
 

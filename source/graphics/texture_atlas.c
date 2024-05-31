@@ -165,6 +165,7 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 	tex_atlas_reg(atlas, TEXAT_COBWEB, 11, 0);
 	tex_atlas_reg(atlas, TEXAT_ROSE, 12, 0);
 	tex_atlas_reg(atlas, TEXAT_DANDELION, 13, 0);
+	tex_atlas_reg(atlas, TEXAT_WATER_STATIC, 14, 0);
 	tex_atlas_reg(atlas, TEXAT_SAPLING_OAK, 15, 0);
 
 	tex_atlas_reg(atlas, TEXAT_COBBLESTONE, 0, 1);
