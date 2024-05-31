@@ -113,6 +113,7 @@ struct block block_ladder = {
 		.max_stack = 64,
 		.renderItem = render_item_flat,
 		.onItemPlace = onItemPlace,
+		.fuel = 1,
 		.armor.is_armor = false,
 		.tool.type = TOOL_TYPE_ANY,
 	},

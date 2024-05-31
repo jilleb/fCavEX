@@ -155,6 +155,7 @@ struct block block_sapling = {
 	.block_item = {
 		.has_damage = false,
 		.max_stack = 64,
+		.fuel = 1,
 		.renderItem = render_item_flat,
 		.onItemPlace = onItemPlace,
 		.armor.is_armor = false,

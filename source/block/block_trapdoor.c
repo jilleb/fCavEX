@@ -138,6 +138,7 @@ struct block block_trapdoor = {
 		.max_stack = 64,
 		.renderItem = render_item_block,
 		.onItemPlace = onItemPlace,
+		.fuel = 1,
 		.render_data.block.has_default = false,
 		.armor.is_armor = false,
 		.tool.type = TOOL_TYPE_ANY,
