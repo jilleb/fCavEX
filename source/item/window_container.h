@@ -30,6 +30,7 @@
 // local server use only
 #define WINDOWC_CRAFTING 1
 #define WINDOWC_FURNACE 2
+#define WINDOWC_CHEST 0
 
 enum window_type {
 	WINDOW_TYPE_CHEST = 0,

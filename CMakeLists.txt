@@ -92,6 +92,7 @@ add_executable(cavex
 				source/game/gui/screen_inventory.c
 				source/game/gui/screen_crafting.c
 				source/game/gui/screen_furnace.c
+				source/game/gui/screen_chest.c
 				source/game/gui/screen.c
 				source/game/camera.c
 				source/game/game_state.c
@@ -115,6 +116,7 @@ add_executable(cavex
 				source/network/inventory_player.c
 				source/network/inventory_crafting.c
 				source/network/inventory_furnace.c
+				source/network/inventory_chest.c
 
 				source/graphics/gfx_util.c
 				source/graphics/gui_util.c

@@ -58,6 +58,14 @@
 #define FURNACE_SLOT_MAIN 3
 #define FURNACE_SLOT_HOTBAR 30
 
+// chest
+#define CHEST_SIZE 63
+#define CHEST_SIZE_STORAGE 27
+
+#define CHEST_SLOT_STORAGE 0
+#define CHEST_SLOT_MAIN 27
+#define CHEST_SLOT_HOTBAR 54
+
 // picked item slot
 #define SPECIAL_SLOT_PICKED_ITEM 255
 

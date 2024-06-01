@@ -179,6 +179,9 @@ void clin_process(struct client_rpc* call) {
 						screen_furnace_set_windowc(window);
 						screen_set(&screen_furnace);
 						break;
+					case WINDOW_TYPE_CHEST:
+						screen_chest_set_windowc(window);
+						screen_set(&screen_chest);
 					default: break;
 				}
 			}

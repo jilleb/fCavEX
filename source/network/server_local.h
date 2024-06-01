@@ -34,6 +34,7 @@
 #define MAX_HIGH_DETAIL_VIEW_DISTANCE 2
 #define MAX_CHUNKS ((MAX_VIEW_DISTANCE * 2 + 2) * (MAX_VIEW_DISTANCE * 2 + 2))
 #define MAX_HIGH_DETAIL_CHUNKS ((MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2) * (MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2))
+#define MAX_CHESTS 256
 
 struct server_local {
 	struct random_gen rand_src;
@@ -52,6 +53,10 @@ struct server_local {
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
+	struct {
+		int x, y, z;
+	} chest_pos[MAX_CHESTS];
+	struct item_data chest_items[MAX_CHESTS][54];
 	uint64_t world_time;
 	string_t level_name;
 	struct level_archive level;
