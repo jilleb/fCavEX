@@ -227,7 +227,7 @@ bool block_place_default(struct server_local* s, struct item_data* it,
 }
 
 size_t block_drop_default(struct block_info* this, struct item_data* it,
-						  struct random_gen* g) {
+						  struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = this->block->type;
 		it->durability = 0;

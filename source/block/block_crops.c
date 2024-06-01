@@ -50,7 +50,7 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 }
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
-							 struct random_gen* g) {
+							 struct random_gen* g, struct server_local* s) {
 	bool has_seeds = this->block->metadata >= 5;
 	bool has_wheat = this->block->metadata == 7;
 

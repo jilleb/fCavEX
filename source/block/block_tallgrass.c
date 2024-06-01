@@ -77,7 +77,7 @@ static bool onItemPlace2(struct server_local* s, struct item_data* it,
 }
 
 static size_t drop_seed(struct block_info* this, struct item_data* it,
-						struct random_gen* g) {
+						struct random_gen* g, struct server_local* s) {
 	bool drop_seed = (rand_gen(g) % 8) == 0;
 
 	if(it && drop_seed) {
@@ -90,7 +90,7 @@ static size_t drop_seed(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_nothing(struct block_info* this, struct item_data* it,
-						   struct random_gen* g) {
+						   struct random_gen* g, struct server_local* s) {
 	return 0;
 }
 

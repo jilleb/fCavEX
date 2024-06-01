@@ -77,12 +77,12 @@ void server_local_spawn_block_drops(struct server_local* s,
 
 	struct random_gen tmp = s->rand_src;
 	size_t count
-		= blocks[blk_info->block->type]->getDroppedItem(blk_info, NULL, &tmp);
+		= blocks[blk_info->block->type]->getDroppedItem(blk_info, NULL, &tmp, s);
 
 	if(count > 0) {
 		struct item_data items[count];
 		blocks[blk_info->block->type]->getDroppedItem(blk_info, items,
-													  &s->rand_src);
+													  &s->rand_src, s);
 
 		for(size_t k = 0; k < count; k++)
 			server_local_spawn_item((vec3) {blk_info->x + 0.5F,

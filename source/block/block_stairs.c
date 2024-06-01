@@ -171,7 +171,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 }
 
 static size_t drop_wood(struct block_info* this, struct item_data* it,
-						struct random_gen* g) {
+						struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = BLOCK_PLANKS;
 		it->durability = 0;
@@ -182,7 +182,7 @@ static size_t drop_wood(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_cobblestone(struct block_info* this, struct item_data* it,
-							   struct random_gen* g) {
+							   struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = BLOCK_COBBLESTONE;
 		it->durability = 0;

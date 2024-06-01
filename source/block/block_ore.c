@@ -54,7 +54,7 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 }
 
 static size_t drop_coal(struct block_info* this, struct item_data* it,
-						struct random_gen* g) {
+						struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_COAL;
 		it->durability = 0;
@@ -65,7 +65,7 @@ static size_t drop_coal(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_diamond(struct block_info* this, struct item_data* it,
-						   struct random_gen* g) {
+						   struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_DIAMOND;
 		it->durability = 0;
@@ -76,7 +76,7 @@ static size_t drop_diamond(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_redstone(struct block_info* this, struct item_data* it,
-							struct random_gen* g) {
+							struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_REDSTONE;
 		it->durability = 0;
@@ -87,7 +87,7 @@ static size_t drop_redstone(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_lapis(struct block_info* this, struct item_data* it,
-						 struct random_gen* g) {
+						 struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_DYE;
 		it->durability = 4;

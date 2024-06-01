@@ -44,7 +44,7 @@ struct block {
 	size_t (*renderBlockAlways)(struct displaylist*, struct block_info*,
 								enum side, struct block_info*, uint8_t*, bool);
 	size_t (*getDroppedItem)(struct block_info*, struct item_data*,
-							 struct random_gen*);
+							 struct random_gen*, struct server_local*);
 	void (*onRandomTick)(struct server_local*, struct block_info*);
 	void (*onRightClick)(struct server_local*, struct item_data*,
 						 struct block_info*, struct block_info*, enum side);
@@ -169,6 +169,6 @@ bool block_place_default(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side);
 size_t block_drop_default(struct block_info* this, struct item_data* it,
-						  struct random_gen* g);
+						  struct random_gen* g, struct server_local* s);
 
 #endif

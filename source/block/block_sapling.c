@@ -60,7 +60,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 }
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
-							 struct random_gen* g) {
+							 struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = this->block->type;
 		it->durability = this->block->metadata & 3;

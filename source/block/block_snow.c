@@ -71,7 +71,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 }
 
 static size_t drop_snow(struct block_info* this, struct item_data* it,
-						struct random_gen* g) {
+						struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_SNOW_BALL;
 		it->durability = 0;
@@ -82,7 +82,7 @@ static size_t drop_snow(struct block_info* this, struct item_data* it,
 }
 
 static size_t drop_snow_block(struct block_info* this, struct item_data* it,
-							  struct random_gen* g) {
+							  struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = ITEM_SNOW_BALL;
 		it->durability = 0;

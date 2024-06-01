@@ -97,8 +97,8 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 			s->chest_pos[i].x = where->x;
 			s->chest_pos[i].y = where->y;
 			s->chest_pos[i].z = where->z;
+			memset(&s->chest_items[i], 0, 27*sizeof(struct item_data));
 			server_world_set_block(&s->world, where->x, where->y, where->z, blk);
-			printf("c%i\n", i);
 			return true;
 		}
 	}
@@ -108,21 +108,18 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 }
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
-							 struct random_gen* g) {
-	//TODO: access server_local in getDroppedItem
-	/*
-	for(int i=0; i<MAX_CHESTS; i++) {
-		if (s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
-			s->chest_pos[i].y = -1;
-			printf("d%i\n", i);
-		}
-	}
-	*/
-
+							 struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = this->block->type;
 		it->durability = this->block->metadata;
 		it->count = 1;
+	} else { //only free chest on first run of getDroppedItem
+		for(int i=0; i<MAX_CHESTS; i++) {
+			if (s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
+				s->chest_pos[i].y = -1;
+				break;
+			}
+		}
 	}
 
 	return 1;
