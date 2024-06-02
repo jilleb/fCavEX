@@ -333,6 +333,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 			level_archive_write(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health);
 
+			chest_archive_write(s->chest_pos, s->chest_items[0], s->level_name);
 			dict_entity_reset(s->entities);
 			server_world_destroy(&s->world);
 			level_archive_destroy(&s->level);
@@ -379,6 +380,8 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNX, &s->player.spawn_x, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNY, &s->player.spawn_y, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNZ, &s->player.spawn_z, 0);
+
+				chest_archive_read(s->chest_pos, s->chest_items[0], s->level_name);
 
 				dict_entity_reset(s->entities);
 				s->player.active_inventory = &s->player.inventory;
