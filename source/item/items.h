@@ -27,7 +27,7 @@
 
 struct item_data {
 	uint16_t id;
-	uint16_t durability;
+	uint8_t durability;
 	uint8_t count;
 };
 

@@ -144,10 +144,12 @@ bool level_archive_read_inventory(struct level_archive* la,
 											&inventory->items[slot].id, 0))
 				return false;
 
+			uint16_t durability16;
 			if(!level_archive_read_internal(obj, LEVEL_PLAYER_ITEM_DURABILITY,
-											&inventory->items[slot].durability,
+											&durability16,
 											0))
 				return false;
+											inventory->items[slot].durability = (uint8_t)durability16;
 
 			if(!level_archive_read_internal(obj, LEVEL_PLAYER_ITEM_COUNT,
 											&inventory->items[slot].count, 0))
@@ -227,7 +229,7 @@ bool level_archive_write_inventory(struct level_archive* la,
 			{
 				.type = TAG_SHORT,
 				.name = "Damage",
-				.payload.tag_short = inventory->items[i].durability,
+				.payload.tag_short = (uint16_t)inventory->items[i].durability,
 			},
 		};
 

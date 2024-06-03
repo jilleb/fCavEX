@@ -43,7 +43,6 @@ static void swap_endianness(struct chest_pos* pos, struct item_data* items) {
 			pos[i].z = swap_int32(pos[i].z);	
 			for(int j=0; j<MAX_CHEST_SLOTS; j++) {
 				(items + i*MAX_CHEST_SLOTS + j)->id = swap_uint16((items + i*MAX_CHEST_SLOTS + j)->id);
-				(items + i*MAX_CHEST_SLOTS + j)->durability = swap_uint16((items + i*MAX_CHEST_SLOTS + j)->durability);
 			}
 		}
 	}

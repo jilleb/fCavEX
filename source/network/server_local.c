@@ -29,6 +29,7 @@
 #include "inventory_logic.h"
 #include "server_interface.h"
 #include "server_local.h"
+#include "chest_archive.h"
 
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
 	(((x1) - (x2)) * ((x1) - (x2)) + ((z1) - (z2)) * ((z1) - (z2)))
