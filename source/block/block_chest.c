@@ -115,7 +115,15 @@ static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 		it->count = 1;
 	} else { //only free chest on first run of getDroppedItem
 		for(int i=0; i<MAX_CHESTS; i++) {
-			if (s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
+			if(s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
+				for(int j=0; j<MAX_CHEST_SLOTS; j++) {
+					if(s->chest_items[i][j].id) {
+						server_local_spawn_item((vec3) {this->x + 0.5F,
+									this->y + 0.5F,
+									this->z + 0.5F},
+									&s->chest_items[i][j], false, s);
+					}
+				}
 				s->chest_pos[i].y = -1;
 				break;
 			}
