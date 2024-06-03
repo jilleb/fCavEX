@@ -1,8 +1,8 @@
-# CavEX
+# fCavEX
 
-*Cave Explorer* is a Wii homebrew game with the goal to recreate most of the core survival aspects up until Beta 1.7.3. ~~Any features beyond *will not* be added.~~
+[Cave Explorer](https://github.com/xtreme8000/CavEX) by [xtreme8000](https://github.com/xtreme8000) is a Wii homebrew game with the goal to recreate most of the core survival aspects up until Beta 1.7.3. ~~Any features beyond *will not* be added.~~
 
-This is an experimental fork with all kinds of changes and additions. Some additions may not be from the original game and some mechanics may be different - this fork is not aiming for a 1:1 recreation.
+*fCavEX* (forked CavEX) is an experimental fork of CavEX with all kinds of changes and additions. Some additions may not be from the original game and some mechanics may be different - this fork is not aiming for a 1:1 recreation. For now, fCavEX is only tested on a PC - there might be bugs on the Wii.
 
 ---
 
@@ -29,7 +29,6 @@ This is an experimental fork with all kinds of changes and additions. Some addit
 * health bar, respawning
 * 2D mobs, fighting
 * real texture pack support
-* Beta 1.7.3 multiplayer support
 
 ## Screenshot
 
