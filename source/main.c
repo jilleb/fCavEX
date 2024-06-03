@@ -212,13 +212,14 @@ int main(void) {
 			entities_client_render(gstate.entities, &gstate.camera, tick_delta);
 			gfx_fog(true);
 
-			//don't render animated textures
-			//world_render(&gstate.world, &gstate.camera, true);
+			#ifdef GFX_FANCY_LIQUIDS
+			world_render(&gstate.world, &gstate.camera, true);
+			#endif
 
-#ifdef GFX_CLOUDS
+			#ifdef GFX_CLOUDS
 			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
 				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
-#endif
+			#endif
 		}
 
 		gfx_mode_gui();

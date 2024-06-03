@@ -32,5 +32,8 @@
 //Render double-sided faces (tall grass, sugar cane and similar blocks)
 #define GFX_DOUBLESIDED
 
+//Transparent and animated liquids (can heavily impact FPS on low-end GPUs)
+#define GFX_FANCY_LIQUIDS
+
 #endif
 

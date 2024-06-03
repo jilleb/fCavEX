@@ -306,6 +306,7 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 	tex_atlas_reg(atlas, TEXAT_WOOL_13, 1, 9);
 	tex_atlas_reg(atlas, TEXAT_WOOL_14, 1, 8);
 	tex_atlas_reg(atlas, TEXAT_WOOL_15, 1, 7);
+	tex_atlas_reg(atlas, TEXAT_LAVA_STATIC, 15, 15);
 
 	tex_atlas_reg_col(atlas, TEXAT_GRASS_TOP, 0, 0, 110, 198, 63);
 	tex_atlas_reg_grass(atlas, TEXAT_GRASS_SIDE, 6, 2, 110, 198, 63, 3, 0);

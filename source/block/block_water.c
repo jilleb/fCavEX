@@ -18,6 +18,7 @@
 */
 
 #include "blocks.h"
+#include "../graphics/gfx_settings.h"
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
@@ -30,34 +31,39 @@ static size_t getBoundingBox(struct block_info* this, bool entity,
 
 static struct face_occlusion*
 getSideMask(struct block_info* this, enum side side, struct block_info* it) {
+	#ifdef GFX_FANCY_LIQUIDS
 	int block_height = (this->block->metadata & 0x8) ?
 		16 :
 		(8 - this->block->metadata) * 2 * 7 / 8;
-	return (it->block->type == this->block->type) ?
-		face_occlusion_full() :
-		face_occlusion_empty(); 
-	/*
 	switch(side) {
 		case SIDE_TOP:
-		case SIDE_BOTTOM:
 			return (it->block->type == this->block->type) ?
 				face_occlusion_full() :
 				face_occlusion_empty(); 
-//		case SIDE_BOTTOM: return face_occlusion_full();
-		default: return face_occlusion_empty();
-//		default: return (it->block->type == BLOCK_AIR) ? face_occlusion_rect(block_height) : face_occlusion_full();
+		case SIDE_BOTTOM: return face_occlusion_full();
+		default: return face_occlusion_rect(block_height);
 	}
-	*/
+	#else
+	return (it->block->type == this->block->type) ?
+		face_occlusion_full() :
+		face_occlusion_empty(); 
+	#endif
 }
 
 static uint8_t getTextureIndex1(struct block_info* this, enum side side) {
+	#ifdef GFX_FANCY_LIQUIDS
+	return TEXTURE_INDEX(1, 0);
+	#else
 	return tex_atlas_lookup(TEXAT_WATER_STATIC);
-	//return TEXTURE_INDEX(1, 0);
+	#endif
 }
 
 static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
+	#ifdef GFX_FANCY_LIQUIDS
+	return TEXTURE_INDEX(5, 0);
+	#else
 	return tex_atlas_lookup(TEXAT_WATER_STATIC);
-	//return TEXTURE_INDEX(5, 0);
+	#endif
 }
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
@@ -74,8 +80,13 @@ struct block block_water_still = {
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
 	.onRightClick = NULL,
+	#ifdef GFX_FANCY_LIQUIDS
+	.transparent = true,
+	.renderBlock = render_block_fluid,
+	#else
 	.transparent = false,
 	.renderBlock = render_block_full,
+	#endif
 	.renderBlockAlways = NULL,
 	.luminance = 0,
 	.double_sided = false,
