@@ -19,6 +19,7 @@
 
 #include "blocks.h"
 #include "../graphics/gfx_settings.h"
+#include "../game/game_state.h"
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
@@ -44,9 +45,11 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 		default: return face_occlusion_rect(block_height);
 	}
 	#else
-	return (it->block->type == this->block->type) ?
-		face_occlusion_full() :
-		face_occlusion_empty(); 
+	if (gstate.in_water) {
+		return (it->block->type == this->block->type) ?
+			face_occlusion_full() :
+			face_occlusion_empty(); 
+	} else return face_occlusion_full();
 	#endif
 }
 

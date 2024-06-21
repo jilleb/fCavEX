@@ -78,6 +78,7 @@ struct game_state {
 		} switch_item;
 	} held_item_animation;
 	bool world_loaded;
+	bool in_water;
 };
 
 extern struct game_state gstate;

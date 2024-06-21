@@ -89,6 +89,7 @@ bool world_block_intersection(struct world* w, struct ray* r, w_coord_t x,
 							  w_coord_t y, w_coord_t z, enum side* s);
 void world_pre_render(struct world* w, struct camera* c, mat4 view);
 void world_pre_render_clear(struct world* w);
+void world_redraw_chunks(struct world* w);
 size_t world_render(struct world* w, struct camera* c, bool pass);
 bool world_aabb_intersection(struct world* w, struct AABB* a);
 size_t world_loaded_chunks(struct world* w);

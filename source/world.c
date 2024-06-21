@@ -267,6 +267,22 @@ void world_set_block(struct world* w, w_coord_t x, w_coord_t y, w_coord_t z,
 	}
 }
 
+void world_redraw_chunks(struct world* w) {
+	assert(w);
+
+	dict_wsection_it_t it;
+	dict_wsection_it(it, w->sections);
+
+	while(!dict_wsection_end_p(it)) {
+		for(int i = 0; i < COLUMN_HEIGHT; i++) {
+			(&dict_wsection_ref(it)->value)->column[i]->rebuild_displist = true;
+		}
+		dict_wsection_next(it);
+	}
+}
+
+
+
 static bool world_light_get_block(void* user, w_coord_t x, w_coord_t y,
 								  w_coord_t z, struct block_data* blk,
 								  uint8_t* height) {

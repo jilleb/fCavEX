@@ -89,6 +89,7 @@ int main(void) {
 
 	dict_entity_init(gstate.entities);
 	gstate.local_player = NULL;
+	gstate.in_water = false;
 
 	struct server_local server;
 	server_local_create(&server);
@@ -126,17 +127,21 @@ int main(void) {
 
 		bool render_world
 			= gstate.current_screen->render_world && gstate.world_loaded;
-		bool in_water = false;
+		bool in_water_new = false;
 
 		if(render_world) {
 			struct block_data blk = world_get_block(
 				&gstate.world, floorf(gstate.camera.x),
 				floorf(gstate.camera.y + 0.1F), floorf(gstate.camera.z));
-			in_water
+			in_water_new		
 				= blk.type == BLOCK_WATER_FLOW || blk.type == BLOCK_WATER_STILL;
+			#ifndef GFX_FANCY_LIQUIDS
+			if(gstate.in_water != in_water_new) world_redraw_chunks(&gstate.world);
+			#endif
+			gstate.in_water = in_water_new;	
 		}
 
-		camera_update(&gstate.camera, in_water);
+		camera_update(&gstate.camera, gstate.in_water);
 
 		if(render_world) {
 			world_pre_render(&gstate.world, &gstate.camera, gstate.camera.view);
@@ -224,7 +229,7 @@ int main(void) {
 
 		gfx_mode_gui();
 
-		if(in_water) {
+		if(gstate.in_water) {
 			gfx_bind_texture(&texture_water);
 			gutil_texquad_col(0, 0, -gstate.camera.rx / GLM_PI * 256,
 							  gstate.camera.ry / GLM_PI * 256, 512,
