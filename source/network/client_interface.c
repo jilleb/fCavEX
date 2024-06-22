@@ -133,7 +133,7 @@ void clin_process(struct client_rpc* call) {
 			entity_local_player(call->payload.world_reset.local_entity,
 								gstate.local_player, &gstate.world);
 
-			gstate.local_player->health = 10;
+			gstate.local_player->health = MAX_PLAYER_HEALTH;
 
 			if(gstate.current_screen == &screen_ingame)
 				screen_set(&screen_load_world);

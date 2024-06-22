@@ -19,14 +19,15 @@
 
 #include "../../network/server_local.h"
 #include "../../network/client_interface.h"
+#include "../../network/server_interface.h"
 
 static bool onItemPlace(struct server_local* s, struct item_data* it,
 						struct block_info* where, struct block_info* on,
 						enum side on_side) {
-	//health test - eating cooked porkchop adds 2 health
-	if (s->player.health >= 10) return false;
+	//health test - eating cooked porkchop adds 2 hearts 
+	if (s->player.health >= MAX_PLAYER_HEALTH) return false;
 
-	server_local_set_player_health(s, s->player.health+2);
+	server_local_set_player_health(s, s->player.health+32);
 	return true;
 }
 

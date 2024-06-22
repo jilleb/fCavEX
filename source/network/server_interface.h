@@ -24,6 +24,9 @@
 #include <m-lib/m-string.h>
 #include <stdbool.h>
 
+#define MAX_PLAYER_HEALTH 160
+#define HEALTH_PER_HEART 16
+
 enum server_rpc_type {
 	SRPC_PLAYER_POS,
 	SRPC_LOAD_WORLD,

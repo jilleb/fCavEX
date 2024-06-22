@@ -118,7 +118,7 @@ void server_local_send_inv_changes(set_inv_slot_t changes,
 
 void server_local_set_player_health(struct server_local* s, short new_health) {
 	s->player.health = new_health;
-	if (s->player.health > 10) s->player.health = 10;
+	if (s->player.health > MAX_PLAYER_HEALTH) s->player.health = MAX_PLAYER_HEALTH;
 	if (s->player.health <= 0) {
 		//player dead, drop all items and move to spawn position
 		for (int i = 0; i < INVENTORY_SIZE; i++) {
@@ -140,7 +140,7 @@ void server_local_set_player_health(struct server_local* s, short new_health) {
 		}
 
 		//respawn with half health
-		s->player.health = 5;
+		s->player.health = MAX_PLAYER_HEALTH/2;
 		s->player.x = s->player.spawn_x;
 		s->player.y = s->player.spawn_y;
 		s->player.z = s->player.spawn_z;
@@ -369,15 +369,8 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 				level_archive_read(&s->level, LEVEL_TIME, &s->world_time, 0);
 
-				/*
-				s->player.health = 10;
-				s->player.spawn_x = 0;
-				s->player.spawn_y = 69;
-				s->player.spawn_z = 0;
-				*/
-
 				level_archive_read(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health, 0);
-				if (s->player.health > 10) s->player.health = 10;
+				if (s->player.health > MAX_PLAYER_HEALTH) s->player.health = MAX_PLAYER_HEALTH;
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNX, &s->player.spawn_x, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNY, &s->player.spawn_y, 0);
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNZ, &s->player.spawn_z, 0);
@@ -550,7 +543,7 @@ static void server_local_update(struct server_local* s) {
 		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
 			int fall_distance = s->player.fall_y - s->player.y;
 			if (fall_distance >= 4) {
-				server_local_set_player_health(s, s->player.health-fall_distance+3);
+				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*(fall_distance+3));
 			}
 			s->player.fall_y = s->player.y;
 		}
