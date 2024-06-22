@@ -136,9 +136,13 @@ int main(void) {
 			in_water_new		
 				= blk.type == BLOCK_WATER_FLOW || blk.type == BLOCK_WATER_STILL;
 			#ifndef GFX_FANCY_LIQUIDS
-			if(gstate.in_water != in_water_new) world_redraw_chunks(&gstate.world);
+			if(gstate.in_water != in_water_new) {
 			#endif
-			gstate.in_water = in_water_new;	
+				gstate.in_water = in_water_new;	
+			#ifndef GFX_FANCY_LIQUIDS
+				world_redraw_chunks(&gstate.world);
+			}
+			#endif
 		}
 
 		camera_update(&gstate.camera, gstate.in_water);
