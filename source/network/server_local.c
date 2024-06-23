@@ -559,8 +559,8 @@ static void server_local_update(struct server_local* s) {
 		}
 
 		if (in_lava) {
-			// damage player in lava every 32 ticks
-			if ((s->player.oxygen & 31) == 0) {
+			// damage player in lava every 8 ticks
+			if ((s->player.oxygen & 7) == 0) {
 				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*2);
 			}
 			s->player.oxygen--;
