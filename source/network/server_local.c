@@ -174,7 +174,6 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				s->player.old_vel_y = s->player.vel_y;
 				s->player.vel_y = call->payload.player_pos.vel_y;
 				s->player.has_pos = true;
-				//printf("%.03f %.03f %.03f\n", s->player.old_vel_y+0.079f, s->player.vel_y+0.079f, s->player.y);
 			}
 			break;
 		case SRPC_HOTBAR_SLOT:
@@ -538,8 +537,13 @@ static void server_local_update(struct server_local* s) {
 		// check if player is underwater
 		// server side X off by one?
 		struct block_data blk;
-		server_world_get_block(&s->world, s->player.x - 1, s->player.y, s->player.z, &blk);
+		server_world_get_block(&s->world, s->player.x-1, s->player.y, s->player.z, &blk);
 		bool in_water = (blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW);
+		bool in_lava = (blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW);
+		if (s->player.y != 0) {
+			server_world_get_block(&s->world, s->player.x-1, s->player.y-1, s->player.z, &blk);
+			if (blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW) in_lava = true;
+		}
 
 		// check if player is falling
 		// reset falling height if player is underwater
@@ -554,8 +558,14 @@ static void server_local_update(struct server_local* s) {
 			s->player.fall_y = s->player.y;
 		}
 
-		// check if player is drowning
-		if (in_water) {
+		if (in_lava) {
+			// damage player in lava every 32 ticks
+			if ((s->player.oxygen & 31) == 0) {
+				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*2);
+			}
+			s->player.oxygen--;
+		} else if (in_water) {
+			// damage drowning player every 32 ticks
 			if (s->player.oxygen <= OXYGEN_THRESHOLD && (s->player.oxygen&31) == 0) {
 				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART);
 			}
