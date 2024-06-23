@@ -37,8 +37,8 @@
 #define MAX_CHESTS 256
 #define MAX_CHEST_SLOTS 54
 
-#define MAX_OXYGEN 671
-#define OXYGEN_THRESHOLD 320
+#define MAX_OXYGEN 351
+#define OXYGEN_THRESHOLD 0
 
 struct chest_pos {
 	int x, y, z;
