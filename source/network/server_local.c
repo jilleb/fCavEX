@@ -536,8 +536,9 @@ static void server_local_update(struct server_local* s) {
 
 	if (s->player.has_pos) {
 		// check if player is underwater
+		// server side X off by one?
 		struct block_data blk;
-		server_world_get_block(&s->world, s->player.x, s->player.y, s->player.z, &blk);
+		server_world_get_block(&s->world, s->player.x - 1, s->player.y, s->player.z, &blk);
 		bool in_water = (blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW);
 
 		// check if player is falling
