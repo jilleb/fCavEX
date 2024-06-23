@@ -19,6 +19,8 @@
 
 #include "../block/blocks_data.h"
 #include "../platform/input.h"
+#include "../game/game_state.h"
+#include "../network/server_local.h"
 #include "entity.h"
 
 #define EYE_HEIGHT 1.62F
@@ -212,6 +214,13 @@ static bool entity_tick(struct entity* e) {
 
 		if(!entity_intersection(e, &tmp, test_in_liquid))
 			e->vel[1] = 0.3F;
+	}
+
+	//update client-side oxygen bar
+	if (gstate.in_water) {
+		gstate.oxygen--;
+	} else {
+		gstate.oxygen = MAX_OXYGEN;
 	}
 
 	return false;

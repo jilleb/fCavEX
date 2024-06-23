@@ -377,6 +377,8 @@ static void server_local_process(struct server_rpc* call, void* user) {
 
 				chest_archive_read(s->chest_pos, s->chest_items[0], s->level_name);
 
+				s->player.oxygen = MAX_OXYGEN;
+
 				dict_entity_reset(s->entities);
 				s->player.active_inventory = &s->player.inventory;
 
@@ -532,12 +534,15 @@ static void server_local_update(struct server_local* s) {
 		s->player.finished_loading = true;
 	}
 
-	//check if player is falling
 	if (s->player.has_pos) {
-		//reset falling height if player is underwater
+		// check if player is underwater
 		struct block_data blk;
 		server_world_get_block(&s->world, s->player.x, s->player.y, s->player.z, &blk);
-		if ((s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) || blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW) {
+		bool in_water = (blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW);
+
+		// check if player is falling
+		// reset falling height if player is underwater
+		if ((s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) || in_water) {
 			s->player.fall_y = s->player.y;
 		}
 		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
@@ -547,6 +552,14 @@ static void server_local_update(struct server_local* s) {
 			}
 			s->player.fall_y = s->player.y;
 		}
+
+		// check if player is drowning
+		if (in_water) {
+			if (s->player.oxygen <= OXYGEN_THRESHOLD && (s->player.oxygen&31) == 0) {
+				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART);
+			}
+			s->player.oxygen--;
+		} else s->player.oxygen = MAX_OXYGEN;
 	}
 }
 

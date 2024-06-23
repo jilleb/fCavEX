@@ -90,6 +90,7 @@ int main(void) {
 	dict_entity_init(gstate.entities);
 	gstate.local_player = NULL;
 	gstate.in_water = false;
+	gstate.oxygen = MAX_OXYGEN;
 
 	struct server_local server;
 	server_local_create(&server);

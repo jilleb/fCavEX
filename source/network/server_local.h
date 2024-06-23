@@ -37,6 +37,9 @@
 #define MAX_CHESTS 256
 #define MAX_CHEST_SLOTS 54
 
+#define MAX_OXYGEN 671
+#define OXYGEN_THRESHOLD 320
+
 struct chest_pos {
 	int x, y, z;
 };
@@ -52,6 +55,7 @@ struct server_local {
 		struct inventory inventory;
 		struct inventory* active_inventory;
 		short health;
+		int oxygen;
 		int spawn_x, spawn_y, spawn_z;
 		float vel_y, old_vel_y;
 		int fall_y;

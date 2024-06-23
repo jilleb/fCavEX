@@ -79,6 +79,7 @@ struct game_state {
 	} held_item_animation;
 	bool world_loaded;
 	bool in_water;
+	int oxygen;
 };
 
 extern struct game_state gstate;
