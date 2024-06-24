@@ -78,18 +78,15 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 static bool onItemPlace(struct server_local* s, struct item_data* it,
 						struct block_info* where, struct block_info* on,
 						enum side on_side) {
-	if(!blocks[on->block->type]
-	   || (blocks[on->block->type]->can_see_through
-		   && blocks[on->block->type]->opacity < 15))
+	if(!blocks[on->block->type])
 		return false;
 
 	int metadata = 0;
 	switch(on_side) {
 		case SIDE_LEFT: metadata = 2; break;
 		case SIDE_RIGHT: metadata = 3; break;
-		case SIDE_FRONT: metadata = 0; break;
 		case SIDE_BACK: metadata = 1; break;
-		default: return false;
+		default: break;
 	}
 
 	struct block_data blk = (struct block_data) {
@@ -110,6 +107,18 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	return true;
 }
 
+static void onRightClick(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	// flip metadata bit to open or close the trapdoor
+	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
+		.type = BLOCK_TRAP_DOOR,
+		.metadata = on->block->metadata ^ 0x04
+	});
+}
+
+
+
 struct block block_trapdoor = {
 	.name = "Trapdoor",
 	.getSideMask = getSideMask,
@@ -118,7 +127,7 @@ struct block block_trapdoor = {
 	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_trapdoor,
 	.renderBlockAlways = NULL,
