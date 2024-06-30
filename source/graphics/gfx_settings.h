@@ -24,6 +24,7 @@
 /*
 	This file is used to set video settings at compile time.
 	To disable a setting, comment its line out and recompile.
+	To enable a setting, uncomment its line and recompile.
 */
 
 //Render clouds
@@ -34,6 +35,9 @@
 
 //Transparent and animated liquids (can heavily impact FPS on low-end GPUs)
 #define GFX_FANCY_LIQUIDS
+
+//Render polygons as wireframes (will break text and texture rendering, for testing purposes only, only works on PC)
+//#define GFX_WIREFRAME
 
 #endif
 

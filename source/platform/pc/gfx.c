@@ -27,6 +27,7 @@
 
 #include "../../game/game_state.h"
 #include "../../graphics/texture_atlas.h"
+#include "../../graphics/gfx_settings.h"
 #include "../../lodepng/lodepng.h"
 #include "../../util.h"
 #include "../gfx.h"
@@ -158,6 +159,10 @@ void gfx_setup() {
 
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CW);
+	#ifdef GFX_WIREFRAME
+	glPolygonMode(GL_FRONT, GL_LINE);
+	glPolygonMode(GL_BACK, GL_LINE);
+	#endif
 	gfx_cull_func(MODE_BACK);
 
 	gfx_depth_func(MODE_LEQUAL);
