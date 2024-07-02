@@ -1426,6 +1426,7 @@ static struct item item_apple_golden = {
 	},
 };
 
+/*
 static struct item item_door_wood = {
 	.name = "Wooden Door",
 	.has_damage = false,
@@ -1441,6 +1442,8 @@ static struct item item_door_wood = {
 		},
 	},
 };
+*/
+extern struct item item_door_wood;
 
 static struct item item_door_iron = {
 	.name = "Iron Door",

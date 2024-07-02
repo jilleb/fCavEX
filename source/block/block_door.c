@@ -17,6 +17,7 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../network/server_local.h"
 #include "blocks.h"
 
 static enum block_material getMaterial1(struct block_info* this) {
@@ -76,8 +77,41 @@ static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 							 struct random_gen* g, struct server_local* s) {
-	// TODO
+	// TODO: handle iron doors
+	if(it) { 
+		it->id = ITEM_DOOR_WOOD;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	//only drop item from bottom half
+	if(this->block->metadata < 8) return 1;
 	return 0;
+}
+
+static void onRightClick(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	struct block_data blk;
+
+	if(server_world_get_block(&s->world, on->x, on->y - 1, on->z, &blk) && blk.type == BLOCK_DOOR_WOOD) {
+		server_world_set_block(&s->world, on->x, on->y - 1, on->z, (struct block_data) {
+			.type = BLOCK_DOOR_WOOD,
+			.metadata = blk.metadata ^ 1
+		});
+	}
+
+	if(server_world_get_block(&s->world, on->x, on->y + 1, on->z, &blk) && blk.type == BLOCK_DOOR_WOOD) {
+		server_world_set_block(&s->world, on->x, on->y + 1, on->z, (struct block_data) {
+			.type = BLOCK_DOOR_WOOD,
+			.metadata = blk.metadata ^ 1
+		});
+	}
+
+	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
+		.type = BLOCK_DOOR_WOOD,
+		.metadata = on->block->metadata ^ 1
+	});
 }
 
 struct block block_wooden_door = {
@@ -88,7 +122,7 @@ struct block block_wooden_door = {
 	.getTextureIndex = getTextureIndex1,
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_door,
 	.renderBlockAlways = NULL,
