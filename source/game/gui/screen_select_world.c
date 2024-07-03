@@ -18,6 +18,7 @@
 */
 
 #include "../../graphics/gui_util.h"
+#include "../../graphics/gfx_settings.h"
 #include "../../network/level_archive.h"
 #include "../../network/server_interface.h"
 #include "../../platform/gfx.h"
@@ -41,8 +42,8 @@ static int scroll_offset;
 static int top_visible;
 static int bottom_visible;
 static int height_visible;
-static int entry_height = 72;
-static int side_padding = 4;
+static int entry_height = 36 * GFX_GUI_SCALE;
+static int side_padding = 2 * GFX_GUI_SCALE;
 
 struct world_option {
 	string_t name;
@@ -121,7 +122,7 @@ static void screen_sworld_reset(struct screen* s, int width, int height) {
 	gui_selection = 0;
 	scroll_offset = side_padding;
 	top_visible = height * 0.133F;
-	bottom_visible = height - 64;
+	bottom_visible = height - 32 * GFX_GUI_SCALE;
 	height_visible = bottom_visible - height * 0.133F;
 }
 
@@ -159,8 +160,8 @@ static void screen_sworld_update(struct screen* s, float dt) {
 static void screen_sworld_render2D(struct screen* s, int width, int height) {
 	gutil_bg();
 
-	gutil_text((width - gutil_font_width("Select World", 16)) / 2,
-			   top_visible - 16 * 1.5F, "Select World", 16, true);
+	gutil_text((width - gutil_font_width("Select World", 8 * GFX_GUI_SCALE)) / 2,
+			   top_visible - 8 * GFX_GUI_SCALE * 1.5F, "Select World", 8 * GFX_GUI_SCALE, true);
 
 	gfx_texture(false);
 	gutil_texquad_col(0, top_visible, 0, 0, 0, 0, width, height_visible, 0, 0,
@@ -177,15 +178,15 @@ static void screen_sworld_render2D(struct screen* s, int width, int height) {
 
 		if(gui_selection == idx) {
 			gfx_texture(false);
-			gutil_texquad_col((width - 440) / 2.0F, top_visible + offset, 0, 0,
-							  0, 0, 440, 72, 128, 128, 128, 255);
-			gutil_texquad_col((width - 436) / 2.0F, top_visible + 2 + offset, 0,
-							  0, 0, 0, 436, 68, 0, 0, 0, 255);
+			gutil_texquad_col((width - 220 * GFX_GUI_SCALE) / 2.0F, top_visible + offset, 0, 0,
+							  0, 0, 220 * GFX_GUI_SCALE, 36 * GFX_GUI_SCALE, 128, 128, 128, 255);
+			gutil_texquad_col((width - 218 * GFX_GUI_SCALE) / 2.0F, top_visible + GFX_GUI_SCALE + offset, 0,
+							  0, 0, 0, 218 * GFX_GUI_SCALE, 34 * GFX_GUI_SCALE, 0, 0, 0, 255);
 			gfx_texture(true);
 		}
 
-		gutil_text((width - 436) / 2.0F + 6, top_visible + 6 + offset,
-				   (char*)string_get_cstr(opt.name), 16, true);
+		gutil_text((width - 218 * GFX_GUI_SCALE) / 2.0F + 3 * GFX_GUI_SCALE, top_visible + 3 * GFX_GUI_SCALE + offset,
+				   (char*)string_get_cstr(opt.name), 8 * GFX_GUI_SCALE, true);
 
 		char tmp_time[32];
 		strftime(tmp_time, sizeof(tmp_time), "%D %I:%M %p",
@@ -196,14 +197,14 @@ static void screen_sworld_render2D(struct screen* s, int width, int height) {
 				 string_get_cstr(opt.directory), tmp_time,
 				 opt.byte_size / 1000.0F / 1000.0F);
 
-		gutil_text((width - 436) / 2.0F + 6, top_visible + 28 + offset, tmp, 16,
+		gutil_text((width - 218 * GFX_GUI_SCALE) / 2.0F + 3 * GFX_GUI_SCALE, top_visible + 14 * GFX_GUI_SCALE + offset, tmp, 8 * GFX_GUI_SCALE,
 				   true);
 		offset += entry_height;
 	}
 
 	gfx_scissor(false, 0, 0, 0, 0);
 
-	int icon_offset = 32;
+	int icon_offset = 16 * GFX_GUI_SCALE;
 	icon_offset
 		+= gutil_control_icon(icon_offset, IB_GUI_UP, "Change selection");
 	icon_offset += gutil_control_icon(icon_offset, IB_GUI_CLICK, "Play world");

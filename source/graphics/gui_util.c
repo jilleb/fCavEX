@@ -21,6 +21,7 @@
 
 #include "../platform/gfx.h"
 #include "gui_util.h"
+#include "gfx_settings.h"
 #include "render_block.h"
 #include "texture_atlas.h"
 
@@ -32,8 +33,8 @@ int gutil_control_icon(int x, enum input_button b, char* str) {
 		return 0;
 
 	gfx_bind_texture(&texture_controls);
-	int scale = 32;
-	int text_scale = 10;
+	int scale = 16 * GFX_GUI_SCALE;
+	int text_scale = 5 * GFX_GUI_SCALE;
 
 	gutil_texquad(x, gfx_height() - scale * 8 / 5, (symbol_help % 8) * 32,
 				  (symbol_help / 8) * 32 * 2, 32, 32 * 2, scale, scale);
@@ -265,17 +266,17 @@ void gutil_draw_item(struct item_data* item, int x, int y, int layer) {
 		if(item->count > 1) {
 			char count[4];
 			snprintf(count, sizeof(count), "%u", item->count);
-			gutil_text(17 * 2 - gutil_font_width(count, 16) + x, y + 18, count,
-					   16, true);
+			gutil_text(17 * GFX_GUI_SCALE - gutil_font_width(count, 8 * GFX_GUI_SCALE) + x, y + 9 * GFX_GUI_SCALE, count,
+					   8 * GFX_GUI_SCALE, true);
 		}
 	} else {
 		char tmp[16];
 		snprintf(tmp, sizeof(tmp), "%u", item->id);
-		gutil_text(17 * 2 - gutil_font_width(tmp, 16) + x, y + 2, tmp, 16,
+		gutil_text(17 * GFX_GUI_SCALE - gutil_font_width(tmp, 8 * GFX_GUI_SCALE) + x, y + GFX_GUI_SCALE, tmp, 8 * GFX_GUI_SCALE,
 				   true);
 
 		snprintf(tmp, sizeof(tmp), "%u", item->count);
-		gutil_text(17 * 2 - gutil_font_width(tmp, 16) + x, y + 18, tmp, 16,
+		gutil_text(17 * GFX_GUI_SCALE - gutil_font_width(tmp, 8 * GFX_GUI_SCALE) + x, y + 9 * GFX_GUI_SCALE, tmp, 8 * GFX_GUI_SCALE,
 				   true);
 	}
 }

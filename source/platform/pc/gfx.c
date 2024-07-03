@@ -74,8 +74,8 @@ static GLuint create_shader(const char* vertex, const char* fragment) {
 	return program;
 }
 
-static int window_width = 640;
-static int window_height = 400;
+static int window_width = GFX_PC_WINDOW_WIDTH;
+static int window_height = GFX_PC_WINDOW_HEIGHT;
 GLFWwindow* window;
 
 int gfx_width() {

@@ -25,6 +25,7 @@
 	This file is used to set video settings at compile time.
 	To disable a setting, comment its line out and recompile.
 	To enable a setting, uncomment its line and recompile.
+	Some settings cannot be disabled or enabled, as they are a number (like resolution or GUI scale).
 */
 
 //Render clouds
@@ -36,7 +37,19 @@
 //Transparent and animated liquids (can heavily impact FPS on low-end GPUs)
 #define GFX_FANCY_LIQUIDS
 
-//Render polygons as wireframes (will break text and texture rendering, for testing purposes only, only works on PC)
+//Scale HUD and GUIs (the higher the number, the bigger the GUI).
+//For 640x480, setting this to 2 is recommended.
+//For 320x240, setting this to 1 is recommended.
+//Do not set this to anything less to 1.
+#define GFX_GUI_SCALE 2
+
+//PC only: default window width and height (rendering resolution)
+#define GFX_PC_WINDOW_WIDTH 640
+#define GFX_PC_WINDOW_HEIGHT 400
+
+// TODO: 240p on Wii?
+
+//PC only: render polygons as wireframes (will break text and texture rendering, for testing purposes only)
 //#define GFX_WIREFRAME
 
 #endif

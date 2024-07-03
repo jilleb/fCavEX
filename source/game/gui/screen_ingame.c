@@ -21,6 +21,7 @@
 
 #include "../../block/blocks.h"
 #include "../../graphics/gfx_util.h"
+#include "../../graphics/gfx_settings.h"
 #include "../../graphics/gui_util.h"
 #include "../../graphics/render_model.h"
 #include "../../network/server_interface.h"
@@ -337,21 +338,21 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 	char str[64];
 	sprintf(str, GAME_NAME " Alpha %i.%i.%i_f%i (impl. B1.7.3)", VERSION_MAJOR,
 			VERSION_MINOR, VERSION_PATCH, VERSION_FORK);
-	gutil_text(4, 4 + 17 * 0, str, 16, true);
+	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 0, str, GFX_GUI_SCALE * 8, true);
 
 #ifndef NDEBUG
 	sprintf(str, "%0.1f fps, wait: gpu %0.1fms, vsync %0.1fms",
 			gstate.stats.fps, gstate.stats.dt_gpu * 1000.0F,
 			gstate.stats.dt_vsync * 1000.0F);
-	gutil_text(4, 4 + 17 * 1, str, 16, true);
+	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 1, str, GFX_GUI_SCALE * 8, true);
 
 	sprintf(str, "%zu chunks", gstate.stats.chunks_rendered);
-	gutil_text(4, 4 + 17 * 2, str, 16, true);
+	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 2, str, GFX_GUI_SCALE * 8, true);
 
 	sprintf(str, "(%0.1f, %0.1f, %0.1f) (%0.1f, %0.1f)", gstate.camera.x,
 			gstate.camera.y, gstate.camera.z, glm_deg(gstate.camera.rx),
 			glm_deg(gstate.camera.ry));
-	gutil_text(4, 4 + 17 * 3, str, 16, true);
+	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 3, str, GFX_GUI_SCALE * 8, true);
 
 	if(gstate.camera_hit.hit) {
 		struct block_data bd
@@ -362,11 +363,11 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 				block_side_name(gstate.camera_hit.side), gstate.camera_hit.x,
 				gstate.camera_hit.y, gstate.camera_hit.z, b ? b->name : NULL,
 				bd.type, bd.metadata);
-		gutil_text(4, 4 + 17 * 5, str, 16, true);
+		gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 5, str, GFX_GUI_SCALE * 8, true);
 	}
 #endif
 
-	int icon_offset = 32;
+	int icon_offset = GFX_GUI_SCALE * 16;
 	icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Inventory");
 	icon_offset += gutil_control_icon(icon_offset, IB_JUMP, "Jump");
 
@@ -395,12 +396,12 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 
 	// draw hotbar
 	gfx_bind_texture(&texture_gui2);
-	gutil_texquad((width - 182 * 2) / 2, height - 32 * 8 / 5 - 22 * 2, 0, 0,
-				  182, 22, 182 * 2, 22 * 2);
+	gutil_texquad((width - 182 * GFX_GUI_SCALE) / 2, height - (GFX_GUI_SCALE * 16) * 8 / 5 - 22 * GFX_GUI_SCALE, 0, 0,
+				  182, 22, 182 * GFX_GUI_SCALE, 22 * GFX_GUI_SCALE);
 
 	gfx_blending(MODE_INVERT);
-	gutil_texquad((width - 16 * 2) / 2, (height - 16 * 2) / 2, 0, 229, 16, 16,
-				  16 * 2, 16 * 2);
+	gutil_texquad((width - 16 * GFX_GUI_SCALE) / 2, (height - 16 * GFX_GUI_SCALE) / 2, 0, 229, GFX_GUI_SCALE, GFX_GUI_SCALE,
+				  16 * GFX_GUI_SCALE, 16 * GFX_GUI_SCALE);
 
 	gfx_blending(MODE_OFF);
 
@@ -409,39 +410,39 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 		if(inventory_get_slot(
 			   windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]),
 			   k + INVENTORY_SLOT_HOTBAR, &item))
-			gutil_draw_item(&item, (width - 182 * 2) / 2 + 3 * 2 + 20 * 2 * k,
-							height - 32 * 8 / 5 - 19 * 2, 0);
+			gutil_draw_item(&item, (width - 182 * GFX_GUI_SCALE) / 2 + 3 * GFX_GUI_SCALE + 20 * GFX_GUI_SCALE * k,
+							height - (GFX_GUI_SCALE * 16) * 8 / 5 - 19 * GFX_GUI_SCALE, 0);
 	}
 
 	gfx_blending(MODE_BLEND);
 	gfx_bind_texture(&texture_gui2);
 
 	// draw hotbar selection
-	gutil_texquad((width - 182 * 2) / 2 - 2
-					  + 20 * 2
+	gutil_texquad((width - 182 * GFX_GUI_SCALE) / 2 - 2
+					  + 20 * GFX_GUI_SCALE 
 						  * inventory_get_hotbar(windowc_get_latest(
 							  gstate.windows[WINDOWC_INVENTORY])),
-				  height - 32 * 8 / 5 - 23 * 2, 208, 0, 24, 24, 24 * 2, 24 * 2);
+				  height - (GFX_GUI_SCALE * 16) * 8 / 5 - 23 * GFX_GUI_SCALE, 208, 0, 24, 24, 24 * GFX_GUI_SCALE, 24 * GFX_GUI_SCALE);
 
 	for(int k = 0; k < MAX_PLAYER_HEALTH/HEALTH_PER_HEART; k++) {
 		// draw black hearts
-		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
-				  height - 32 * 8 / 5 - (22 + 10) * 2, 16, 229, 9, 9, 9 * 2,
-					  9 * 2);
+		gutil_texquad((width - 182 * GFX_GUI_SCALE) / 2 + k * 8 * GFX_GUI_SCALE,
+				  height - (GFX_GUI_SCALE * 16) * 8 / 5 - (22 + 10) * GFX_GUI_SCALE, 16, 229, 9, 9, 9 * GFX_GUI_SCALE,
+					  9 * GFX_GUI_SCALE);
 	}
 	for(int k = 0; k < (gstate.local_player->health/HEALTH_PER_HEART); k++) {
 		// draw red hearts
-		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
-					  height - 32 * 8 / 5 - (22 + 10) * 2, 52, 229, 9, 9, 9 * 2,
-				  9 * 2);
+		gutil_texquad((width - 182 * GFX_GUI_SCALE) / 2 + k * 8 * GFX_GUI_SCALE,
+					  height - (GFX_GUI_SCALE * 16) * 8 / 5 - (22 + 10) * GFX_GUI_SCALE, 52, 229, 9, 9, 9 * GFX_GUI_SCALE,
+				  9 * GFX_GUI_SCALE);
 	}
 
 	// draw oxygen bar if underwater
 	if(gstate.in_water && gstate.oxygen >= OXYGEN_THRESHOLD) {
 		for(int k = 0; k < ((gstate.oxygen - OXYGEN_THRESHOLD) / 32); k++) {
-			gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
-							height - 40 * 8 / 5 - (22 + 10) * 2, 17, 249, 9, 9, 9 * 2,
-						9 * 2);
+			gutil_texquad((width - 182 * GFX_GUI_SCALE) / 2 + k * 8 * GFX_GUI_SCALE,
+							height - (GFX_GUI_SCALE * 20) * 8 / 5 - (22 + 10) * GFX_GUI_SCALE, 17, 249, 9, 9, 9 * GFX_GUI_SCALE,
+						9 * GFX_GUI_SCALE);
 
 		}
 	}

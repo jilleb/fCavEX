@@ -23,6 +23,7 @@
 #include "../platform/displaylist.h"
 #include "../platform/gfx.h"
 #include "gui_util.h"
+#include "gfx_settings.h"
 #include "render_item.h"
 
 static struct displaylist dl;
@@ -90,7 +91,7 @@ void render_item_flat(struct item* item, struct item_data* stack, mat4 view,
 
 	if(env == R_ITEM_ENV_INVENTORY) {
 		gfx_matrix_modelview(view);
-		gutil_texquad(0, 0, s, t, 16, 16, 16 * 2, 16 * 2);
+		gutil_texquad(0, 0, s, t, 16, 16, 16 * GFX_GUI_SCALE, 16 * GFX_GUI_SCALE);
 	} else {
 		displaylist_reset(&dl);
 

@@ -18,6 +18,7 @@
 */
 
 #include "../../graphics/gfx_util.h"
+#include "../../graphics/gfx_settings.h"
 #include "../../graphics/gui_util.h"
 #include "../../graphics/render_model.h"
 #include "../../network/server_interface.h"
@@ -58,8 +59,8 @@ static void screen_inventory_reset(struct screen* s, int width, int height) {
 
 	for(int k = 0; k < INVENTORY_SIZE_MAIN; k++) {
 		slots[slots_index++] = (struct inv_slot) {
-			.x = (8 + (k % INVENTORY_SIZE_HOTBAR) * 18) * 2,
-			.y = (84 + (k / INVENTORY_SIZE_HOTBAR) * 18) * 2,
+			.x = (8 + (k % INVENTORY_SIZE_HOTBAR) * 18) * GFX_GUI_SCALE,
+			.y = (84 + (k / INVENTORY_SIZE_HOTBAR) * 18) * GFX_GUI_SCALE,
 			.slot = k + INVENTORY_SLOT_MAIN,
 		};
 	}
@@ -71,31 +72,31 @@ static void screen_inventory_reset(struct screen* s, int width, int height) {
 			selected_slot = slots_index;
 
 		slots[slots_index++] = (struct inv_slot) {
-			.x = (8 + k * 18) * 2,
-			.y = (84 + 3 * 18 + 4) * 2,
+			.x = (8 + k * 18) * GFX_GUI_SCALE,
+			.y = (84 + 3 * 18 + 4) * GFX_GUI_SCALE,
 			.slot = k + INVENTORY_SLOT_HOTBAR,
 		};
 	}
 
 	for(int k = 0; k < INVENTORY_SIZE_ARMOR; k++) {
 		slots[slots_index++] = (struct inv_slot) {
-			.x = 8 * 2,
-			.y = (8 + k * 18) * 2,
+			.x = 8 * GFX_GUI_SCALE,
+			.y = (8 + k * 18) * GFX_GUI_SCALE,
 			.slot = k + INVENTORY_SLOT_ARMOR,
 		};
 	}
 
 	for(int k = 0; k < INVENTORY_SIZE_CRAFTING; k++) {
 		slots[slots_index++] = (struct inv_slot) {
-			.x = (88 + (k % 2) * 18) * 2,
-			.y = (26 + (k / 2) * 18) * 2,
+			.x = (88 + (k % 2) * 18) * GFX_GUI_SCALE,
+			.y = (26 + (k / 2) * 18) * GFX_GUI_SCALE,
 			.slot = k + INVENTORY_SLOT_CRAFTING,
 		};
 	}
 
 	slots[slots_index++] = (struct inv_slot) {
-		.x = 144 * 2,
-		.y = 36 * 2,
+		.x = 144 * GFX_GUI_SCALE,
+		.y = 36 * GFX_GUI_SCALE,
 		.slot = INVENTORY_SLOT_OUTPUT,
 	};
 }
@@ -143,17 +144,17 @@ static void screen_inventory_update(struct screen* s, float dt) {
 	int slot_dist[4] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX};
 	int pointer_slot = -1;
 
-	int off_x = (gfx_width() - GUI_WIDTH * 2) / 2;
-	int off_y = (gfx_height() - GUI_HEIGHT * 2) / 2;
+	int off_x = (gfx_width() - GUI_WIDTH * GFX_GUI_SCALE) / 2;
+	int off_y = (gfx_height() - GUI_HEIGHT * GFX_GUI_SCALE) / 2;
 
 	for(size_t k = 0; k < slots_index; k++) {
 		int dx = slots[k].x - slots[selected_slot].x;
 		int dy = slots[k].y - slots[selected_slot].y;
 
 		if(pointer_x >= off_x + slots[k].x
-		   && pointer_x < off_x + slots[k].x + 16 * 2
+		   && pointer_x < off_x + slots[k].x + 16 * GFX_GUI_SCALE 
 		   && pointer_y >= off_y + slots[k].y
-		   && pointer_y < off_y + slots[k].y + 16 * 2)
+		   && pointer_y < off_y + slots[k].y + 16 * GFX_GUI_SCALE)
 			pointer_slot = k;
 
 		int distx = dx * dx + dy * dy * 8;
@@ -215,29 +216,31 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 	gutil_texquad_col(0, 0, 0, 0, 0, 0, width, height, 0, 0, 0, 180);
 	gfx_texture(true);
 
-	int off_x = (width - GUI_WIDTH * 2) / 2;
-	int off_y = (height - GUI_HEIGHT * 2) / 2;
+	int off_x = (width - GUI_WIDTH * GFX_GUI_SCALE) / 2;
+	int off_y = (height - GUI_HEIGHT * GFX_GUI_SCALE) / 2;
 
 	// draw inventory
 	gfx_bind_texture(&texture_gui_inventory);
-	gutil_texquad(off_x, off_y, 0, 0, GUI_WIDTH, GUI_HEIGHT, GUI_WIDTH * 2,
-				  GUI_HEIGHT * 2);
-	gutil_text(off_x + 86 * 2, off_y + 16 * 2, "\2478Crafting", 16, false);
+	gutil_texquad(off_x, off_y, 0, 0, GUI_WIDTH, GUI_HEIGHT, GUI_WIDTH * GFX_GUI_SCALE,
+				  GUI_HEIGHT * GFX_GUI_SCALE);
+	gutil_text(off_x + 86 * GFX_GUI_SCALE, off_y + 16 * GFX_GUI_SCALE, "\2478Crafting", 8 * GFX_GUI_SCALE, false);
 
 	struct inv_slot* selection = slots + selected_slot;
 
 	float angle_x
-		= atan2f((pointer_has_item ? pointer_x : off_x + selection->x + 8 * 2)
-					 - (off_x + 52 * 2),
+		= atan2f((pointer_has_item ? pointer_x : off_x + selection->x + 8 * GFX_GUI_SCALE)
+					 - (off_x + 52 * GFX_GUI_SCALE),
 				 192.0F);
 	float angle_y
-		= atan2f((pointer_has_item ? pointer_y : off_y + selection->y + 8 * 2)
-					 - (off_y + 19 * 2),
+		= atan2f((pointer_has_item ? pointer_y : off_y + selection->y + 8 * GFX_GUI_SCALE)
+					 - (off_y + 19 * GFX_GUI_SCALE),
 				 192.0F);
 
+	// TODO: draw player sprite
+	/*
 	mat4 view;
 	glm_mat4_identity(view);
-	glm_translate(view, (vec3) {off_x + 52 * 2, off_y + 39 * 2, 0.0F});
+	glm_translate(view, (vec3) {off_x + 52 * GFX_GUI_SCALE, off_y + 39 * GFX_GUI_SCALE, 0.0F});
 	glm_scale(view, (vec3) {3.75F, -3.75F, 1.0F});
 	glm_rotate_x(view, angle_y * 0.66F * 0.5F, view);
 	glm_rotate_y(view, angle_x * 0.5F, view);
@@ -260,6 +263,7 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 																	NULL);
 	gfx_write_buffers(true, false, false);
 	gfx_matrix_modelview(GLM_MAT4_IDENTITY);
+	*/
 
 	// draw items
 	for(size_t k = 0; k < slots_index; k++) {
@@ -272,10 +276,10 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 
 	gfx_bind_texture(&texture_gui2);
 
-	gutil_texquad(off_x + selection->x - 8, off_y + selection->y - 8, 208, 0,
-				  24, 24, 24 * 2, 24 * 2);
+	gutil_texquad(off_x + selection->x - (4 * GFX_GUI_SCALE), off_y + selection->y - (4 * GFX_GUI_SCALE), 208, 0,
+				  24, 24, 24 * GFX_GUI_SCALE, 24 * GFX_GUI_SCALE);
 
-	int icon_offset = 32;
+	int icon_offset = 16 * GFX_GUI_SCALE;
 	icon_offset += gutil_control_icon(icon_offset, IB_GUI_UP, "Move");
 	if(inventory_get_picked_item(inv, NULL)) {
 		icon_offset
@@ -294,7 +298,7 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 	struct item_data item;
 	if(inventory_get_picked_item(inv, &item)) {
 		if(pointer_available && pointer_has_item) {
-			gutil_draw_item(&item, pointer_x - 8 * 2, pointer_y - 8 * 2, 0);
+			gutil_draw_item(&item, pointer_x - 8 * GFX_GUI_SCALE, pointer_y - 8 * GFX_GUI_SCALE, 0);
 		} else {
 			gutil_draw_item(&item, off_x + selection->x, off_y + selection->y,
 							0);
@@ -303,21 +307,21 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 		char* tmp = item_get(&item) ? item_get(&item)->name : "Unknown";
 		gfx_blending(MODE_BLEND);
 		gfx_texture(false);
-		gutil_texquad_col(off_x + selection->x - 4 + 16
-							  - gutil_font_width(tmp, 16) / 2,
-						  off_y + selection->y - 4 + 46, 0, 0, 0, 0,
-						  gutil_font_width(tmp, 16) + 7, 16 + 8, 0, 0, 0, 180);
+		gutil_texquad_col(off_x + selection->x - 2 * GFX_GUI_SCALE + 8 * GFX_GUI_SCALE 
+							  - gutil_font_width(tmp, 8 * GFX_GUI_SCALE) / 2,
+						  off_y + selection->y - 2 * GFX_GUI_SCALE + 23 * GFX_GUI_SCALE, 0, 0, 0, 0,
+						  gutil_font_width(tmp, 8 * GFX_GUI_SCALE) + 7, 12 * GFX_GUI_SCALE, 0, 0, 0, 180);
 		gfx_texture(true);
 		gfx_blending(MODE_OFF);
 
-		gutil_text(off_x + selection->x + 16 - gutil_font_width(tmp, 16) / 2,
-				   off_y + selection->y + 46, tmp, 16, false);
+		gutil_text(off_x + selection->x + 8 * GFX_GUI_SCALE - gutil_font_width(tmp, 8 * GFX_GUI_SCALE) / 2,
+				   off_y + selection->y + 23 * GFX_GUI_SCALE, tmp, 8 * GFX_GUI_SCALE, false);
 	}
 
 	if(pointer_available) {
 		gfx_bind_texture(&texture_pointer);
 		gutil_texquad_rt_any(pointer_x, pointer_y, glm_rad(pointer_angle), 0, 0,
-							 256, 256, 96, 96);
+							 256, 256, 48 * GFX_GUI_SCALE, 48 * GFX_GUI_SCALE);
 	}
 }
 

@@ -18,6 +18,7 @@
 */
 
 #include "../../graphics/gui_util.h"
+#include "../../graphics/gfx_settings.h"
 #include "../../network/server_local.h"
 #include "../../platform/gfx.h"
 #include "../../platform/input.h"
@@ -38,25 +39,25 @@ static void screen_lworld_update(struct screen* s, float dt) {
 static void screen_lworld_render2D(struct screen* s, int width, int height) {
 	gutil_bg();
 
-	gutil_text((width - gutil_font_width("Generating level", 16)) / 2,
-			   height / 2 - 40, "Generating level", 16, true);
+	gutil_text((width - gutil_font_width("Generating level", 8 * GFX_GUI_SCALE)) / 2,
+			   height / 2 - 20 * GFX_GUI_SCALE, "Generating level", 8 * GFX_GUI_SCALE, true);
 
-	gutil_text((width - gutil_font_width("Building terrain", 16)) / 2,
-			   height / 2 + 8, "Building terrain", 16, true);
+	gutil_text((width - gutil_font_width("Building terrain", 8 * GFX_GUI_SCALE)) / 2,
+			   height / 2 + 4 * GFX_GUI_SCALE, "Building terrain", 8 * GFX_GUI_SCALE, true);
 
-	gutil_text(4, height - 4 - 17 * 2, "Licensed under GPLv3", 16, true);
-	gutil_text(4, height - 4 - 17 * 1, "Copyright (c) 2023 ByteBit/xtreme8000",
-			   16, true);
+	gutil_text(2 * GFX_GUI_SCALE, height - 2 * GFX_GUI_SCALE - (9 * GFX_GUI_SCALE) * 2, "Licensed under GPLv3", 8 * GFX_GUI_SCALE, true);
+	gutil_text(2 * GFX_GUI_SCALE, height - 2 * GFX_GUI_SCALE - (9 * GFX_GUI_SCALE) * 1, "Copyright (c) 2023 ByteBit/xtreme8000",
+			   8 * GFX_GUI_SCALE, true);
 
 	// just a rough estimate
 	float progress
 		= fminf((float)world_loaded_chunks(&gstate.world) / MAX_CHUNKS, 1.0F);
 
 	gfx_texture(false);
-	gutil_texquad_col((width - 200) / 2, height / 2 + 32, 0, 0, 0, 0, 200, 4,
+	gutil_texquad_col((width - 100 * GFX_GUI_SCALE) / 2, height / 2 + 16 * GFX_GUI_SCALE, 0, 0, 0, 0, 100 * GFX_GUI_SCALE, 2 * GFX_GUI_SCALE,
 					  128, 128, 128, 255);
-	gutil_texquad_col((width - 200) / 2, height / 2 + 32, 0, 0, 0, 0,
-					  200 * progress, 4, 128, 255, 128, 255);
+	gutil_texquad_col((width - 100 * GFX_GUI_SCALE) / 2, height / 2 + 16 * GFX_GUI_SCALE, 0, 0, 0, 0,
+					  100 * GFX_GUI_SCALE * progress, 2 * GFX_GUI_SCALE, 128, 255, 128, 255);
 	gfx_texture(true);
 }
 
