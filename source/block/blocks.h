@@ -108,7 +108,7 @@ extern struct block block_spawner;
 extern struct block block_cobblestone;
 extern struct block block_mossstone;
 extern struct block block_chest;
-extern struct block block_locked_chest;
+extern struct block block_iron_chest;
 extern struct block block_cactus;
 extern struct block block_pumpkin;
 extern struct block block_pumpkin_lit;

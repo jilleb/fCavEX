@@ -39,6 +39,7 @@ add_executable(cavex
 				source/block/block_grass.c
 				source/block/block_gravel.c
 				source/block/block_ice.c
+				source/block/block_iron_chest.c
 				source/block/block_jukebox.c
 				source/block/block_ladder.c
 				source/block/block_lava.c
@@ -90,6 +91,7 @@ add_executable(cavex
 				source/game/gui/screen_load_world.c
 				source/game/gui/screen_select_world.c
 				source/game/gui/screen_inventory.c
+				source/game/gui/screen_iron_chest.c
 				source/game/gui/screen_crafting.c
 				source/game/gui/screen_furnace.c
 				source/game/gui/screen_chest.c
@@ -119,6 +121,7 @@ add_executable(cavex
 				source/network/inventory_crafting.c
 				source/network/inventory_furnace.c
 				source/network/inventory_chest.c
+				source/network/inventory_iron_chest.c
 
 				source/graphics/gfx_util.c
 				source/graphics/gui_util.c

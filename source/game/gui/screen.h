@@ -39,11 +39,13 @@ extern struct screen screen_inventory;
 extern struct screen screen_crafting;
 extern struct screen screen_furnace;
 extern struct screen screen_chest;
+extern struct screen screen_iron_chest;
 
 void screen_set(struct screen* s);
 
 void screen_crafting_set_windowc(uint8_t container);
 void screen_furnace_set_windowc(uint8_t container);
 void screen_chest_set_windowc(uint8_t container);
+void screen_iron_chest_set_windowc(uint8_t container);
 
 #endif

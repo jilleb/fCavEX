@@ -40,8 +40,8 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 
 static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	uint8_t tex[SIDE_MAX] = {
-		[SIDE_TOP] = tex_atlas_lookup(TEXAT_CHEST_TOP),
-		[SIDE_BOTTOM] = tex_atlas_lookup(TEXAT_CHEST_TOP),
+		[SIDE_TOP] = tex_atlas_lookup(TEXAT_CAST_BLOCK_IRON),
+		[SIDE_BOTTOM] = tex_atlas_lookup(TEXAT_CAST_BLOCK_IRON),
 		[SIDE_BACK] = tex_atlas_lookup(TEXAT_CHEST_SIDE),
 		[SIDE_FRONT] = tex_atlas_lookup(TEXAT_CHEST_SIDE),
 		[SIDE_LEFT] = tex_atlas_lookup(TEXAT_CHEST_SIDE),
@@ -64,13 +64,13 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 	if(s->player.active_inventory == &s->player.inventory) {
 		clin_rpc_send(&(struct client_rpc) {
 			.type = CRPC_OPEN_WINDOW,
-			.payload.window_open.window = WINDOWC_CHEST,
-			.payload.window_open.type = WINDOW_TYPE_CHEST,
-			.payload.window_open.slot_count = CHEST_SIZE,
+			.payload.window_open.window = WINDOWC_IRON_CHEST,
+			.payload.window_open.type = WINDOW_TYPE_IRON_CHEST,
+			.payload.window_open.slot_count = IRON_CHEST_SIZE,
 		});
 
 		struct inventory* inv = malloc(sizeof(struct inventory));
-		inventory_create(inv, &inventory_logic_chest, s, CHEST_SIZE, on->x, on->y, on->z);
+		inventory_create(inv, &inventory_logic_iron_chest, s, IRON_CHEST_SIZE, on->x, on->y, on->z);
 		s->player.active_inventory = inv;
 	}
 }
@@ -97,7 +97,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 			s->chest_pos[i].x = where->x;
 			s->chest_pos[i].y = where->y;
 			s->chest_pos[i].z = where->z;
-			memset(&s->chest_items[i], 0, 27*sizeof(struct item_data));
+			memset(&s->chest_items[i], 0, 54*sizeof(struct item_data));
 			server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 			return true;
 		}
@@ -133,8 +133,8 @@ static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 	return 1;
 }
 
-struct block block_chest = {
-	.name = "Chest",
+struct block block_iron_chest = {
+	.name = "Iron Chest",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
@@ -152,15 +152,15 @@ struct block block_chest = {
 	.flammable = false,
 	.place_ignore = false,
 	.digging.hardness = 3750,
-	.digging.tool = TOOL_TYPE_AXE,
-	.digging.min = TOOL_TIER_ANY,
+	.digging.tool = TOOL_TYPE_PICKAXE,
+	.digging.min = TOOL_TIER_WOOD,
 	.digging.best = TOOL_TIER_MAX,
 	.block_item = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_block,
 		.onItemPlace = onItemPlace,
-		.fuel = 2,
+		.fuel = 0,
 		.render_data.block.has_default = true,
 		.render_data.block.default_metadata = 0,
 		.render_data.block.default_rotation = 2,
