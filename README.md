@@ -47,6 +47,19 @@ You need to download these libraries yourself and place their source files to th
 | [parson](https://github.com/kgabis/parson) | `parson.h` and `parson.c` | `source/parson/` |
 | [M*LIB](https://github.com/P-p-H-d/mlib) | any root `*.h` | compiler include path |
 
+### Video settings
+
+Before building, you can change video settings by editing `source/graphics/gfx_settings.h`. For now, video settings are set at compile time, which means the game needs to be recompiled after changing video settings to recognize them. Unless specified otherwise, the settings affect both the PC version and the Wii version.
+
+Currently available video settings:
+
+* GFX_CLOUDS - if this is defined, 3D clouds will be rendered, otherwise clouds will not be rendered.
+* GFX_DOUBLESIDED - if this is not defined, blocks with unculled backfaces will not be rendered. This includes blocks like tall grass and sugar cane.
+* GFX_FANCY_LIQUIDS - if this is defined, liquids are transparent and animated. Otherwise, liquids are opaque and not animated, which can noticeably improve performance on low-end GPUs. Disabling this will also make underwater blocks render only if a player is underwater.
+* GFX_GUI_SCALE - the game interface is scaled by the value of this define - the greater the value, the larger the interface. This must be set to an integer which isn't lower than 1. The default value of 2 is recommended for the resolution of 640x480. For 320x240, setting this to 1 is recommended. Running the game at a low resolution can greatly improve performance on low-end GPUs.
+* GFX_PC_WINDOW_WIDTH and GFX_PC_WINDOW_HEIGHT - this is used to set the default window size on PC and ignored on the Wii.
+* GFX_WIREFRAME - if this is defined, polygons on PC will be rendered as wireframes. Enabling this breaks text and texture rendering and may lower performance - this is only included for testing purposes and disabled by default.
+
 ### Wii
 
 For the Wii platform you need to install the [devkitPro](https://devkitpro.org/wiki/Getting_Started) Wii/Gamecube environment. Additionally install zlib using pacman of devkitPro.
