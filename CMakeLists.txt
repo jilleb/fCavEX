@@ -61,6 +61,7 @@ add_executable(cavex
 				source/block/block_sandstone.c
 				source/block/block_sapling.c
 				source/block/blocks.c
+				source/block/block_sign.c
 				source/block/block_slab.c
 				source/block/block_snow.c
 				source/block/block_spawner.c

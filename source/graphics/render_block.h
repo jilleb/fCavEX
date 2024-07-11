@@ -129,6 +129,10 @@ size_t render_block_trapdoor(struct displaylist* d, struct block_info* this,
 							 enum side side, struct block_info* it,
 							 uint8_t* vertex_light, bool count_only);
 
+size_t render_block_sign(struct displaylist* d, struct block_info* this,
+							 enum side side, struct block_info* it,
+							 uint8_t* vertex_light, bool count_only);
+
 size_t render_block_door(struct displaylist* d, struct block_info* this,
 						 enum side side, struct block_info* it,
 						 uint8_t* vertex_light, bool count_only);
