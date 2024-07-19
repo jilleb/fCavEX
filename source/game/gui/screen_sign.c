@@ -20,7 +20,7 @@
 #include "../../graphics/gfx_util.h"
 #include "../../graphics/gfx_settings.h"
 #include "../../graphics/gui_util.h"
-#include "../../graphics/render_model.h"
+#include "../../graphics/texture_atlas.h"
 #include "../../network/server_interface.h"
 #include "../../platform/gfx.h"
 #include "../../platform/input.h"
@@ -28,8 +28,8 @@
 #include "../game_state.h"
 #include "screen.h"
 
-#define GUI_WIDTH 176
-#define GUI_HEIGHT 167
+#define GUI_WIDTH 128
+#define GUI_HEIGHT 64
 
 struct inv_slot {
 	int x, y;
@@ -96,8 +96,14 @@ static void screen_sign_render2D(struct screen* s, int width, int height) {
 	int off_x = (width - GUI_WIDTH * GFX_GUI_SCALE) / 2;
 	int off_y = (height - GUI_HEIGHT * GFX_GUI_SCALE) / 2;
 
-	// draw sign texture 
-	gutil_text(off_x + 86 * GFX_GUI_SCALE, off_y + 16 * GFX_GUI_SCALE, "SIGN TEST", 8 * GFX_GUI_SCALE, false);
+	// draw sign texture
+	gfx_bind_texture(&texture_terrain);
+	gutil_texquad(off_x, off_y, TEX_OFFSET(TEXTURE_X(tex_atlas_lookup(TEXAT_PLANKS))), TEX_OFFSET(TEXTURE_Y(tex_atlas_lookup(TEXAT_PLANKS))), 16, 16, GUI_WIDTH * GFX_GUI_SCALE, GUI_HEIGHT * GFX_GUI_SCALE);
+
+	gutil_text(off_x + 10 * GFX_GUI_SCALE, off_y + 8 * GFX_GUI_SCALE, "SIGN TEST", 8 * GFX_GUI_SCALE, false);
+	gutil_text(off_x + 10 * GFX_GUI_SCALE, off_y + 20 * GFX_GUI_SCALE, "SIGN TEST", 8 * GFX_GUI_SCALE, false);
+	gutil_text(off_x + 10 * GFX_GUI_SCALE, off_y + 32 * GFX_GUI_SCALE, "SIGN TEST", 8 * GFX_GUI_SCALE, false);
+	gutil_text(off_x + 10 * GFX_GUI_SCALE, off_y + 44 * GFX_GUI_SCALE, "SIGN TEST", 8 * GFX_GUI_SCALE, false);
 
 	if(pointer_available) {
 		gfx_bind_texture(&texture_pointer);
