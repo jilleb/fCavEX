@@ -198,6 +198,9 @@ void clin_process(struct client_rpc* call) {
 						screen_iron_chest_set_windowc(window);
 						screen_set(&screen_iron_chest);
 						break;
+					case WINDOW_TYPE_SIGN:
+						screen_sign_set_windowc(window);
+						screen_set(&screen_sign);
 					default: break;
 				}
 			}

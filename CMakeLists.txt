@@ -96,6 +96,7 @@ add_executable(cavex
 				source/game/gui/screen_crafting.c
 				source/game/gui/screen_furnace.c
 				source/game/gui/screen_chest.c
+				source/game/gui/screen_sign.c
 				source/game/gui/screen.c
 				source/game/camera.c
 				source/game/game_state.c

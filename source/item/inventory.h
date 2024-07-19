@@ -78,6 +78,9 @@
 #define IRON_CHEST_SLOT_MAIN 54
 #define IRON_CHEST_SLOT_HOTBAR 81
 
+// sign (characters as inventory)
+#define SIGN_SIZE 64
+
 // picked item slot
 #define SPECIAL_SLOT_PICKED_ITEM 255
 
