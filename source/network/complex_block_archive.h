@@ -17,8 +17,8 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CHEST_ARCHIVE_H
-#define CHEST_ARCHIVE_H
+#ifndef COMPLEX_BLOCK_ARCHIVE_H
+#define COMPLEX_BLOCK_ARCHIVE_H
 
 #include <m-lib/m-string.h>
 #include <stdbool.h>
@@ -36,4 +36,6 @@
 
 void chest_archive_read(struct complex_block_pos* pos, struct item_data* items, string_t path);
 void chest_archive_write(struct complex_block_pos* pos, struct item_data* items, string_t path);
+void sign_archive_read(struct complex_block_pos* pos, char* texts, string_t path);
+void sign_archive_write(struct complex_block_pos* pos, char* texts, string_t path);
 #endif

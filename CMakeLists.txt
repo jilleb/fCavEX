@@ -112,7 +112,7 @@ add_executable(cavex
 				source/item/items/item_door_wood.c
 
 				source/network/client_interface.c
-				source/network/chest_archive.c
+				source/network/complex_block_archive.c
 				source/network/level_archive.c
 				source/network/region_archive.c
 				source/network/server_interface.c

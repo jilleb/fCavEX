@@ -19,7 +19,7 @@
 
 #include <assert.h>
 
-#include "chest_archive.h"
+#include "complex_block_archive.h"
 
 static int32_t swap_int32(int32_t n) {
 	n = ((n << 8) & 0xFF00FF00) | ((n >> 8) & 0xFF00FF);
@@ -41,11 +41,31 @@ static void swap_endianness(struct complex_block_pos* pos, struct item_data* ite
 			pos[i].x = swap_int32(pos[i].x);	
 			pos[i].y = swap_int32(pos[i].y);	
 			pos[i].z = swap_int32(pos[i].z);	
-			for(int j=0; j<MAX_CHEST_SLOTS; j++) {
-				(items + i*MAX_CHEST_SLOTS + j)->id = swap_uint16((items + i*MAX_CHEST_SLOTS + j)->id);
+			if(items) {
+				for(int j=0; j<MAX_CHEST_SLOTS; j++) {
+					(items + i*MAX_CHEST_SLOTS + j)->id = swap_uint16((items + i*MAX_CHEST_SLOTS + j)->id);
+				}
 			}
 		}
 	}
+}
+
+void chest_archive_write(struct complex_block_pos* pos, struct item_data* items, string_t path) {
+	assert(pos && items && path);
+
+	swap_endianness(pos, items);
+
+	string_t filename;
+	string_init_printf(filename, "%s/chests.dat",
+					   string_get_cstr(path));
+	FILE* f = fopen(string_get_cstr(filename), "wb");
+	string_clear(filename);
+	if (!f) return;
+
+	fputc(0, f); //format version byte
+	fwrite(pos, 1, MAX_CHESTS*sizeof(struct complex_block_pos), f);
+	fwrite(items, 1, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data), f);
+	fclose(f);
 }
 
 void chest_archive_read(struct complex_block_pos* pos, struct item_data* items, string_t path) {
@@ -69,21 +89,43 @@ void chest_archive_read(struct complex_block_pos* pos, struct item_data* items, 
 	swap_endianness(pos, items);
 }
 
+void sign_archive_write(struct complex_block_pos* pos, char* texts, string_t path) {
+	assert(pos && texts && path);
 
-void chest_archive_write(struct complex_block_pos* pos, struct item_data* items, string_t path) {
-	assert(pos && items && path);
-
-	swap_endianness(pos, items);
+	swap_endianness(pos, NULL);
 
 	string_t filename;
-	string_init_printf(filename, "%s/chests.dat",
+	string_init_printf(filename, "%s/signs.dat",
 					   string_get_cstr(path));
 	FILE* f = fopen(string_get_cstr(filename), "wb");
 	string_clear(filename);
 	if (!f) return;
 
 	fputc(0, f); //format version byte
-	fwrite(pos, 1, MAX_CHESTS*sizeof(struct complex_block_pos), f);
-	fwrite(items, 1, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data), f);
+	fwrite(pos, 1, MAX_SIGNS*sizeof(struct complex_block_pos), f);
+	fwrite(texts, 1, MAX_SIGNS*SIGN_SIZE*sizeof(char), f);
 	fclose(f);
 }
+
+void sign_archive_read(struct complex_block_pos* pos, char* texts, string_t path) {
+	assert(pos && texts && path);
+	memset(pos, -1, MAX_SIGNS*sizeof(struct complex_block_pos));
+	memset(texts, ' ', MAX_SIGNS*SIGN_SIZE*sizeof(char));
+
+	string_t filename;
+	string_init_printf(filename, "%s/signs.dat",
+					   string_get_cstr(path));
+	FILE* f = fopen(string_get_cstr(filename), "rb");
+	string_clear(filename);
+	if(!f) return;
+
+	uint8_t format_version = fgetc(f);
+	if(format_version != 0) puts("Warning: signs.dat uses a newer format");
+	fread(pos, 1, MAX_CHESTS*sizeof(struct complex_block_pos), f);
+	fread(texts, 1, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data), f);
+	fclose(f);
+
+	swap_endianness(pos, NULL);
+}
+
+

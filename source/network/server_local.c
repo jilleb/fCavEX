@@ -29,7 +29,7 @@
 #include "inventory_logic.h"
 #include "server_interface.h"
 #include "server_local.h"
-#include "chest_archive.h"
+#include "complex_block_archive.h"
 
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
 	(((x1) - (x2)) * ((x1) - (x2)) + ((z1) - (z2)) * ((z1) - (z2)))
@@ -338,6 +338,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 			level_archive_write(&s->level, LEVEL_PLAYER_HEALTH, &s->player.health);
 
 			chest_archive_write(s->chest_pos, s->chest_items[0], s->level_name);
+			sign_archive_write(s->sign_pos, s->sign_texts[0], s->level_name);
 
 			dict_entity_it_t it;
 			dict_entity_it(it, s->entities);
@@ -387,6 +388,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				level_archive_read(&s->level, LEVEL_PLAYER_SPAWNZ, &s->player.spawn_z, 0);
 
 				chest_archive_read(s->chest_pos, s->chest_items[0], s->level_name);
+				sign_archive_read(s->sign_pos, s->sign_texts[0], s->level_name);
 
 				s->player.oxygen = MAX_OXYGEN;
 

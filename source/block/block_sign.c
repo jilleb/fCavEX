@@ -143,11 +143,11 @@ static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 							 struct random_gen* g, struct server_local* s) {
 	if(it) {
 		it->id = this->block->type;
-		it->durability = this->block->metadata;
+		it->durability = 0;
 		it->count = 1;
 	} else { //only free sign on first run of getDroppedItem
 		for(int i=0; i<MAX_SIGNS; i++) {
-			if(s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
+			if(s->sign_pos[i].x == this->x && s->sign_pos[i].y == this->y && s->sign_pos[i].z == this->z) {
 				s->sign_pos[i].y = -1;
 				break;
 			}
