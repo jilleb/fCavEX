@@ -36,11 +36,12 @@
 #define MAX_HIGH_DETAIL_CHUNKS ((MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2) * (MAX_HIGH_DETAIL_VIEW_DISTANCE * 2 + 2))
 #define MAX_CHESTS 256
 #define MAX_CHEST_SLOTS 54
+#define MAX_SIGNS 256
 
 #define MAX_OXYGEN 351
 #define OXYGEN_THRESHOLD 0
 
-struct chest_pos {
+struct complex_block_pos {
 	int x, y, z;
 };
 
@@ -62,8 +63,10 @@ struct server_local {
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
-	struct chest_pos chest_pos[MAX_CHESTS];
+	struct complex_block_pos chest_pos[MAX_CHESTS];
 	struct item_data chest_items[MAX_CHESTS][MAX_CHEST_SLOTS];
+	struct complex_block_pos sign_pos[MAX_SIGNS];
+	char sign_texts[MAX_SIGNS][SIGN_SIZE];
 	uint64_t world_time;
 	string_t level_name;
 	struct level_archive level;

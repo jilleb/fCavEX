@@ -35,7 +35,7 @@ static int is_little_endian() {
 	return (*((uint8_t*)(&i))) == 0x67;
 }
 
-static void swap_endianness(struct chest_pos* pos, struct item_data* items) {
+static void swap_endianness(struct complex_block_pos* pos, struct item_data* items) {
 	if(is_little_endian()) {
 		for(int i=0; i<MAX_CHESTS; i++) {
 			pos[i].x = swap_int32(pos[i].x);	
@@ -48,9 +48,9 @@ static void swap_endianness(struct chest_pos* pos, struct item_data* items) {
 	}
 }
 
-void chest_archive_read(struct chest_pos* pos, struct item_data* items, string_t path) {
+void chest_archive_read(struct complex_block_pos* pos, struct item_data* items, string_t path) {
 	assert(pos && items && path);
-	memset(pos, -1, MAX_CHESTS*sizeof(struct chest_pos));
+	memset(pos, -1, MAX_CHESTS*sizeof(struct complex_block_pos));
 	memset(items, 0, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data));
 
 	string_t filename;
@@ -62,7 +62,7 @@ void chest_archive_read(struct chest_pos* pos, struct item_data* items, string_t
 
 	uint8_t format_version = fgetc(f);
 	if(format_version != 0) puts("Warning: chests.dat uses a newer format");
-	fread(pos, 1, MAX_CHESTS*sizeof(struct chest_pos), f);
+	fread(pos, 1, MAX_CHESTS*sizeof(struct complex_block_pos), f);
 	fread(items, 1, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data), f);
 	fclose(f);
 
@@ -70,7 +70,7 @@ void chest_archive_read(struct chest_pos* pos, struct item_data* items, string_t
 }
 
 
-void chest_archive_write(struct chest_pos* pos, struct item_data* items, string_t path) {
+void chest_archive_write(struct complex_block_pos* pos, struct item_data* items, string_t path) {
 	assert(pos && items && path);
 
 	swap_endianness(pos, items);
@@ -83,7 +83,7 @@ void chest_archive_write(struct chest_pos* pos, struct item_data* items, string_
 	if (!f) return;
 
 	fputc(0, f); //format version byte
-	fwrite(pos, 1, MAX_CHESTS*sizeof(struct chest_pos), f);
+	fwrite(pos, 1, MAX_CHESTS*sizeof(struct complex_block_pos), f);
 	fwrite(items, 1, MAX_CHEST_SLOTS*MAX_CHESTS*sizeof(struct item_data), f);
 	fclose(f);
 }

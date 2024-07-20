@@ -609,6 +609,7 @@ void server_local_create(struct server_local* s) {
 	s->player.active_inventory = &s->player.inventory;
 	dict_entity_init(s->entities);
 	memset(s->chest_pos, -1, MAX_CHESTS*3*sizeof(int));
+	memset(s->sign_pos, -1, MAX_SIGNS*3*sizeof(int));
 
 	struct thread t;
 	thread_create(&t, server_local_thread, s, 8);

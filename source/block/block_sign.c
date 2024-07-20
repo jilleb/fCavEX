@@ -106,8 +106,19 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
 		return false;
 
-	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
-	return true;
+	for (int i=0; i<MAX_CHESTS; i++) {
+		if (s->sign_pos[i].y < 0) {
+			s->sign_pos[i].x = where->x;
+			s->sign_pos[i].y = where->y;
+			s->sign_pos[i].z = where->z;
+			memset(&s->sign_texts[i], ' ', SIGN_SIZE * sizeof(char));
+			server_world_set_block(&s->world, where->x, where->y, where->z, blk);
+			return true;
+		}
+	}
+
+	puts("Too many signs");
+	return false;
 }
 
 static void onRightClick(struct server_local* s, struct item_data* it,
@@ -128,7 +139,23 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 	}
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g, struct server_local* s) {
+	if(it) {
+		it->id = this->block->type;
+		it->durability = this->block->metadata;
+		it->count = 1;
+	} else { //only free sign on first run of getDroppedItem
+		for(int i=0; i<MAX_SIGNS; i++) {
+			if(s->chest_pos[i].x == this->x && s->chest_pos[i].y == this->y && s->chest_pos[i].z == this->z) {
+				s->sign_pos[i].y = -1;
+				break;
+			}
+		}
+	}
 
+	return 1;
+}
 
 struct block block_sign = {
 	.name = "Sign",
@@ -136,7 +163,7 @@ struct block block_sign = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
-	.getDroppedItem = block_drop_default,
+	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
 	.onRightClick = onRightClick,
 	.transparent = false,

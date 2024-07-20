@@ -34,6 +34,6 @@
 #include "../world.h"
 #include "server_local.h"
 
-void chest_archive_read(struct chest_pos* pos, struct item_data* items, string_t path);
-void chest_archive_write(struct chest_pos* pos, struct item_data* items, string_t path);
+void chest_archive_read(struct complex_block_pos* pos, struct item_data* items, string_t path);
+void chest_archive_write(struct complex_block_pos* pos, struct item_data* items, string_t path);
 #endif

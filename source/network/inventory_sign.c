@@ -54,6 +54,15 @@ static void inv_on_close(struct inventory* inv) {
 	set_inv_slot_init(changes);
 
 	// TODO: save sign text
+	for(int i = 0; i < MAX_SIGNS; i++) {
+		if(s->sign_pos[i].x == inv->x && s->sign_pos[i].y == inv->y && s->sign_pos[i].z == inv->z) {
+			for(size_t k = 0; k < SIGN_SIZE; k++) {
+				s->sign_texts[i][k] = inv->items[k].count;
+			}
+			break;
+		}
+	}
+
 
 	server_local_send_inv_changes(changes, inv, WINDOWC_SIGN);
 	set_inv_slot_clear(changes);
@@ -72,11 +81,15 @@ static void inv_on_create(struct inventory* inv) {
 	set_inv_slot_init(changes);
 
 	// TODO: restore sign text
-
-	for(size_t k = 0; k < SIGN_SIZE; k++) {
-		inv->items[k].id = 1;
-		inv->items[k].count = ' ';
-		set_inv_slot_push(changes, k);
+	for(int i = 0; i < MAX_SIGNS; i++) {
+		if(s->sign_pos[i].x == inv->x && s->sign_pos[i].y == inv->y && s->sign_pos[i].z == inv->z) {
+			for(size_t k = 0; k < SIGN_SIZE; k++) {
+				inv->items[k].id = 1;
+				inv->items[k].count = s->sign_texts[i][k];
+				set_inv_slot_push(changes, k);
+			}
+			break;
+		}
 	}
 	
 	server_local_send_inv_changes(changes, inv, WINDOWC_SIGN);
