@@ -124,6 +124,7 @@ add_executable(cavex
 				source/network/inventory_furnace.c
 				source/network/inventory_chest.c
 				source/network/inventory_iron_chest.c
+				source/network/inventory_sign.c
 
 				source/graphics/gfx_util.c
 				source/graphics/gui_util.c

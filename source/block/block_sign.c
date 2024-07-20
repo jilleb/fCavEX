@@ -18,6 +18,7 @@
 */
 
 #include "../network/client_interface.h"
+#include "../network/inventory_logic.h"
 #include "../network/server_local.h"
 #include "blocks.h"
 
@@ -112,12 +113,6 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
-	/*
-	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
-		.type = BLOCK_SIGN,
-		.metadata = (on->block->metadata + 1) & 15
-	});
-	*/
 	if(s->player.active_inventory == &s->player.inventory) {
 		clin_rpc_send(&(struct client_rpc) {
 			.type = CRPC_OPEN_WINDOW,
@@ -125,6 +120,11 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 			.payload.window_open.type = WINDOW_TYPE_SIGN,
 			.payload.window_open.slot_count = SIGN_SIZE,
 		});
+
+		struct inventory* inv = malloc(sizeof(struct inventory));
+		inventory_create(inv, &inventory_logic_sign, s,
+			SIGN_SIZE, on->x, on->y, on->z);
+		s->player.active_inventory = inv;
 	}
 }
 
