@@ -24,16 +24,14 @@
 static bool onItemPlace(struct server_local* s, struct item_data* it,
 						struct block_info* where, struct block_info* on,
 						enum side on_side) {
-	if (s->player.health >= MAX_PLAYER_HEALTH) return false;
-
-	server_local_set_player_health(s, s->player.health+4*HEALTH_PER_HEART);
+	server_local_set_player_health(s, s->player.health-16);
 	return true;
 }
 
-struct item item_porkchop_cooked = {
-	.name = "Cooked Porkchop",
+struct item item_fish = {
+	.name = "Raw Fish",
 	.has_damage = false,
-	.max_stack = 64,
+	.max_stack = 1,
 	.fuel = 0,
 	.renderItem = render_item_flat,
 	.onItemPlace = onItemPlace,
@@ -41,7 +39,7 @@ struct item item_porkchop_cooked = {
 	.tool.type = TOOL_TYPE_ANY,
 	.render_data = {
 		.item = {
-			.texture_x = 7,
+			.texture_x = 9,
 			.texture_y = 5,
 		},
 	},

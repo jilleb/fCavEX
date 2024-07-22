@@ -111,6 +111,12 @@ add_executable(cavex
 				source/item/items/item_porkchop_cooked.c
 				source/item/items/item_door_wood.c
 				source/item/items/item_door_iron.c
+				source/item/items/item_apple.c
+				source/item/items/item_apple_golden.c
+				source/item/items/item_fish.c
+				source/item/items/item_fish_cooked.c
+				source/item/items/item_bread.c
+				source/item/items/item_mushroom_stew.c
 
 				source/network/client_interface.c
 				source/network/complex_block_archive.c

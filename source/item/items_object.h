@@ -486,6 +486,7 @@ static struct item item_flint_steel = {
 	},
 };
 
+/*
 static struct item item_apple = {
 	.name = "Apple",
 	.has_damage = false,
@@ -501,6 +502,8 @@ static struct item item_apple = {
 		},
 	},
 };
+*/
+extern struct item item_apple;
 
 static struct item item_bow = {
 	.name = "Bow",
@@ -1042,6 +1045,7 @@ static struct item item_wheat = {
 	},
 };
 
+/*
 static struct item item_bread = {
 	.name = "Bread",
 	.has_damage = false,
@@ -1057,6 +1061,8 @@ static struct item item_bread = {
 		},
 	},
 };
+*/
+extern struct item item_bread;
 
 static struct item item_flint = {
 	.name = "Flint",
@@ -1186,6 +1192,7 @@ static struct item item_bowl = {
 	},
 };
 
+/*
 static struct item item_mushroom_stew = {
 	.name = "Mushroom Stew",
 	.has_damage = false,
@@ -1201,6 +1208,8 @@ static struct item item_mushroom_stew = {
 		},
 	},
 };
+*/
+extern struct item item_mushroom_stew;
 
 static struct item item_feather = {
 	.name = "Feather",
@@ -1362,6 +1371,7 @@ static struct item item_shears = {
 	},
 };
 
+/*
 static struct item item_fish = {
 	.name = "Raw Fish",
 	.has_damage = false,
@@ -1377,7 +1387,10 @@ static struct item item_fish = {
 		},
 	},
 };
+*/
+extern struct item item_fish;
 
+/*
 static struct item item_fish_cooked = {
 	.name = "Cooked Fish",
 	.has_damage = false,
@@ -1393,6 +1406,8 @@ static struct item item_fish_cooked = {
 		},
 	},
 };
+*/
+extern struct item item_fish_cooked;
 
 static struct item item_cookie = {
 	.name = "Cookie",
@@ -1410,6 +1425,7 @@ static struct item item_cookie = {
 	},
 };
 
+/*
 static struct item item_apple_golden = {
 	.name = "Golden Apple",
 	.has_damage = false,
@@ -1425,6 +1441,8 @@ static struct item item_apple_golden = {
 		},
 	},
 };
+*/
+extern struct item item_apple_golden;
 
 /*
 static struct item item_door_wood = {
