@@ -8,6 +8,7 @@ Unlike CavEX, fCavEX does not aim for complete save compatibility - for instance
 
 ---
 **Changes**
+
 For a detailed list of changes between fCavEX 0.3.0\_f1 and CavEX 0.3.0, see [CHANGES.md](CHANGES.md).
 
 ---
