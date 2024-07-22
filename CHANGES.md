@@ -59,6 +59,9 @@
 * Opening or closing a door half also opens or closes the half placed above and the half placed below, allowing for 3 block tall doors. This only works with door halves of the same type (wooden or iron).
 * Iron doors are opened and closed by hand, as there is no redstone/automation for now.
 * 9 iron ingots/gold ingots/diamonds now craft only 1 block as opposed to 4.
+* Apples, golden apples, bread, mushroom stew, cooked porkchops and cooked fish can now be eaten to restore health.
+* Food can not be eaten when the player is at full health.
+* Raw porkchops and raw fish hurt the player when eaten.
 * The default `config.json` file is now meant for the PC - when building for the Wii, replace it with `config_wii.json`.
 
 ## Removals
