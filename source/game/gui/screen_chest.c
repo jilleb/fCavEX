@@ -210,7 +210,7 @@ static void screen_chest_render2D(struct screen* s, int width, int height) {
 	int off_y = (height - GUI_HEIGHT * GFX_GUI_SCALE) / 2;
 
 	// draw inventory
-	gfx_bind_texture(&texture_gui_crafting);
+	gfx_bind_texture(&texture_gui_chest);
 	gutil_texquad(off_x, off_y, 0, 0, GUI_WIDTH, GUI_HEIGHT, GUI_WIDTH * GFX_GUI_SCALE,
 				  GUI_HEIGHT * GFX_GUI_SCALE);
 	gutil_text(off_x + 28 * GFX_GUI_SCALE, off_y + 6 * GFX_GUI_SCALE, "\2478Chest", 8 * GFX_GUI_SCALE, false);

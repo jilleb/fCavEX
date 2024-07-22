@@ -91,11 +91,26 @@ static void screen_iron_chest_reset(struct screen* s, int width, int height) {
 	}
 
 	// TODO: a less ugly GUI which can still fit in 320x200
-	for(int k = 0; k < IRON_CHEST_SIZE_SIDE_STORAGE; k++) {
+	// HACK: hardcoded slot counts to awkwardly fit a double chest in 320x200
+	for(int k = 0; k < 12; k++) {
 		slots[slots_index++] = (struct inv_slot) {
-			.x = (180 + (k % 6) * 18) * GFX_GUI_SCALE,
-			.y = (16 + (k / 6) * 18) * GFX_GUI_SCALE,
-			.slot = k + IRON_CHEST_SLOT_SIDE_STORAGE,
+			.x = (170 + (k % 4) * 18) * GFX_GUI_SCALE,
+			.y = (16 + (k / 4) * 18) * GFX_GUI_SCALE,
+			.slot = k + IRON_CHEST_SIZE_SIDE_STORAGE,
+		};
+	}
+	for(int k = 0; k < 12; k++) {
+		slots[slots_index++] = (struct inv_slot) {
+			.x = (178 + (k % 4) * 18) * GFX_GUI_SCALE,
+			.y = (84 + (k / 4) * 18) * GFX_GUI_SCALE,
+			.slot = k + 12 + IRON_CHEST_SIZE_SIDE_STORAGE,
+		};
+	}
+	for(int k = 0; k < 3; k++) {
+		slots[slots_index++] = (struct inv_slot) {
+			.x = (195 + (k % 4) * 18) * GFX_GUI_SCALE,
+			.y = (84 + 3 * 18 + 4) * GFX_GUI_SCALE,
+			.slot = k + 24 + IRON_CHEST_SIZE_SIDE_STORAGE,
 		};
 	}
 }
@@ -219,7 +234,7 @@ static void screen_iron_chest_render2D(struct screen* s, int width, int height) 
 	int off_y = (height - GUI_HEIGHT * GFX_GUI_SCALE) / 2;
 
 	// draw inventory
-	gfx_bind_texture(&texture_gui_crafting);
+	gfx_bind_texture(&texture_gui_iron_chest);
 	gutil_texquad(off_x, off_y, 0, 0, GUI_WIDTH, GUI_HEIGHT, GUI_WIDTH * GFX_GUI_SCALE,
 				  GUI_HEIGHT * GFX_GUI_SCALE);
 	gutil_text(off_x + 28 * GFX_GUI_SCALE, off_y + 6 * GFX_GUI_SCALE, "\2478Iron Chest", 8 * GFX_GUI_SCALE, false);

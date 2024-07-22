@@ -60,6 +60,8 @@ extern struct tex_gfx texture_anim;
 extern struct tex_gfx texture_gui_inventory;
 extern struct tex_gfx texture_gui_crafting;
 extern struct tex_gfx texture_gui_furnace;
+extern struct tex_gfx texture_gui_chest;
+extern struct tex_gfx texture_gui_iron_chest;
 extern struct tex_gfx texture_gui2;
 extern struct tex_gfx texture_controls;
 extern struct tex_gfx texture_pointer;
