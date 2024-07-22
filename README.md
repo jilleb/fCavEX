@@ -4,16 +4,22 @@
 
 *fCavEX* (forked CavEX) is an experimental fork of CavEX with all kinds of changes and additions. Some additions may not be from the original game and some mechanics may be different - this fork is not aiming for a 1:1 recreation. For now, fCavEX is only tested on a PC - there might be bugs on the Wii.
 
+Unlike CavEX, fCavEX does not aim for complete save compatibility - for instance, chests and signs use an incompatible saving system with static limits and some blocks may use metadata values differently. Until stated otherwise, a freshly created save should be compatible, as fCavEX does not have its own world generator yet.
+
 ---
 
 **Features**
 * great performance on Wii (about 60fps)
 * 5 chunk render distance currently
-* load any beta world save
+* load newly created beta world saves
 * nearly all blocks added, except redstone related
 * many items from the original
 * correct light propagation
 * ambient occlusion on blocks
+* health bar, damage, eating, dying, respawning
+* fall damage, lava damage, drowning
+* working doors, trapdoors, signs
+* compile-time video settings
 
 ---
 
@@ -26,7 +32,6 @@
 * ~~block placement~~ and destruction logic
 * ~~(random)~~ block updates
 * ~~item actions~~
-* health bar, respawning
 * 2D mobs, fighting
 * real texture pack support
 
