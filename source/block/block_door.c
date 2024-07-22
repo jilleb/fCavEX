@@ -77,9 +77,21 @@ static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
 
 static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 							 struct random_gen* g, struct server_local* s) {
-	// TODO: handle iron doors
-	if(it) { 
+	if(it) {
 		it->id = ITEM_DOOR_WOOD;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	//only drop item from bottom half
+	if(this->block->metadata < 8) return 1;
+	return 0;
+}
+
+static size_t getDroppedItem2(struct block_info* this, struct item_data* it,
+							 struct random_gen* g, struct server_local* s) {
+	if(it) {
+		it->id = ITEM_DOOR_IRON;
 		it->durability = 0;
 		it->count = 1;
 	}
@@ -110,6 +122,31 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 
 	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
 		.type = BLOCK_DOOR_WOOD,
+		.metadata = on->block->metadata ^ 1
+	});
+}
+
+static void onRightClick2(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	struct block_data blk;
+
+	if(server_world_get_block(&s->world, on->x, on->y - 1, on->z, &blk) && blk.type == BLOCK_DOOR_IRON) {
+		server_world_set_block(&s->world, on->x, on->y - 1, on->z, (struct block_data) {
+			.type = BLOCK_DOOR_IRON,
+			.metadata = blk.metadata ^ 1
+		});
+	}
+
+	if(server_world_get_block(&s->world, on->x, on->y + 1, on->z, &blk) && blk.type == BLOCK_DOOR_IRON) {
+		server_world_set_block(&s->world, on->x, on->y + 1, on->z, (struct block_data) {
+			.type = BLOCK_DOOR_IRON,
+			.metadata = blk.metadata ^ 1
+		});
+	}
+
+	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
+		.type = BLOCK_DOOR_IRON,
 		.metadata = on->block->metadata ^ 1
 	});
 }
@@ -154,9 +191,9 @@ struct block block_iron_door = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial2,
 	.getTextureIndex = getTextureIndex2,
-	.getDroppedItem = getDroppedItem,
+	.getDroppedItem = getDroppedItem2,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick2,
 	.transparent = false,
 	.renderBlock = render_block_door,
 	.renderBlockAlways = NULL,
