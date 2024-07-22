@@ -7,6 +7,10 @@
 Unlike CavEX, fCavEX does not aim for complete save compatibility - for instance, chests and signs use an incompatible saving system with static limits and some blocks may use metadata values differently. Until stated otherwise, a freshly created save should be compatible, as fCavEX does not have its own world generator yet.
 
 ---
+**Changes**
+For a detailed list of changes between fCavEX 0.3.0\_f1 and CavEX 0.3.0, see [CHANGES.md](CHANGES.md).
+
+---
 
 **Features**
 * great performance on Wii (about 60fps)
