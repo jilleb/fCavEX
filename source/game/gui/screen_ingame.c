@@ -324,14 +324,6 @@ static void screen_ingame_update(struct screen* s, float dt) {
 	}
 
 	if(input_pressed(IB_HOME)) {
-		screen_set(&screen_select_world);
-		svin_rpc_send(&(struct server_rpc) {
-			.type = SRPC_UNLOAD_WORLD,
-		});
-	}
-
-	// TODO: add dedicated pause key/button
-	if(input_pressed(IB_GUI_UP)) {
 		screen_set(&screen_pause);
 		gstate.paused = true;
 
@@ -402,7 +394,7 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 		icon_offset += gutil_control_icon(icon_offset, IB_ACTION1, "Punch");
 	}
 
-	icon_offset += gutil_control_icon(icon_offset, IB_HOME, "Save & quit");
+	icon_offset += gutil_control_icon(icon_offset, IB_HOME, "Pause");
 
 	// draw hotbar
 	gfx_bind_texture(&texture_gui2);
