@@ -41,6 +41,7 @@ extern struct screen screen_furnace;
 extern struct screen screen_chest;
 extern struct screen screen_iron_chest;
 extern struct screen screen_sign;
+extern struct screen screen_pause;
 
 void screen_set(struct screen* s);
 

@@ -70,6 +70,7 @@ struct server_local {
 	uint64_t world_time;
 	string_t level_name;
 	struct level_archive level;
+	bool paused;
 };
 
 void server_local_create(struct server_local* s);

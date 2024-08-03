@@ -79,6 +79,7 @@ struct game_state {
 	} held_item_animation;
 	bool world_loaded;
 	bool in_water;
+	bool paused;
 	int oxygen;
 };
 

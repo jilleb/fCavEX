@@ -49,6 +49,9 @@
 #include "lodepng/lodepng.h"
 
 int main(void) {
+	float daytime, tick_delta;
+	bool render_world;
+
 	gstate.quit = false;
 	gstate.camera = (struct camera) {
 		.x = 0, .y = 0, .z = 0, .rx = 0, .ry = 0, .controller = {0, 0, 0}};
@@ -60,6 +63,7 @@ int main(void) {
 	gstate.held_item_animation.switch_item.start = time_get();
 	gstate.digging.cooldown = time_get();
 	gstate.digging.active = false;
+	gstate.paused = false;
 
 	rand_gen_seed(&gstate.rand_src);
 
@@ -104,29 +108,31 @@ int main(void) {
 		gstate.stats.fps = 1.0F / gstate.stats.dt;
 		last_frame = this_frame;
 
-		float daytime
+		if(!gstate.paused) daytime
 			= (float)((gstate.world_time
-					   + time_diff_ms(gstate.world_time_start, this_frame)
-						   / DAY_TICK_MS)
-					  % DAY_LENGTH_TICKS)
+					 + time_diff_ms(gstate.world_time_start, this_frame)
+						 / DAY_TICK_MS)
+						% DAY_LENGTH_TICKS)
 			/ (float)DAY_LENGTH_TICKS;
 
 		clin_update();
 
-		float tick_delta = time_diff_s(last_tick, time_get()) / 0.05F;
+		tick_delta = time_diff_s(last_tick, time_get()) / 0.05F;
 
 		while(tick_delta >= 1.0F) {
 			last_tick = time_add_ms(last_tick, 50);
 			tick_delta -= 1.0F;
-			particle_update();
-			entities_client_tick(gstate.entities);
+			if(!gstate.paused) {
+				particle_update();
+				entities_client_tick(gstate.entities);
+			}
 		}
 
 		if(gstate.local_player)
 			camera_attach(&gstate.camera, gstate.local_player, tick_delta,
-						  gstate.stats.dt);
+							gstate.stats.dt);
 
-		bool render_world
+		render_world
 			= gstate.current_screen->render_world && gstate.world_loaded;
 		bool in_water_new = false;
 
@@ -167,80 +173,83 @@ int main(void) {
 
 		if(gstate.current_screen->update)
 			gstate.current_screen->update(gstate.current_screen,
-										  gstate.stats.dt);
+											gstate.stats.dt);
 
 		gfx_flip_buffers(&gstate.stats.dt_gpu, &gstate.stats.dt_vsync);
 
-		// must not modify displaylists while still rendering!
-		chunk_mesher_receive();
-		world_render_completed(&gstate.world, render_world);
+		if(!gstate.paused) {
+			// must not modify displaylists while still rendering!
+			chunk_mesher_receive();
+			world_render_completed(&gstate.world, render_world);
 
-		vec3 top_plane_color, bottom_plane_color, atmosphere_color;
-		daytime_sky_colors(daytime, top_plane_color, bottom_plane_color,
-						   atmosphere_color);
+			vec3 top_plane_color, bottom_plane_color, atmosphere_color;
+			daytime_sky_colors(daytime, top_plane_color, bottom_plane_color,
+								 atmosphere_color);
 
-		if(render_world) {
-			gfx_clear_buffers(atmosphere_color[0], atmosphere_color[1],
-							  atmosphere_color[2]);
-		} else {
-			gfx_clear_buffers(128, 128, 128);
-		}
+			if(render_world) {
+				gfx_clear_buffers(atmosphere_color[0], atmosphere_color[1],
+									atmosphere_color[2]);
+			} else {
+				gfx_clear_buffers(128, 128, 128);
+			}
 
-		gfx_fog_color(atmosphere_color[0], atmosphere_color[1],
-					  atmosphere_color[2]);
+			gfx_fog_color(atmosphere_color[0], atmosphere_color[1],
+							atmosphere_color[2]);
 
-		gfx_mode_world();
-		gfx_matrix_projection(gstate.camera.projection, true);
+			gfx_mode_world();
+			gfx_matrix_projection(gstate.camera.projection, true);
 
-		if(render_world) {
-			gfx_update_light(daytime_brightness(daytime),
-							 world_dimension_light(&gstate.world));
+			if(render_world) {
+				gfx_update_light(daytime_brightness(daytime),
+								 world_dimension_light(&gstate.world));
 
-			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
-				gutil_sky_box(gstate.camera.view,
-							  daytime_celestial_angle(daytime), top_plane_color,
-							  bottom_plane_color);
+				if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
+					gutil_sky_box(gstate.camera.view,
+									daytime_celestial_angle(daytime), top_plane_color,
+									bottom_plane_color);
 
-			gstate.stats.chunks_rendered
-				= world_render(&gstate.world, &gstate.camera, false);
-		} else {
-			gstate.stats.chunks_rendered = 0;
-		}
+				gstate.stats.chunks_rendered
+					= world_render(&gstate.world, &gstate.camera, false);
+			} else {
+				gstate.stats.chunks_rendered = 0;
+			}
 
-		if(gstate.current_screen->render3D) {
-			gfx_fog(false);
-			gstate.current_screen->render3D(gstate.current_screen,
-											gstate.camera.view);
-		}
+			if(gstate.current_screen->render3D) {
+				gfx_fog(false);
+				gstate.current_screen->render3D(gstate.current_screen,
+												gstate.camera.view);
+			}
 
-		if(render_world) {
-			gfx_fog(false);
-			particle_render(
-				gstate.camera.view,
-				(vec3) {gstate.camera.x, gstate.camera.y, gstate.camera.z},
-				tick_delta);
-			entities_client_render(gstate.entities, &gstate.camera, tick_delta);
-			gfx_fog(true);
+			if(render_world) {
+				gfx_fog(false);
+				particle_render(
+					gstate.camera.view,
+					(vec3) {gstate.camera.x, gstate.camera.y, gstate.camera.z},
+					tick_delta);
+				entities_client_render(gstate.entities, &gstate.camera, tick_delta);
+				gfx_fog(true);
 
-			#ifdef GFX_FANCY_LIQUIDS
-			world_render(&gstate.world, &gstate.camera, true);
-			#endif
+				#ifdef GFX_FANCY_LIQUIDS
+				world_render(&gstate.world, &gstate.camera, true);
+				#endif
 
-			#ifdef GFX_CLOUDS
-			if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
-				gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
-			#endif
-		}
+				#ifdef GFX_CLOUDS
+				if(gstate.world.dimension == WORLD_DIM_OVERWORLD)
+					gutil_clouds(gstate.camera.view, daytime_brightness(daytime));
+				#endif
+			}
 
-		gfx_mode_gui();
+			gfx_mode_gui();
 
-		if(gstate.in_water) {
-			gfx_bind_texture(&texture_water);
-			gutil_texquad_col(0, 0, -gstate.camera.rx / GLM_PI * 256,
-							  gstate.camera.ry / GLM_PI * 256, 512,
-							  512 * (float)gfx_height() / (float)gfx_width(),
-							  gfx_width(), gfx_height(), 0xFF, 0xFF, 0xFF,
-							  0x80);
+			if(gstate.in_water) {
+				gfx_bind_texture(&texture_water);
+				gutil_texquad_col(0, 0, -gstate.camera.rx / GLM_PI * 256,
+									gstate.camera.ry / GLM_PI * 256, 512,
+									512 * (float)gfx_height() / (float)gfx_width(),
+									gfx_width(), gfx_height(), 0xFF, 0xFF, 0xFF,
+									0x80);
+			}
+
 		}
 
 		if(gstate.current_screen->render2D)

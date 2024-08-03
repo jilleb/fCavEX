@@ -330,6 +330,16 @@ static void screen_ingame_update(struct screen* s, float dt) {
 		});
 	}
 
+	// TODO: add dedicated pause key/button
+	if(input_pressed(IB_GUI_UP)) {
+		screen_set(&screen_pause);
+		gstate.paused = true;
+
+		svin_rpc_send(&(struct server_rpc) {
+			.type = SRPC_TOGGLE_PAUSE,
+		});
+	}
+
 	if(input_pressed(IB_INVENTORY))
 		screen_set(&screen_inventory);
 }

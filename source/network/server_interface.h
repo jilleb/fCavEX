@@ -36,6 +36,7 @@ enum server_rpc_type {
 	SRPC_BLOCK_DIG,
 	SRPC_WINDOW_CLICK,
 	SRPC_WINDOW_CLOSE,
+	SRPC_TOGGLE_PAUSE,
 };
 
 struct server_rpc {

@@ -168,6 +168,13 @@ static void server_local_process(struct server_rpc* call, void* user) {
 	struct server_local* s = user;
 
 	switch(call->type) {
+		case SRPC_TOGGLE_PAUSE:
+			s->paused = !s->paused;
+			clin_rpc_send(&(struct client_rpc) {
+				.type = CRPC_TIME_SET,
+				.payload.time_set = s->world_time,
+			});
+			break;
 		case SRPC_PLAYER_POS:
 			if(s->player.finished_loading) {
 				s->player.x = call->payload.player_pos.x;
@@ -415,7 +422,7 @@ static void server_local_update(struct server_local* s) {
 
 	svin_process_messages(server_local_process, s, false);
 
-	if(!s->player.has_pos)
+	if(!s->player.has_pos || s->paused)
 		return;
 
 	s->world_time++;
@@ -548,45 +555,43 @@ static void server_local_update(struct server_local* s) {
 		s->player.finished_loading = true;
 	}
 
-	if (s->player.has_pos) {
-		// check if player is underwater
-		// server side X off by one?
-		struct block_data blk;
-		server_world_get_block(&s->world, s->player.x-1, s->player.y, s->player.z, &blk);
-		bool in_water = (blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW);
-		bool in_lava = (blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW);
-		if (s->player.y != 0) {
-			server_world_get_block(&s->world, s->player.x-1, s->player.y-1, s->player.z, &blk);
-			if (blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW) in_lava = true;
-		}
-
-		// check if player is falling
-		// reset falling height if player is underwater
-		if ((s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) || in_water) {
-			s->player.fall_y = s->player.y;
-		}
-		if (s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
-			int fall_distance = s->player.fall_y - s->player.y;
-			if (fall_distance >= 4) {
-				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*(fall_distance-3));
-			}
-			s->player.fall_y = s->player.y;
-		}
-
-		if (in_lava) {
-			// damage player in lava every 8 ticks
-			if ((s->player.oxygen & 7) == 0) {
-				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*2);
-			}
-			s->player.oxygen--;
-		} else if (in_water) {
-			// damage drowning player every 32 ticks
-			if (s->player.oxygen <= OXYGEN_THRESHOLD && (s->player.oxygen&31) == 0) {
-				server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART);
-			}
-			s->player.oxygen--;
-		} else s->player.oxygen = MAX_OXYGEN;
+	// check if player is underwater
+	// server side X off by one?
+	struct block_data blk;
+	server_world_get_block(&s->world, s->player.x-1, s->player.y, s->player.z, &blk);
+	bool in_water = (blk.type == BLOCK_WATER_STILL || blk.type == BLOCK_WATER_FLOW);
+	bool in_lava = (blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW);
+	if(s->player.y != 0) {
+		server_world_get_block(&s->world, s->player.x-1, s->player.y-1, s->player.z, &blk);
+		if(blk.type == BLOCK_LAVA_STILL || blk.type == BLOCK_LAVA_FLOW) in_lava = true;
 	}
+
+	// check if player is falling
+	// reset falling height if player is underwater
+	if((s->player.old_vel_y >= -0.079f && s->player.vel_y < -0.079f) || in_water) {
+		s->player.fall_y = s->player.y;
+	}
+	if(s->player.old_vel_y < -0.079f && s->player.vel_y >= -0.079f) {
+		int fall_distance = s->player.fall_y - s->player.y;
+		if(fall_distance >= 4) {
+			server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*(fall_distance-3));
+		}
+		s->player.fall_y = s->player.y;
+	}
+
+	if(in_lava) {
+		// damage player in lava every 8 ticks
+		if((s->player.oxygen & 7) == 0) {
+			server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART*2);
+		}
+		s->player.oxygen--;
+	} else if(in_water) {
+		// damage drowning player every 32 ticks
+		if(s->player.oxygen <= OXYGEN_THRESHOLD && (s->player.oxygen&31) == 0) {
+			server_local_set_player_health(s, s->player.health-HEALTH_PER_HEART);
+		}
+		s->player.oxygen--;
+	} else s->player.oxygen = MAX_OXYGEN;
 }
 
 static void* server_local_thread(void* user) {
@@ -601,6 +606,7 @@ static void* server_local_thread(void* user) {
 void server_local_create(struct server_local* s) {
 	assert(s);
 	rand_gen_seed(&s->rand_src);
+	s->paused = false;
 	s->world_time = 0;
 	s->player.has_pos = false;
 	s->player.finished_loading = false;
