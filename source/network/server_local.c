@@ -73,6 +73,35 @@ struct entity* server_local_spawn_item(vec3 pos, struct item_data* it,
 	return e;
 }
 
+struct entity* server_local_spawn_monster(vec3 pos, int monster_id,
+									   struct server_local* s) {
+	uint32_t entity_id = entity_gen_id(s->entities);
+	struct entity** e_ptr = dict_entity_safe_get(s->entities, entity_id);
+	*e_ptr = malloc(sizeof(struct entity));
+	struct entity* e = *e_ptr;
+	assert(e);
+
+	entity_monster(entity_id, e, true, &s->world, monster_id);
+	e->teleport(e, pos);
+
+	glm_vec3_copy((vec3) {rand_gen_flt(&s->rand_src) - 0.5F,
+							rand_gen_flt(&s->rand_src) - 0.5F,
+							rand_gen_flt(&s->rand_src) - 0.5F},
+					e->vel);
+	glm_vec3_normalize(e->vel);
+	glm_vec3_scale(
+		e->vel, (2.0F * rand_gen_flt(&s->rand_src) + 0.5F) * 0.1F, e->vel);
+
+	clin_rpc_send(&(struct client_rpc) {
+		.type = CRPC_SPAWN_MONSTER,
+		.payload.spawn_monster.entity_id = e->id,
+		.payload.spawn_monster.monster_id = monster_id,
+		.payload.spawn_monster.pos = {e->pos[0], e->pos[1], e->pos[2]},
+	});
+
+	return e;
+}
+
 void server_local_spawn_block_drops(struct server_local* s,
 									struct block_info* blk_info) {
 	assert(s && blk_info);

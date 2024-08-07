@@ -20,6 +20,7 @@
 #ifndef CLIENT_INTERFACE_H
 #define CLIENT_INTERFACE_H
 
+#include "../entity/entity.h"
 #include "../item/items.h"
 #include "../item/window_container.h"
 #include "../world.h"
@@ -41,6 +42,7 @@ enum client_rpc_type {
 	CRPC_ENTITY_MOVE,
 	CRPC_OPEN_WINDOW,
 	CRPC_PLAYER_SET_HEALTH,
+	CRPC_SPAWN_MONSTER,
 };
 
 struct client_rpc {
@@ -90,6 +92,11 @@ struct client_rpc {
 			struct item_data item;
 			vec3 pos;
 		} spawn_item;
+		struct {
+			uint32_t entity_id;
+			int monster_id;
+			vec3 pos;
+		} spawn_monster;
 		struct {
 			uint32_t entity_id;
 			uint32_t collector_id;

@@ -81,6 +81,7 @@ add_executable(cavex
 				source/entity/entity.c
 				source/entity/entity_local_player.c
 				source/entity/entity_item.c
+				source/entity/entity_monster.c
 
 				source/cNBT/buffer.c
 				source/cNBT/nbt_loading.c
@@ -139,6 +140,7 @@ add_executable(cavex
 				source/graphics/render_block.c
 				source/graphics/render_item.c
 				source/graphics/render_model.c
+				source/graphics/render_monster.c
 				source/graphics/texture_atlas.c
 
 				source/platform/displaylist.c

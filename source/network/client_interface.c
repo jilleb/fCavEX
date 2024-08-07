@@ -253,6 +253,16 @@ void clin_process(struct client_rpc* call) {
 						&gstate.world, call->payload.spawn_item.item);
 			e->teleport(e, call->payload.spawn_item.pos);
 		} break;
+		case CRPC_SPAWN_MONSTER: {
+			struct entity** e_ptr = dict_entity_safe_get(
+				gstate.entities, call->payload.spawn_monster.entity_id);
+			*e_ptr = malloc(sizeof(struct entity));
+			struct entity* e = *e_ptr;
+			assert(e);
+			entity_monster(call->payload.spawn_monster.entity_id, e, false,
+						&gstate.world, call->payload.spawn_monster.monster_id);
+			e->teleport(e, call->payload.spawn_monster.pos);
+		} break;
 		case CRPC_PICKUP_ITEM: {
 			if(gstate.local_player
 			   && call->payload.pickup_item.collector_id

@@ -29,6 +29,7 @@
 enum entity_type {
 	ENTITY_LOCAL_PLAYER,
 	ENTITY_ITEM,
+	ENTITY_MONSTER,
 };
 
 struct server_local;
@@ -64,8 +65,36 @@ struct entity {
 			struct item_data item;
 			int age;
 		} item;
+		struct entity_monster {
+			int id;
+			int frame;
+			int frame_time_left;
+		} monster;
 	} data;
 };
+
+struct monster_frame {
+	int x;
+	int y;
+	int length;
+	void (*action)();
+	int next_frame;
+};
+
+struct monster {
+	int max_health;
+	int speed;
+	int width;
+	int height;
+	int frame_init;
+	int frame_alert;
+	int frame_hurt;
+	int frame_melee;
+	int frame_attack;
+	int frame_death;
+};
+
+extern struct monster_frame frames[256];
 
 DICT_DEF2(dict_entity, uint32_t, M_BASIC_OPLIST, struct entity*, M_POD_OPLIST)
 
@@ -76,6 +105,9 @@ bool entity_local_player_block_collide(vec3 pos, struct block_info* blk_info);
 
 void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 				 struct item_data it);
+
+void entity_monster(uint32_t id, struct entity* e, bool server, void* world,
+				 int monster_id);
 
 uint32_t entity_gen_id(dict_entity_t dict);
 void entities_client_tick(dict_entity_t dict);

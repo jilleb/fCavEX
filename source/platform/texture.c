@@ -30,6 +30,7 @@
 struct tex_gfx texture_fog;
 struct tex_gfx texture_terrain;
 struct tex_gfx texture_items;
+struct tex_gfx texture_mobs;
 struct tex_gfx texture_font;
 struct tex_gfx texture_anim;
 struct tex_gfx texture_gui_inventory;
@@ -102,6 +103,7 @@ void tex_init() {
 					  false);
 	tex_gfx_load_file(&texture_gui2, "gui_2.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_items, "items.png", TEX_FMT_RGBA16, false);
+	tex_gfx_load_file(&texture_mobs, "mobs.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_controls, "controls.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_pointer, "pointer.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_clouds, "environment/clouds.png", TEX_FMT_IA4,

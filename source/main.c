@@ -35,6 +35,7 @@
 #include "graphics/gfx_util.h"
 #include "graphics/gui_util.h"
 #include "graphics/gfx_settings.h"
+#include "graphics/render_monster.h"
 #include "item/recipe.h"
 #include "network/client_interface.h"
 #include "network/server_interface.h"
@@ -76,6 +77,7 @@ int main(void) {
 	input_init();
 	blocks_init();
 	items_init();
+	render_monster_init();
 	recipe_init();
 	gfx_setup();
 
