@@ -71,6 +71,7 @@ struct server_local {
 	string_t level_name;
 	struct level_archive level;
 	bool paused;
+	ptime_t last_tick;
 };
 
 void server_local_create(struct server_local* s);

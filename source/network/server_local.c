@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "../cglm/cglm.h"
 
@@ -449,6 +450,15 @@ static void server_local_process(struct server_rpc* call, void* user) {
 static void server_local_update(struct server_local* s) {
 	assert(s);
 
+	// print TPS
+	#ifndef NDEBUG
+	ptime_t this_tick = time_get();
+	float dt = time_diff_s(s->last_tick, this_tick);
+	float tps = 1.0F / dt;
+	s->last_tick = this_tick;
+	printf("%f\n", tps);
+	#endif
+
 	svin_process_messages(server_local_process, s, false);
 
 	if(!s->player.has_pos || s->paused)
@@ -476,6 +486,7 @@ static void server_local_update(struct server_local* s) {
 				free(e);
 				dict_entity_erase(s->entities, key);
 			} else if(e->delay_destroy < 0) {
+				// TODO: find a more optimized way of moving entities on both client and server
 				clin_rpc_send(&(struct client_rpc) {
 					.type = CRPC_ENTITY_MOVE,
 					.payload.entity_move.entity_id = key,
@@ -639,6 +650,7 @@ void server_local_create(struct server_local* s) {
 	s->world_time = 0;
 	s->player.has_pos = false;
 	s->player.finished_loading = false;
+	s->last_tick = time_get();
 	string_init(s->level_name);
 
 	inventory_create(&s->player.inventory, &inventory_logic_player, s,
