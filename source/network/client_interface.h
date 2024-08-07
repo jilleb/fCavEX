@@ -91,6 +91,7 @@ struct client_rpc {
 			uint32_t entity_id;
 			struct item_data item;
 			vec3 pos;
+			vec3 vel;
 		} spawn_item;
 		struct {
 			uint32_t entity_id;

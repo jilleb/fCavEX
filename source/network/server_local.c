@@ -69,6 +69,7 @@ struct entity* server_local_spawn_item(vec3 pos, struct item_data* it,
 		.payload.spawn_item.entity_id = e->id,
 		.payload.spawn_item.item = e->data.item.item,
 		.payload.spawn_item.pos = {e->pos[0], e->pos[1], e->pos[2]},
+		.payload.spawn_item.vel = {e->vel[0], e->vel[1], e->vel[2]},
 	});
 
 	return e;
@@ -487,12 +488,14 @@ static void server_local_update(struct server_local* s) {
 				dict_entity_erase(s->entities, key);
 			} else if(e->delay_destroy < 0) {
 				// TODO: find a more optimized way of moving entities on both client and server
+				/*
 				clin_rpc_send(&(struct client_rpc) {
 					.type = CRPC_ENTITY_MOVE,
 					.payload.entity_move.entity_id = key,
 					.payload.entity_move.pos
 					= {e->pos[0], e->pos[1], e->pos[2]},
 				});
+				*/
 			}
 		} else {
 			dict_entity_next(it);

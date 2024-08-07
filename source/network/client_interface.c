@@ -252,6 +252,7 @@ void clin_process(struct client_rpc* call) {
 			entity_item(call->payload.spawn_item.entity_id, e, false,
 						&gstate.world, call->payload.spawn_item.item);
 			e->teleport(e, call->payload.spawn_item.pos);
+			glm_vec3_copy(call->payload.spawn_item.vel, e->vel);
 		} break;
 		case CRPC_SPAWN_MONSTER: {
 			struct entity** e_ptr = dict_entity_safe_get(

@@ -25,7 +25,60 @@
 #include "entity.h"
 
 static bool entity_client_tick(struct entity* e) {
-	entity_default_client_tick(e);
+	assert(e);
+
+	glm_vec3_copy(e->pos, e->pos_old);
+	glm_vec2_copy(e->orient, e->orient_old);
+
+	for(int k = 0; k < 3; k++)
+		if(fabsf(e->vel[k]) < 0.005F)
+			e->vel[k] = 0.0F;
+
+	struct AABB bbox;
+	aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
+
+	struct AABB tmp = bbox;
+	aabb_translate(&tmp, e->pos[0], e->pos[1], e->pos[2]);
+
+	if(entity_aabb_intersection(e, &tmp)) { // is item stuck in block?
+		// find possible new position, try top/bottom last
+		enum side sides[6] = {SIDE_LEFT, SIDE_RIGHT, SIDE_FRONT,
+							  SIDE_BACK, SIDE_TOP,	 SIDE_BOTTOM};
+		for(int k = 0; k < 6; k++) {
+			int x, y, z;
+			blocks_side_offset(sides[k], &x, &y, &z);
+
+			vec3 new_pos;
+			glm_vec3_add(e->pos, (vec3) {x, y, z}, new_pos);
+
+			struct AABB tmp2 = tmp;
+			aabb_translate(&tmp2, x, y, z);
+
+			if(!entity_aabb_intersection(e, &tmp2)) {
+				float threshold;
+				entity_intersection_threshold(e, &bbox, new_pos, e->pos,
+											  &threshold);
+				glm_vec3_lerp(new_pos, e->pos, threshold, e->pos);
+				e->vel[0] = x * 0.1F;
+				e->vel[1] = y * 0.1F;
+				e->vel[2] = z * 0.1F;
+
+				break;
+			}
+		}
+	}
+
+	bool collision_xz = false;
+
+	for(int k = 0; k < 3; k++)
+		entity_try_move(e, e->pos, e->vel, &bbox, (size_t[]) {1, 0, 2}[k],
+						&collision_xz, &e->on_ground);
+
+	e->vel[1] -= 0.04F;
+	e->vel[0] *= (e->on_ground ? 0.6F : 1.0F) * 0.98F;
+	e->vel[2] *= (e->on_ground ? 0.6F : 1.0F) * 0.98F;
+	e->vel[1] *= 0.98F;
+
 	e->data.item.age++;
 	return false;
 }
