@@ -64,21 +64,21 @@ void render_monster(int frame, mat4 view,
 	uint8_t light = fullbright ? *vertex_light_inv : *vertex_light;
 
 	// right layer
-	displaylist_pos(&dl, 0, 256, 0);
+	displaylist_pos(&dl, 0, 512, 0);
 	displaylist_color(&dl, light);
 	displaylist_texcoord(&dl, s + 16, t);
 
-	displaylist_pos(&dl, 256, 256, 0);
+	displaylist_pos(&dl, 256, 512, 0);
 	displaylist_color(&dl, light);
 	displaylist_texcoord(&dl, s, t);
 
 	displaylist_pos(&dl, 256, 0, 0);
 	displaylist_color(&dl, light);
-	displaylist_texcoord(&dl, s, t + 16);
+	displaylist_texcoord(&dl, s, t + 32);
 
 	displaylist_pos(&dl, 0, 0, 0);
 	displaylist_color(&dl, light);
-	displaylist_texcoord(&dl, s + 16, t + 16);
+	displaylist_texcoord(&dl, s + 16, t + 32);
 	mat4 model;
 
 	glm_mat4_identity(model);
