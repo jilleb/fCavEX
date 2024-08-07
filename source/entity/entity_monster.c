@@ -47,7 +47,29 @@ struct monster* monsters[256] = {
 };
 
 static bool entity_client_tick(struct entity* e) {
-	entity_default_client_tick(e);
+	assert(e);
+
+	glm_vec3_copy(e->pos, e->pos_old);
+	glm_vec2_copy(e->orient, e->orient_old);
+
+	for(int k = 0; k < 3; k++)
+		if(fabsf(e->vel[k]) < 0.005F)
+			e->vel[k] = 0.0F;
+
+	struct AABB bbox;
+	aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
+
+	bool collision_xz = false;
+
+	for(int k = 0; k < 3; k++)
+		entity_try_move(e, e->pos, e->vel, &bbox, (size_t[]) {1, 0, 2}[k],
+						&collision_xz, &e->on_ground);
+
+	e->vel[1] -= 0.04F;
+	e->vel[0] *= (e->on_ground ? 0.6F : 1.0F) * 0.98F;
+	e->vel[2] *= (e->on_ground ? 0.6F : 1.0F) * 0.98F;
+	e->vel[1] *= 0.98F;
+
 	return false;
 }
 
