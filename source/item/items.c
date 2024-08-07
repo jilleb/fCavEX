@@ -145,6 +145,7 @@ void items_init() {
 	items[357] = &item_cookie;
 	// map
 	items[359] = &item_shears;
+	items[360] = &item_egg_zombie;
 
 	// golden record
 	// green record

@@ -1547,3 +1547,4 @@ static struct item item_saddle = {
 };
 
 extern struct item item_sugarcane;
+extern struct item item_egg_zombie;

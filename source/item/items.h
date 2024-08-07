@@ -116,6 +116,7 @@ enum item_type {
 	ITEM_SUGAR = 353,
 	ITEM_BED = 355,
 	ITEM_SHEARS = 359,
+	ITEM_EGG_ZOMBIE = 360,
 };
 
 #include "../block/blocks_data.h"

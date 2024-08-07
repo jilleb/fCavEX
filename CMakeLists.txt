@@ -119,6 +119,7 @@ add_executable(cavex
 				source/item/items/item_fish_cooked.c
 				source/item/items/item_bread.c
 				source/item/items/item_mushroom_stew.c
+				source/item/items/item_egg_zombie.c
 
 				source/network/client_interface.c
 				source/network/complex_block_archive.c
