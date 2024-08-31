@@ -320,7 +320,7 @@ void recipe_init() {
 			   (struct item_data) {.id = ITEM_DIAMOND}, false);
 	recipe_add(recipes_crafting,
 			   (struct item_data) {
-				   .id = BLOCK_LAPIS_CAST, .durability = 0, .count = 4},
+				   .id = BLOCK_LAPIS_CAST, .durability = 0, .count = 1},
 			   3, 3, (uint8_t[]) {1, 1, 1, 1, 1, 1, 1, 1, 1},
 			   (struct item_data) {.id = ITEM_DYE, .durability = 4}, true);
 	recipe_add(
