@@ -36,7 +36,13 @@ struct monster_frame frames[256] = {
 	},
 	{.x = 0,
 	 .y = 0,
-	 .length = 1,
+	 .length = 10,
+	 .action = NULL,
+	 .next_frame = 2
+	},
+	{.x = 8,
+	 .y = 4,
+	 .length = 10,
 	 .action = NULL,
 	 .next_frame = 1
 	},
