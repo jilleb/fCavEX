@@ -61,6 +61,31 @@ static size_t getDroppedItem(struct block_info* this, struct item_data* it,
 	return 1;
 }
 
+static void onRightClick(struct server_local* s, struct item_data* it,
+                         struct block_info* where, struct block_info* on,
+                         enum side on_side) {
+    struct block_data above;
+
+    // Check if player is using a hoe
+    if (it && it->id != 0 &&
+        (it->id == ITEM_WOOD_HOE || it->id == ITEM_STONE_HOE ||
+         it->id == ITEM_IRON_HOE || it->id == ITEM_GOLD_HOE ||
+         it->id == ITEM_DIAMOND_HOE)) {
+
+        // Check block above dirt
+        if (server_world_get_block(&s->world, on->x, on->y + 1, on->z, &above)) {
+            if (above.type == BLOCK_AIR) {
+                // Convert dirt to farmland
+                server_world_set_block(&s->world, on->x, on->y, on->z,
+                    (struct block_data) {
+                        .type = BLOCK_FARMLAND,
+                        .metadata = 0
+                    });
+            }
+        }
+    }
+}
+
 static void onRandomTick(struct server_local* s, struct block_info* this) {
 	struct block_data top;
 	if(server_world_get_block(&s->world, this->x, this->y + 1, this->z, &top)) {
@@ -111,7 +136,7 @@ struct block block_grass = {
 	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = onRandomTick,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
