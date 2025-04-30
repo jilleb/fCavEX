@@ -39,6 +39,31 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	return tex_atlas_lookup(TEXAT_DIRT);
 }
 
+static void onRightClick(struct server_local* s, struct item_data* it,
+                         struct block_info* where, struct block_info* on,
+                         enum side on_side) {
+    struct block_data above;
+
+    // Check if player is using a hoe
+    if (it && it->id != 0 &&
+        (it->id == ITEM_WOOD_HOE || it->id == ITEM_STONE_HOE ||
+         it->id == ITEM_IRON_HOE || it->id == ITEM_GOLD_HOE ||
+         it->id == ITEM_DIAMOND_HOE)) {
+
+        // Check block above dirt
+        if (server_world_get_block(&s->world, on->x, on->y + 1, on->z, &above)) {
+            if (above.type == BLOCK_AIR) {
+                // Convert dirt to farmland
+                server_world_set_block(&s->world, on->x, on->y, on->z,
+                    (struct block_data) {
+                        .type = BLOCK_FARMLAND,
+                        .metadata = 0
+                    });
+            }
+        }
+    }
+}
+
 struct block block_dirt = {
 	.name = "Dirt",
 	.getSideMask = getSideMask,
@@ -47,7 +72,7 @@ struct block block_dirt = {
 	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
