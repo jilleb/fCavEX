@@ -93,6 +93,7 @@ enum block_type {
 	BLOCK_DIAMOND_ORE = 56,
 	BLOCK_DIAMOND_CAST = 57,
 	BLOCK_WORKBENCH = 58,
+	BLOCK_CROPS = 59,//not sure if this should be like that
 	BLOCK_FARMLAND = 60,
 	BLOCK_FURNACE = 61,
 	BLOCK_DOOR_WOOD = 64,
