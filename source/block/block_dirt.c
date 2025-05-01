@@ -18,6 +18,7 @@
 */
 
 #include "blocks.h"
+#include "../network/server_local.h"
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
