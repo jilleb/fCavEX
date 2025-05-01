@@ -469,6 +469,7 @@ static struct item item_gold_hoe = {
 	},
 };
 
+/*
 static struct item item_flint_steel = {
 	.name = "Flint and Steel",
 	.has_damage = true,
@@ -485,6 +486,8 @@ static struct item item_flint_steel = {
 		},
 	},
 };
+*/
+extern struct item item_flint_steel;
 
 /*
 static struct item item_apple = {
@@ -1013,6 +1016,8 @@ static struct item item_porkchop_cooked = {
 };
 */
 
+extern struct item item_seeds;
+/*
 static struct item item_seeds = {
 	.name = "Seeds",
 	.has_damage = false,
@@ -1028,6 +1033,8 @@ static struct item item_seeds = {
 		},
 	},
 };
+*/
+
 
 static struct item item_wheat = {
 	.name = "Wheat",
