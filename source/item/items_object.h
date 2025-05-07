@@ -1346,6 +1346,7 @@ static struct item item_cake = {
 	},
 };
 
+/*
 static struct item item_bed = {
 	.name = "Bed",
 	.has_damage = false,
@@ -1361,7 +1362,8 @@ static struct item item_bed = {
 		},
 	},
 };
-
+*/
+extern struct item item_bed;
 static struct item item_shears = {
 	.name = "Shears",
 	.has_damage = false,
