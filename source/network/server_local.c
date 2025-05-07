@@ -30,6 +30,7 @@
 #include "inventory_logic.h"
 #include "server_interface.h"
 #include "server_local.h"
+#include "server_world.h"
 #include "complex_block_archive.h"
 
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
@@ -507,6 +508,7 @@ static void server_local_update(struct server_local* s) {
 
 	server_world_random_tick(&s->world, &s->rand_src, s, px, pz,
 							 MAX_VIEW_DISTANCE - 2);
+	server_world_tick(&s->world, s);
 
 	w_coord_t cx, cz;
 	if(server_world_furthest_chunk(&s->world, MAX_VIEW_DISTANCE, px, pz, &cx,

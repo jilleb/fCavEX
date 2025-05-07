@@ -48,6 +48,7 @@ struct block {
 	void (*onRandomTick)(struct server_local*, struct block_info*);
 	void (*onRightClick)(struct server_local*, struct item_data*,
 						 struct block_info*, struct block_info*, enum side);
+    void (*onWorldTick)(struct server_local* s, struct block_info* this);
 	bool transparent;
 	uint8_t luminance : 4;
 	uint8_t opacity : 4;

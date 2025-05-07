@@ -131,7 +131,8 @@ void thread_msleep(size_t ms) {
     size_t frames = ms / 16;
     for (size_t i = 0; i < frames; ++i) {
         VIDEO_WaitVSync();
-    }}
+    }
+}
 
 void tchannel_init(struct thread_channel* c, size_t count) {
 	assert(c && count > 0);

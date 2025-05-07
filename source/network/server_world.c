@@ -343,6 +343,43 @@ struct region_archive* server_world_chunk_region(struct server_world* w,
 	return lru;
 }
 
+
+void server_world_tick(struct server_world* w,
+                                     struct server_local* s) {
+    dict_server_chunks_it_t it;
+    dict_server_chunks_it(it, w->chunks);
+
+    while (!dict_server_chunks_end_p(it)) {
+        struct server_chunk* sc   = &dict_server_chunks_ref(it)->value;
+        w_coord_t        baseX    = S_CHUNK_X(dict_server_chunks_ref(it)->key) * CHUNK_SIZE;
+        w_coord_t        baseZ    = S_CHUNK_Z(dict_server_chunks_ref(it)->key) * CHUNK_SIZE;
+
+        for (int cx = 0; cx < CHUNK_SIZE; cx++) {
+            for (int cz = 0; cz < CHUNK_SIZE; cz++) {
+                for (int y = 0; y < WORLD_HEIGHT; y++) {
+                    struct block_data blk;
+                    if (!server_chunk_get_block(sc, cx, y, cz, &blk))
+                        continue;
+
+                    const struct block* b = blocks[blk.type];
+                    if (b && b->onWorldTick) {
+                        struct block_info info = {
+                            .block      = &blk,
+                            .neighbours = NULL,
+                            .x          = baseX + cx,
+                            .y          = y,
+                            .z          = baseZ + cz
+                        };
+                        b->onWorldTick(s, &info);
+                    }
+                }
+            }
+        }
+
+        dict_server_chunks_next(it);
+    }
+}
+
 void server_world_random_tick(struct server_world* w, struct random_gen* g,
 							  struct server_local* s, w_coord_t px,
 							  w_coord_t pz, w_coord_t dist) {
