@@ -17,30 +17,116 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../cglm/types.h"
+#include "../graphics/render_block.h"
+#include "../graphics/render_item.h"
+#include "../graphics/texture_atlas.h"
+#include "../item/tool.h"
+#include "../network/server_local.h"
+#include "../network/server_world.h"
+#include "../particle.h"
+#include "aabb.h"
 #include "blocks.h"
+#include "blocks_data.h"
+#include "face_occlusion.h"
+
+
+//todo: cleanup
+//todo: hide tnt block with explosion/particles
+
+#define TNT_POWER 4.0f	  // blast radius 4 looks to be right
+#define TNT_FUSE_TICKS 15 // amount of ticks before TNT explodes
+
+void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
+	if (power > 4.0f) power = 4.0f;
+	int radius = (int)(power + 0.5f);
+
+	struct block_data tnt_blk;
+	if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
+	if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
+
+	server_world_set_block(&s->world, x, y, z, (struct block_data){0});
+
+	for (int dx = -radius; dx <= radius; dx++) {
+		for (int dy = -radius; dy <= radius; dy++) {
+			for (int dz = -radius; dz <= radius; dz++) {
+				float dist2 = dx*dx + dy*dy + dz*dz;
+				if (dist2 > power*power) continue;
+
+				w_coord_t bx = x + dx, by = y + dy, bz = z + dz;
+				struct block_data blk;
+				if (!server_world_get_block(&s->world, bx, by, bz, &blk)) continue;
+				if (blk.type == 0 || blk.type == 7) continue;
+
+
+				if ((rand() % 3) == 0)
+					server_local_spawn_block_drops(s, &(struct block_info){ .x=bx,.y=by,.z=bz,.block=&blk });
+
+				server_world_set_block(&s->world, bx, by, bz, (struct block_data){0});
+			}
+		}
+	}
+}
+
+static void onWorldTick(struct server_local* s, struct block_info* info) {
+	uint8_t fuse = info->block->metadata;
+
+	if (fuse == 0) return; // not primed
+
+	if (fuse > 1) {
+		info->block->metadata--;
+		server_world_set_block(&s->world, info->x, info->y, info->z, *info->block);
+	} else {
+		tnt_explode(s, info->x, info->y, info->z, TNT_POWER);
+	}
+}
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
 }
 
-static size_t getBoundingBox(struct block_info* this, bool entity,
-							 struct AABB* x) {
-	if(x)
-		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+static size_t getBoundingBox(struct block_info* this, bool entity, struct AABB* x) {
+	if (x) aabb_setsize(x, 1.0F, 1.0F, 1.0F);
 	return 1;
 }
 
-static struct face_occlusion*
-getSideMask(struct block_info* this, enum side side, struct block_info* it) {
+static struct face_occlusion* getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 	return face_occlusion_full();
 }
 
 static uint8_t getTextureIndex(struct block_info* this, enum side side) {
-	switch(side) {
-		case SIDE_TOP: return tex_atlas_lookup(TEXAT_TNT_TOP);
-		case SIDE_BOTTOM: return tex_atlas_lookup(TEXAT_TNT_BOTTOM);
-		default: return tex_atlas_lookup(TEXAT_TNT_SIDE);
+	if (this->block->metadata > 0 && (this->block->metadata % 4 < 2)) {
+		return tex_atlas_lookup(TEXAT_SNOW); // flashing
 	}
+
+	switch (side) {
+		case SIDE_TOP:
+		case SIDE_BOTTOM:
+			return tex_atlas_lookup(TEXAT_TNT_TOP);
+		default:
+			return tex_atlas_lookup(TEXAT_TNT_SIDE);
+	}
+}
+
+static void onRightClick(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	if (on->block->type == BLOCK_TNT && on->block->metadata == 0) {
+		server_world_set_block(&s->world, on->x, on->y, on->z,
+			(struct block_data){ .type = BLOCK_TNT, .metadata = TNT_FUSE_TICKS });
+	}
+}
+
+static bool tnt_onItemPlace(struct server_local* s, struct item_data* it,
+							struct block_info* where, struct block_info* on,
+							enum side on_side) {
+	if (!block_place_default(s, it, where, on, on_side)) return false;
+
+	server_world_set_block(&s->world,
+		on->x, on->y, on->z,
+		(struct block_data){ .type = BLOCK_TNT, .metadata = 0 });
+
+	return true;
 }
 
 struct block block_tnt = {
@@ -49,9 +135,10 @@ struct block block_tnt = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
-	.getDroppedItem = block_drop_default,
+	.getDroppedItem = NULL,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onWorldTick = onWorldTick,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -69,7 +156,7 @@ struct block block_tnt = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_block,
-		.onItemPlace = block_place_default,
+		.onItemPlace = tnt_onItemPlace,
 		.fuel = 0,
 		.render_data.block.has_default = false,
 		.armor.is_armor = false,
