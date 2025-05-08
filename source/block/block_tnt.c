@@ -33,13 +33,26 @@
 
 //todo: cleanup
 //todo: hide tnt block with explosion/particles
+//todo: make explosion more efficient
+//todo: limit the amount of particles that is spawned in some way
+//todo: limit the amount of blocks that are dropped.
 
-#define TNT_POWER 4.0f	  // blast radius 4 looks to be right
+#define TNT_POWER 3.0f	  // blast radius 4 looks to be right, but crashes the game
 #define TNT_FUSE_TICKS 15 // amount of ticks before TNT explodes
+#define MAX_BLOCKS ((int)((2 * TNT_MAX_POWER + 1) * (2 * TNT_MAX_POWER + 1) * (2 * TNT_MAX_POWER + 1)))
+
+static const int SIDE_VECTORS[6][3] = {
+	{  0,  1,  0 }, // SIDE_TOP
+	{  0, -1,  0 }, // SIDE_BOTTOM
+	{  0,  0, -1 }, // SIDE_FRONT
+	{  0,  0,  1 }, // SIDE_BACK
+	{ -1,  0,  0 }, // SIDE_LEFT
+	{  1,  0,  0 }  // SIDE_RIGHT
+};
 
 void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
 	if (power > 4.0f) power = 4.0f;
-	int radius = (int)(power + 0.5f);
+	float power_squared = power * power;
 
 	struct block_data tnt_blk;
 	if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
@@ -47,26 +60,43 @@ void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, 
 
 	server_world_set_block(&s->world, x, y, z, (struct block_data){0});
 
+	int radius = (int)(power + 0.5f);
+
 	for (int dx = -radius; dx <= radius; dx++) {
 		for (int dy = -radius; dy <= radius; dy++) {
 			for (int dz = -radius; dz <= radius; dz++) {
-				float dist2 = dx*dx + dy*dy + dz*dz;
-				if (dist2 > power*power) continue;
+				float dist2 = dx * dx + dy * dy + dz * dz;
+				if (dist2 > power_squared) continue;
 
 				w_coord_t bx = x + dx, by = y + dy, bz = z + dz;
 				struct block_data blk;
 				if (!server_world_get_block(&s->world, bx, by, bz, &blk)) continue;
 				if (blk.type == 0 || blk.type == 7) continue;
 
+				struct block_info info = {
+					.x = bx,
+					.y = by,
+					.z = bz,
+					.block = &blk
+				};
+				for (int i = 0; i < 6; i++) {
+					w_coord_t nx = bx + SIDE_VECTORS[i][0];
+					w_coord_t ny = by + SIDE_VECTORS[i][1];
+					w_coord_t nz = bz + SIDE_VECTORS[i][2];
+					server_world_get_block(&s->world, nx, ny, nz, &info.neighbours[i]);
+				}
 
 				if ((rand() % 3) == 0)
-					server_local_spawn_block_drops(s, &(struct block_info){ .x=bx,.y=by,.z=bz,.block=&blk });
+					server_local_spawn_block_drops(s, &info);
 
-				server_world_set_block(&s->world, bx, by, bz, (struct block_data){0});
+				server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
 			}
 		}
 	}
 }
+
+
+
 
 static void onWorldTick(struct server_local* s, struct block_info* info) {
 	uint8_t fuse = info->block->metadata;
@@ -120,14 +150,24 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 static bool tnt_onItemPlace(struct server_local* s, struct item_data* it,
 							struct block_info* where, struct block_info* on,
 							enum side on_side) {
-	if (!block_place_default(s, it, where, on, on_side)) return false;
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = 0,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
 
-	server_world_set_block(&s->world,
-		on->x, on->y, on->z,
-		(struct block_data){ .type = BLOCK_TNT, .metadata = 0 });
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
 
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
 }
+
 
 struct block block_tnt = {
 	.name = "TNT",
@@ -135,7 +175,7 @@ struct block block_tnt = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
-	.getDroppedItem = NULL,
+	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
 	.onWorldTick = onWorldTick,
 	.onRightClick = onRightClick,

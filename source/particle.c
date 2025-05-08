@@ -70,30 +70,32 @@ void particle_generate_block(struct block_info* info) {
 	blocks[info->block->type]->getBoundingBox(info, false, aabb);
 
 	// use only first AABB
-
-	float volume
-		= (aabb->x2 - aabb->x1) * (aabb->y2 - aabb->y1) * (aabb->z2 - aabb->z1);
-
+	float volume = (aabb->x2 - aabb->x1) * (aabb->y2 - aabb->y1) * (aabb->z2 - aabb->z1);
 	uint8_t tex = blocks[info->block->type]->getTextureIndex(info, SIDE_FRONT);
 
-	for(int k = 0; k < volume * PARTICLES_VOLUME; k++) {
-		float x
-			= rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
-		float y
-			= rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
-		float z
-			= rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
+	
+	const size_t MAX_PARTICLES = 5; // Amount of particles per block
+	size_t particles_to_generate = volume * PARTICLES_VOLUME;
+
+	if (particles_to_generate > MAX_PARTICLES) {
+		particles_to_generate = MAX_PARTICLES;
+	}
+
+	for(size_t k = 0; k < particles_to_generate; k++) {
+		float x = rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
+		float y = rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
+		float z = rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
 
 		vec3 vel = {rand_gen_flt(&gstate.rand_src) - 0.5F,
 					rand_gen_flt(&gstate.rand_src) - 0.5F,
 					rand_gen_flt(&gstate.rand_src) - 0.5F};
 		glm_vec3_normalize(vel);
-		glm_vec3_scale(
-			vel, (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F, vel);
+		glm_vec3_scale(vel, (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F, vel);
 
 		particle_add((vec3) {info->x + x, info->y + y, info->z + z}, vel, tex);
 	}
 }
+
 
 void particle_generate_side(struct block_info* info, enum side s) {
 	assert(info && info->block && info->neighbours);
@@ -108,8 +110,6 @@ void particle_generate_side(struct block_info* info, enum side s) {
 
 	struct AABB aabb[count];
 	blocks[info->block->type]->getBoundingBox(info, false, aabb);
-
-	// use only first AABB
 
 	float area;
 	switch(s) {
