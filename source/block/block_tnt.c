@@ -34,24 +34,18 @@
 
 //todo: cleanup
 //todo: hide tnt block with explosion/particles
-//todo: make explosion more efficient
 //todo: limit the amount of particles that is spawned in some way
-//todo: limit the amount of blocks that are dropped.
+//todo: move explosion logic to a helper function outside of this
 
 #define TNT_POWER 3.0f	  // blast radius 4 looks to be right, but crashes the game
 #define TNT_FUSE_TICKS 15 // amount of ticks before TNT explodes
-
-#define NUM_RAYS 1000
+#define NUM_RAYS 1000	// amount of rays cast for an explosion
 #define STEP_SIZE 0.3f
-#define HARDNESS_SCALE 0.0015f
-  // Hoeveel kracht verliest een explosie per hardheidsunit
+#define HARDNESS_SCALE 0.0015f // how much the digging.hardness influences the resistance to explosion. Higher = materials don't break.
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-#include <math.h>
-
 
 bool has_line_of_sight(struct server_local* s, w_coord_t x0, w_coord_t y0, w_coord_t z0, w_coord_t x1, w_coord_t y1, w_coord_t z1) {
     int steps = 5;
@@ -66,9 +60,6 @@ bool has_line_of_sight(struct server_local* s, w_coord_t x0, w_coord_t y0, w_coo
     }
     return true;
 }
-
-
-
 
 void random_unit_vector(vec3 out) {
     float z = 2.0f * ((rand() / (float)RAND_MAX) - 0.5f);
@@ -120,7 +111,7 @@ void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, 
             if (blk.type == 7 || blocks[blk.type]->digging.hardness > 3000) break;
 
             float hardness = blocks[blk.type]->digging.hardness;
-            float destroy_chance = remaining_power / power;  // lineair, evt. vervangen met expf
+            float destroy_chance = remaining_power / power;
 
             if ((rand() / (float)RAND_MAX) <= destroy_chance) {
                 server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
@@ -204,7 +195,6 @@ static bool tnt_onItemPlace(struct server_local* s, struct item_data* it,
 	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
 }
-
 
 struct block block_tnt = {
 	.name = "TNT",
