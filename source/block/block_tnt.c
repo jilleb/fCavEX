@@ -29,6 +29,7 @@
 #include "blocks.h"
 #include "blocks_data.h"
 #include "face_occlusion.h"
+#include <math.h>
 
 
 //todo: cleanup
@@ -39,64 +40,100 @@
 
 #define TNT_POWER 3.0f	  // blast radius 4 looks to be right, but crashes the game
 #define TNT_FUSE_TICKS 15 // amount of ticks before TNT explodes
-#define MAX_BLOCKS ((int)((2 * TNT_MAX_POWER + 1) * (2 * TNT_MAX_POWER + 1) * (2 * TNT_MAX_POWER + 1)))
 
-static const int SIDE_VECTORS[6][3] = {
-	{  0,  1,  0 }, // SIDE_TOP
-	{  0, -1,  0 }, // SIDE_BOTTOM
-	{  0,  0, -1 }, // SIDE_FRONT
-	{  0,  0,  1 }, // SIDE_BACK
-	{ -1,  0,  0 }, // SIDE_LEFT
-	{  1,  0,  0 }  // SIDE_RIGHT
-};
+#define NUM_RAYS 1000
+#define STEP_SIZE 0.3f
+#define HARDNESS_SCALE 0.0015f
+  // Hoeveel kracht verliest een explosie per hardheidsunit
 
-void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
-	if (power > 4.0f) power = 4.0f;
-	float power_squared = power * power;
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-	struct block_data tnt_blk;
-	if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
-	if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
+#include <math.h>
 
-	server_world_set_block(&s->world, x, y, z, (struct block_data){0});
 
-	int radius = (int)(power + 0.5f);
-
-	for (int dx = -radius; dx <= radius; dx++) {
-		for (int dy = -radius; dy <= radius; dy++) {
-			for (int dz = -radius; dz <= radius; dz++) {
-				float dist2 = dx * dx + dy * dy + dz * dz;
-				if (dist2 > power_squared) continue;
-
-				w_coord_t bx = x + dx, by = y + dy, bz = z + dz;
-				struct block_data blk;
-				if (!server_world_get_block(&s->world, bx, by, bz, &blk)) continue;
-				if (blk.type == 0 || blk.type == 7) continue;
-
-				struct block_info info = {
-					.x = bx,
-					.y = by,
-					.z = bz,
-					.block = &blk
-				};
-				for (int i = 0; i < 6; i++) {
-					w_coord_t nx = bx + SIDE_VECTORS[i][0];
-					w_coord_t ny = by + SIDE_VECTORS[i][1];
-					w_coord_t nz = bz + SIDE_VECTORS[i][2];
-					server_world_get_block(&s->world, nx, ny, nz, &info.neighbours[i]);
-				}
-
-				if ((rand() % 3) == 0)
-					server_local_spawn_block_drops(s, &info);
-
-				server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
-			}
-		}
-	}
+bool has_line_of_sight(struct server_local* s, w_coord_t x0, w_coord_t y0, w_coord_t z0, w_coord_t x1, w_coord_t y1, w_coord_t z1) {
+    int steps = 5;
+    for (int i = 1; i < steps; i++) {
+        float t = i / (float)steps;
+        w_coord_t xi = (w_coord_t)(x0 + t * (x1 - x0));
+        w_coord_t yi = (w_coord_t)(y0 + t * (y1 - y0));
+        w_coord_t zi = (w_coord_t)(z0 + t * (z1 - z0));
+        struct block_data mid;
+        if (!server_world_get_block(&s->world, xi, yi, zi, &mid)) return false;
+        if (mid.type != 0 && blocks[mid.type]->digging.hardness > 1500) return false;
+    }
+    return true;
 }
 
 
 
+
+void random_unit_vector(vec3 out) {
+    float z = 2.0f * ((rand() / (float)RAND_MAX) - 0.5f);
+    float t = 2.0f * M_PI * (rand() / (float)RAND_MAX);
+    float r = sqrtf(1.0f - z * z);
+    out[0] = r * cosf(t);
+    out[1] = r * sinf(t);
+    out[2] = z;
+}
+
+void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
+    if (power > TNT_POWER) power = TNT_POWER;
+
+    struct block_data tnt_blk;
+    if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
+    if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
+
+    server_world_set_block(&s->world, x, y, z, (struct block_data){ 0 });
+
+    for (int i = 0; i < NUM_RAYS; i++) {
+        vec3 dir;
+        random_unit_vector(dir);
+
+        vec3 pos = {
+            x + 0.5f,
+            y + 0.5f,
+            z + 0.5f
+        };
+
+        float remaining_power = power;
+
+        while (remaining_power > 0.0f) {
+            pos[0] += dir[0] * STEP_SIZE;
+            pos[1] += dir[1] * STEP_SIZE;
+            pos[2] += dir[2] * STEP_SIZE;
+
+            w_coord_t bx = (w_coord_t)floorf(pos[0]);
+            w_coord_t by = (w_coord_t)floorf(pos[1]);
+            w_coord_t bz = (w_coord_t)floorf(pos[2]);
+
+            struct block_data blk;
+            if (!server_world_get_block(&s->world, bx, by, bz, &blk)) break;
+
+            if (blk.type == 0) {
+                remaining_power -= STEP_SIZE;
+                continue;
+            }
+
+            if (blk.type == 7 || blocks[blk.type]->digging.hardness > 3000) break;
+
+            float hardness = blocks[blk.type]->digging.hardness;
+            float destroy_chance = remaining_power / power;  // lineair, evt. vervangen met expf
+
+            if ((rand() / (float)RAND_MAX) <= destroy_chance) {
+                server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
+                server_local_spawn_block_drops(s, &(struct block_info){
+                    .x = bx, .y = by, .z = bz, .block = &blk
+                });
+            }
+
+            remaining_power -= STEP_SIZE + hardness * HARDNESS_SCALE;
+            if (remaining_power <= 0.0f) break;
+        }
+    }
+}
 
 static void onWorldTick(struct server_local* s, struct block_info* info) {
 	uint8_t fuse = info->block->metadata;
