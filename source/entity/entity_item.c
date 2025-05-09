@@ -23,6 +23,7 @@
 #include "../network/server_local.h"
 #include "../platform/gfx.h"
 #include "entity.h"
+#include "../graphics/gfx_settings.h"
 
 static bool entity_client_tick(struct entity* e) {
 	assert(e);
@@ -193,34 +194,36 @@ static void entity_render(struct entity* e, mat4 view, float tick_delta) {
 		mat4 mv;
 		glm_mat4_mul(view, model, mv);
 
-		int amount = 1;
-		if(e->data.item.item.count > 20) {
-			amount = 4;
-		} else if(e->data.item.item.count > 5) {
-			amount = 3;
-		} else if(e->data.item.item.count > 1) {
-			amount = 2;
-		}
+		#ifdef GFX_3D_ELEMENTS
+			int amount = 1;
+			if(e->data.item.item.count > 20) {
+				amount = 4;
+			} else if(e->data.item.item.count > 5) {
+				amount = 3;
+			} else if(e->data.item.item.count > 1) {
+				amount = 2;
+			}
+			
+					vec3 displacement[4] = {
+				{0.0F, 0.0F, 0.0F},
+				{-0.701F, -0.331F, -0.239F},
+				{0.139F, -0.276F, 0.211F},
+				{0.443F, 0.512F, -0.101F},
+			};
+
+			for(int k = 0; k < amount; k++) {
+				mat4 final;
+				glm_translate_make(final, displacement[k]);
+				glm_mat4_mul(mv, final, final);
+
+				it->renderItem(it, &e->data.item.item, final, false,
+							   R_ITEM_ENV_ENTITY);
+			}
+		# else
+			it->renderItem(it, &e->data.item.item, mv, false,
+						 R_ITEM_ENV_ENTITY);
+		#endif
 		
-				vec3 displacement[4] = {
-			{0.0F, 0.0F, 0.0F},
-			{-0.701F, -0.331F, -0.239F},
-			{0.139F, -0.276F, 0.211F},
-			{0.443F, 0.512F, -0.101F},
-		};
-
-		for(int k = 0; k < amount; k++) {
-			mat4 final;
-			glm_translate_make(final, displacement[k]);
-			glm_mat4_mul(mv, final, final);
-
-			it->renderItem(it, &e->data.item.item, final, false,
-						   R_ITEM_ENV_ENTITY);
-		}
-
-		//it->renderItem(it, &e->data.item.item, mv, false,
-		//				 R_ITEM_ENV_ENTITY);
-
 		struct AABB bbox;
 		aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
 		aabb_translate(&bbox, pos_lerp[0], pos_lerp[1] - 0.04F, pos_lerp[2]);
