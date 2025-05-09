@@ -3,3 +3,5 @@
 /source/lodepng/
 /source/parson/
 /build/
+*.elf
+*.dol

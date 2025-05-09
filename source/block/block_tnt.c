@@ -115,10 +115,14 @@ void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, 
 
             if ((rand() / (float)RAND_MAX) <= destroy_chance) {
                 server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
+				if (rand() % 3 == 0) {
+
                 server_local_spawn_block_drops(s, &(struct block_info){
                     .x = bx, .y = by, .z = bz, .block = &blk
+				
                 });
             }
+			}
 
             remaining_power -= STEP_SIZE + hardness * HARDNESS_SCALE;
             if (remaining_power <= 0.0f) break;
