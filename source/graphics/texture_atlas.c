@@ -290,22 +290,23 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 
 	tex_atlas_reg(atlas, TEXAT_SANDSTONE_BOTTOM, 0, 13);
 
-	tex_atlas_reg(atlas, TEXAT_WOOL_0, 0, 4);
-	tex_atlas_reg(atlas, TEXAT_WOOL_1, 2, 13);
-	tex_atlas_reg(atlas, TEXAT_WOOL_2, 2, 12);
-	tex_atlas_reg(atlas, TEXAT_WOOL_3, 2, 11);
-	tex_atlas_reg(atlas, TEXAT_WOOL_4, 2, 10);
-	tex_atlas_reg(atlas, TEXAT_WOOL_5, 2, 9);
-	tex_atlas_reg(atlas, TEXAT_WOOL_6, 2, 8);
-	tex_atlas_reg(atlas, TEXAT_WOOL_7, 2, 7);
-	tex_atlas_reg(atlas, TEXAT_WOOL_8, 1, 14);
-	tex_atlas_reg(atlas, TEXAT_WOOL_9, 1, 13);
-	tex_atlas_reg(atlas, TEXAT_WOOL_10, 1, 12);
-	tex_atlas_reg(atlas, TEXAT_WOOL_11, 1, 11);
-	tex_atlas_reg(atlas, TEXAT_WOOL_12, 1, 10);
-	tex_atlas_reg(atlas, TEXAT_WOOL_13, 1, 9);
-	tex_atlas_reg(atlas, TEXAT_WOOL_14, 1, 8);
-	tex_atlas_reg(atlas, TEXAT_WOOL_15, 1, 7);
+	tex_atlas_reg(atlas, TEXAT_WOOL_0, 0, 4);   // White
+	tex_atlas_reg(atlas, TEXAT_WOOL_1, 2, 13);  // Orange
+	tex_atlas_reg(atlas, TEXAT_WOOL_2, 2, 12);  // Magenta
+	tex_atlas_reg(atlas, TEXAT_WOOL_3, 2, 11);  // Light Blue
+	tex_atlas_reg(atlas, TEXAT_WOOL_4, 2, 10);  // Yellow
+	tex_atlas_reg(atlas, TEXAT_WOOL_5, 2, 9);   // Lime
+	tex_atlas_reg(atlas, TEXAT_WOOL_6, 2, 8);   // Pink
+	tex_atlas_reg(atlas, TEXAT_WOOL_7, 2, 7);   // Gray
+	tex_atlas_reg(atlas, TEXAT_WOOL_8, 1, 14);  // Light Gray
+	tex_atlas_reg(atlas, TEXAT_WOOL_9, 1, 13);  // Cyan
+	tex_atlas_reg(atlas, TEXAT_WOOL_10, 1, 12); // Purple
+	tex_atlas_reg(atlas, TEXAT_WOOL_11, 1, 11); // Blue
+	tex_atlas_reg(atlas, TEXAT_WOOL_12, 1, 10); // Brown
+	tex_atlas_reg(atlas, TEXAT_WOOL_13, 1, 9);  // Green
+	tex_atlas_reg(atlas, TEXAT_WOOL_14, 1, 8);  // Red
+	tex_atlas_reg(atlas, TEXAT_WOOL_15, 1, 7);  // Black
+
 	tex_atlas_reg(atlas, TEXAT_LAVA_STATIC, 15, 15);
 
 	tex_atlas_reg_col(atlas, TEXAT_GRASS_TOP, 0, 0, 110, 198, 63);

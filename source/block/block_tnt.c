@@ -72,16 +72,16 @@ void random_unit_vector(vec3 out) {
 
 void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
     if (power > TNT_POWER) power = TNT_POWER;
-	
-	// explosion particle effect
-	vec3 center = { x + 0.5f, y + 0.5f, z + 0.5f };
-	particle_generate_explosion(center, tex_atlas_lookup(TEXAT_SNOW), power);
-	
+		
     struct block_data tnt_blk;
     if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
     if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
 
     server_world_set_block(&s->world, x, y, z, (struct block_data){ 0 });
+
+	// explosion particle effect
+	vec3 center = { x + 0.5f, y + 0.5f, z + 0.5f };
+	particle_generate_explosion(center, tex_atlas_lookup(TEXAT_WOOL_0),tex_atlas_lookup(TEXAT_WOOL_7), power);
 
     for (int i = 0; i < NUM_RAYS; i++) {
         vec3 dir;
@@ -141,6 +141,8 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
 	if (fuse > 1) {
 		info->block->metadata--;
 		server_world_set_block(&s->world, info->x, info->y, info->z, *info->block);
+		vec3 center = { info->x+0.5f, info->y+0.5f, info->z+0.5f };
+		particle_generate_smoke(center, tex_atlas_lookup(TEXAT_SNOW),1.0f);
 	} else {
 		tnt_explode(s, info->x, info->y, info->z, TNT_POWER);
 	}

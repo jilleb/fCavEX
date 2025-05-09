@@ -35,133 +35,177 @@ void particle_init() {
 	array_particle_init(particles);
 }
 
-static void particle_add(vec3 pos, vec3 vel, uint8_t tex, float size, float age, bool gravity) {
-	assert(pos && vel);
+static void particle_add(vec3 pos, vec3 vel, uint8_t tex,
+                         float size, float age, bool gravity, bool emissive) {
+    assert(pos && vel);
+    struct particle* p = array_particle_push_new(particles);
+    if (!p) return;
 
-	struct particle* p = array_particle_push_new(particles);
+    glm_vec3_copy(pos,    p->pos);
+    glm_vec3_copy(pos,    p->pos_old);
+    glm_vec3_copy(vel,    p->vel);
 
-	if(p) {
-		glm_vec3_copy(pos, p->pos);
-		glm_vec3_copy(pos, p->pos_old);
-		glm_vec3_copy(vel, p->vel);
-		p->tex_uv[0] = (TEX_OFFSET(TEXTURE_X(tex)) + rand_gen_flt(&gstate.rand_src) * 12.0F) / 256.0F;
-		p->tex_uv[1] = (TEX_OFFSET(TEXTURE_Y(tex)) + rand_gen_flt(&gstate.rand_src) * 12.0F) / 256.0F;
-		p->age = age;
-		p->size = size;
-		p->gravity = gravity;
-	}
+    p->tex_uv[0] = (TEX_OFFSET(TEXTURE_X(tex))
+                   + rand_gen_flt(&gstate.rand_src) * 12.0F)
+                  / 256.0F;
+    p->tex_uv[1] = (TEX_OFFSET(TEXTURE_Y(tex))
+                   + rand_gen_flt(&gstate.rand_src) * 12.0F)
+                  / 256.0F;
+
+    p->size     = size;
+    p->age      = (int)age;
+    p->gravity  = gravity;
+    p->emissive = emissive;
 }
 
 void particle_generate_block(struct block_info* info) {
-	assert(info && info->block && info->neighbours);
+    assert(info && info->block && info->neighbours);
+    if (!blocks[info->block->type]) return;
 
-	if(!blocks[info->block->type])
-		return;
+    size_t count = blocks[info->block->type]->getBoundingBox(info, false, NULL);
+    if (!count) return;
 
-	size_t count = blocks[info->block->type]->getBoundingBox(info, false, NULL);
-	if(!count) return;
+    struct AABB aabb[count];
+    blocks[info->block->type]->getBoundingBox(info, false, aabb);
 
-	struct AABB aabb[count];
-	blocks[info->block->type]->getBoundingBox(info, false, aabb);
+    float volume = (aabb->x2 - aabb->x1)
+                 * (aabb->y2 - aabb->y1)
+                 * (aabb->z2 - aabb->z1);
+    uint8_t tex = blocks[info->block->type]
+                  ->getTextureIndex(info, SIDE_FRONT);
 
-	float volume = (aabb->x2 - aabb->x1) * (aabb->y2 - aabb->y1) * (aabb->z2 - aabb->z1);
-	uint8_t tex = blocks[info->block->type]->getTextureIndex(info, SIDE_FRONT);
+    for (int k = 0; k < volume * PARTICLES_VOLUME; k++) {
+        float x = rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
+        float y = rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
+        float z = rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
 
-	for(int k = 0; k < volume * PARTICLES_VOLUME; k++) {
-		float x = rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
-		float y = rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
-		float z = rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
+        vec3 vel = {
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F
+        };
+        glm_vec3_normalize(vel);
+        glm_vec3_scale(
+            vel,
+            (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F,
+            vel
+        );
 
-		vec3 vel = {rand_gen_flt(&gstate.rand_src) - 0.5F,
-					rand_gen_flt(&gstate.rand_src) - 0.5F,
-					rand_gen_flt(&gstate.rand_src) - 0.5F};
-		glm_vec3_normalize(vel);
-		glm_vec3_scale(vel, (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F, vel);
+        vec3 pos = { info->x + x, info->y + y, info->z + z };
+        float size = (rand_gen_flt(&gstate.rand_src) + 1.0F) * 0.03125F;
+        float age  = 4.0F / (rand_gen_flt(&gstate.rand_src) * 0.9F + 0.1F);
 
-		particle_add((vec3){info->x + x, info->y + y, info->z + z}, vel, tex, 0.03125F, 4.0F, true);
-	}
+        particle_add(pos, vel, tex, size, age, true, false);
+    }
 }
-
 
 void particle_generate_side(struct block_info* info, enum side s) {
-	assert(info && info->block && info->neighbours);
+    assert(info && info->block && info->neighbours);
+    if (!blocks[info->block->type]) return;
 
-	if(!blocks[info->block->type]) return;
+    size_t count = blocks[info->block->type]->getBoundingBox(info, false, NULL);
+    if (!count) return;
 
-	size_t count = blocks[info->block->type]->getBoundingBox(info, false, NULL);
-	if(!count) return;
+    struct AABB aabb[count];
+    blocks[info->block->type]->getBoundingBox(info, false, aabb);
 
-	struct AABB aabb[count];
-	blocks[info->block->type]->getBoundingBox(info, false, aabb);
+    float area;
+    switch (s) {
+        case SIDE_RIGHT:
+        case SIDE_LEFT:
+            area = (aabb->y2 - aabb->y1) * (aabb->z2 - aabb->z1);
+            break;
+        case SIDE_BOTTOM:
+        case SIDE_TOP:
+            area = (aabb->x2 - aabb->x1) * (aabb->z2 - aabb->z1);
+            break;
+        case SIDE_FRONT:
+        case SIDE_BACK:
+            area = (aabb->x2 - aabb->x1) * (aabb->y2 - aabb->y1);
+            break;
+        default:
+            return;
+    }
 
-	float area;
-	switch(s) {
-		case SIDE_RIGHT:
-		case SIDE_LEFT:
-			area = (aabb->y2 - aabb->y1) * (aabb->z2 - aabb->z1);
-			break;
-		case SIDE_BOTTOM:
-		case SIDE_TOP:
-			area = (aabb->x2 - aabb->x1) * (aabb->z2 - aabb->z1);
-			break;
-		case SIDE_FRONT:
-		case SIDE_BACK:
-			area = (aabb->x2 - aabb->x1) * (aabb->y2 - aabb->y1);
-			break;
-		default: return;
-	}
+    uint8_t tex = blocks[info->block->type]
+                  ->getTextureIndex(info, s);
+    float offset = 0.0625F;
 
-	uint8_t tex = blocks[info->block->type]->getTextureIndex(info, s);
-	float offset = 0.0625F;
+    for (int k = 0; k < area * PARTICLES_AREA; k++) {
+        float x = rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
+        float y = rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
+        float z = rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
 
-	for(int k = 0; k < area * PARTICLES_AREA; k++) {
-		float x = rand_gen_flt(&gstate.rand_src) * (aabb->x2 - aabb->x1) + aabb->x1;
-		float y = rand_gen_flt(&gstate.rand_src) * (aabb->y2 - aabb->y1) + aabb->y1;
-		float z = rand_gen_flt(&gstate.rand_src) * (aabb->z2 - aabb->z1) + aabb->z1;
+        switch (s) {
+            case SIDE_LEFT:   x = aabb->x1 - offset; break;
+            case SIDE_RIGHT:  x = aabb->x2 + offset; break;
+            case SIDE_BOTTOM: y = aabb->y1 - offset; break;
+            case SIDE_TOP:    y = aabb->y2 + offset; break;
+            case SIDE_FRONT:  z = aabb->z1 - offset; break;
+            case SIDE_BACK:   z = aabb->z2 + offset; break;
+            default: return;
+        }
 
-		switch(s) {
-			case SIDE_LEFT: x = aabb->x1 - offset; break;
-			case SIDE_RIGHT: x = aabb->x2 + offset; break;
-			case SIDE_BOTTOM: y = aabb->y1 - offset; break;
-			case SIDE_TOP: y = aabb->y2 + offset; break;
-			case SIDE_FRONT: z = aabb->z1 - offset; break;
-			case SIDE_BACK: z = aabb->z2 + offset; break;
-			default: return;
-		}
+        vec3 vel = {
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F
+        };
+        glm_vec3_normalize(vel);
+        glm_vec3_scale(
+            vel,
+            (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F,
+            vel
+        );
 
-		vec3 vel = {rand_gen_flt(&gstate.rand_src) - 0.5F,
-					rand_gen_flt(&gstate.rand_src) - 0.5F,
-					rand_gen_flt(&gstate.rand_src) - 0.5F};
-		glm_vec3_normalize(vel);
-		glm_vec3_scale(vel, (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * 0.05F, vel);
+        vec3 pos = { info->x + x, info->y + y, info->z + z };
+        float size = (rand_gen_flt(&gstate.rand_src) + 1.0F) * 0.03125F;
+        float age  = 4.0F / (rand_gen_flt(&gstate.rand_src) * 0.9F + 0.1F);
 
-		particle_add((vec3){info->x + x, info->y + y, info->z + z}, vel, tex, 0.03125F, 4.0F, true);
-	}
+        particle_add(pos, vel, tex, size, age, true, false);
+    }
 }
 
-void particle_generate_explosion(vec3 center, uint8_t tex, float intensity) {
-	int count = (int)(intensity * 64);
-	float spread = intensity * 2.0F;
-	float force = intensity * 0.2F;
+void particle_generate_explosion(vec3 center, uint8_t tex_flash, uint8_t tex_smoke, float intensity) {
+    int num = (int)(64 * intensity);
+    for (int i = 0; i < num; i++) {
+        vec3 vel = {
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F,
+            rand_gen_flt(&gstate.rand_src) - 0.5F
+        };
+        glm_vec3_normalize(vel);
+        glm_vec3_scale(vel,
+            (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F)
+            * 0.05F * intensity,
+            vel);
 
-	for(int i = 0; i < count; i++) {
-		vec3 vel = {
-			rand_gen_flt(&gstate.rand_src) - 0.5F,
-			rand_gen_flt(&gstate.rand_src) - 0.5F,
-			rand_gen_flt(&gstate.rand_src) - 0.5F
-		};
-		glm_vec3_normalize(vel);
-		glm_vec3_scale(vel, (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F) * force, vel);
+        vec3 pos = {
+            center[0] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F,
+            center[1] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F,
+            center[2] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F
+        };
 
-		vec3 pos = {
-			center[0] + ((rand_gen_flt(&gstate.rand_src) - 0.5F) * spread),
-			center[1] + ((rand_gen_flt(&gstate.rand_src) - 0.5F) * spread),
-			center[2] + ((rand_gen_flt(&gstate.rand_src) - 0.5F) * spread)
-		};
-
-		particle_add(pos, vel, tex, 0.12F * intensity, 4.0F * intensity, false);
-	}
+        if (i < num / 4) {
+            // flash
+            particle_add(pos, vel,
+                         tex_flash,
+                         0.25F * intensity,  /* size */
+                         4.0F,                /* age */
+                         false,               /* gravity */
+                         true);               /* emissive */
+        } else {
+            // smoke
+            particle_add(pos, vel,
+                         tex_smoke,
+                         0.12F * intensity,  /* size */
+                         6.0F * intensity,    /* age */
+                         false,               /* gravity */
+                         false);              /* emissive */
+        }
+    }
 }
+
 
 
 static void render_single(struct particle* p, vec3 camera, float delta) {
@@ -181,27 +225,34 @@ static void render_single(struct particle* p, vec3 camera, float delta) {
 	glm_vec3_scale(s, p->size, s);
 	glm_vec3_scale(t, p->size, t);
 
-	struct block_data in_block
-		= world_get_block(&gstate.world, floorf(pos_lerp[0]),
-						  floorf(pos_lerp[1]), floorf(pos_lerp[2]));
-	uint8_t light = roundf(
-		gfx_lookup_light((in_block.torch_light << 4) | in_block.sky_light)
-		* 255.0F * 0.8F);
+	uint8_t light;
+	if (p->emissive) {
+		light = 255;
+	} else {
+		struct block_data in_block = world_get_block(&gstate.world,
+			floorf(pos_lerp[0]), floorf(pos_lerp[1]), floorf(pos_lerp[2]));
+		light = roundf(gfx_lookup_light((in_block.torch_light << 4) | in_block.sky_light)
+			* 255.0F * 0.8F);
+	}
 
 	gfx_draw_quads_flt(
 		4,
-		(float[]) {-s[0] - t[0] + pos_lerp[0], -s[1] - t[1] + pos_lerp[1],
-				   -s[2] - t[2] + pos_lerp[2], s[0] - t[0] + pos_lerp[0],
-				   s[1] - t[1] + pos_lerp[1], s[2] - t[2] + pos_lerp[2],
-				   s[0] + t[0] + pos_lerp[0], s[1] + t[1] + pos_lerp[1],
-				   s[2] + t[2] + pos_lerp[2], -s[0] + t[0] + pos_lerp[0],
-				   -s[1] + t[1] + pos_lerp[1], -s[2] + t[2] + pos_lerp[2]},
-		(uint8_t[]) {light, light, light, 255, light, light, light, 255, light,
-					 light, light, 255, light, light, light, 255},
-		(float[]) {p->tex_uv[0], p->tex_uv[1], p->tex_uv[0] + 4.0F / 256.0F,
-				   p->tex_uv[1], p->tex_uv[0] + 4.0F / 256.0F,
-				   p->tex_uv[1] + 4.0F / 256.0F, p->tex_uv[0],
-				   p->tex_uv[1] + 4.0F / 256.0F});
+		(float[]) {
+			-s[0] - t[0] + pos_lerp[0], -s[1] - t[1] + pos_lerp[1], -s[2] - t[2] + pos_lerp[2],
+			 s[0] - t[0] + pos_lerp[0],  s[1] - t[1] + pos_lerp[1],  s[2] - t[2] + pos_lerp[2],
+			 s[0] + t[0] + pos_lerp[0],  s[1] + t[1] + pos_lerp[1],  s[2] + t[2] + pos_lerp[2],
+			-s[0] + t[0] + pos_lerp[0], -s[1] + t[1] + pos_lerp[1], -s[2] + t[2] + pos_lerp[2]
+		},
+		(uint8_t[]) {
+			light, light, light, 255, light, light, light, 255,
+			light, light, light, 255, light, light, light, 255
+		},
+		(float[]) {
+			p->tex_uv[0], p->tex_uv[1],
+			p->tex_uv[0] + 4.0F / 256.0F, p->tex_uv[1],
+			p->tex_uv[0] + 4.0F / 256.0F, p->tex_uv[1] + 4.0F / 256.0F,
+			p->tex_uv[0], p->tex_uv[1] + 4.0F / 256.0F
+		});
 }
 
 void particle_update() {
@@ -264,6 +315,33 @@ void particle_update() {
 		}
 	}
 }
+
+void particle_generate_smoke(vec3 center,
+                            uint8_t tex,
+                            float intensity) {
+    int count = (int)ceilf(intensity * 4.0f);
+    for (int i = 0; i < count; i++) {
+        vec3 pos = {
+            center[0] + (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.3f,
+            center[1] + 0.7f + rand_gen_flt(&gstate.rand_src) * 0.2f,
+            center[2] + (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.3f
+        };
+        vec3 vel = {
+            (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.01f,
+            0.1f + rand_gen_flt(&gstate.rand_src) * 0.02f, // increase 0.1f to make smoke rise faster
+            (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.01f
+        };
+        float size = 0.15f * intensity;
+        float age  = 40.0f;
+        particle_add(pos, vel,
+                     tex,
+                     size,
+                     age,
+                     false,  // geen gravity
+                     false); // niet emissive
+    }
+}
+
 
 void particle_render(mat4 view, vec3 camera, float delta) {
 	assert(view && camera);
