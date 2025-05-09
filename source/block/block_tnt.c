@@ -115,8 +115,7 @@ void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, 
 
             if ((rand() / (float)RAND_MAX) <= destroy_chance) {
                 server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
-				if (rand() % 3 == 0) {
-
+				if (blk.type != BLOCK_TNT && rand() % 3 == 0) {	// 1 in 3 chance a broken block drops something, and TNT doesn't 
                 server_local_spawn_block_drops(s, &(struct block_info){
                     .x = bx, .y = by, .z = bz, .block = &blk
 				
@@ -179,7 +178,7 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 	}
 }
 
-static bool tnt_onItemPlace(struct server_local* s, struct item_data* it,
+static bool onItemPlace(struct server_local* s, struct item_data* it,
 							struct block_info* where, struct block_info* on,
 							enum side on_side) {
 	struct block_data blk = (struct block_data) {
@@ -227,7 +226,7 @@ struct block block_tnt = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_block,
-		.onItemPlace = tnt_onItemPlace,
+		.onItemPlace = onItemPlace,
 		.fuel = 0,
 		.render_data.block.has_default = false,
 		.armor.is_armor = false,
