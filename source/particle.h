@@ -31,11 +31,13 @@ struct particle {
 	vec2 tex_uv;
 	float size;
 	int age;
+	bool gravity;
 };
 
 void particle_init(void);
 void particle_generate_block(struct block_info* info);
 void particle_generate_side(struct block_info* info, enum side s);
+void particle_generate_explosion(vec3 center, uint8_t tex, float intensity);
 void particle_update(void);
 void particle_render(mat4 view, vec3 camera, float delta);
 

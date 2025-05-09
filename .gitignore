@@ -5,3 +5,9 @@
 /build/
 *.elf
 *.dol
+movedol.bat
+*.elf
+fCavEX.dol
+fCavEX.elf
+Makefile
+Makefile

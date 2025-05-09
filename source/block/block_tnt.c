@@ -72,7 +72,11 @@ void random_unit_vector(vec3 out) {
 
 void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
     if (power > TNT_POWER) power = TNT_POWER;
-
+	
+	// explosion particle effect
+	vec3 center = { x + 0.5f, y + 0.5f, z + 0.5f };
+	particle_generate_explosion(center, tex_atlas_lookup(TEXAT_SNOW), power);
+	
     struct block_data tnt_blk;
     if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
     if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
