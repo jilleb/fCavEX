@@ -30,6 +30,7 @@
 #include "blocks_data.h"
 #include "face_occlusion.h"
 #include <math.h>
+#include "../game/game_state.h"
 
 
 //todo: cleanup
@@ -37,29 +38,19 @@
 //todo: limit the amount of particles that is spawned in some way
 //todo: move explosion logic to a helper function outside of this
 
-#define TNT_POWER 3.0f	  // blast radius 4 looks to be right, but crashes the game
+#define TNT_POWER 4.0f	  // blast radius 4 looks to be right, but crashes the game
 #define TNT_FUSE_TICKS 15 // amount of ticks before TNT explodes
-#define NUM_RAYS 1000	// amount of rays cast for an explosion
-#define STEP_SIZE 0.3f
-#define HARDNESS_SCALE 0.0015f // how much the digging.hardness influences the resistance to explosion. Higher = materials don't break.
+#define NUM_RAYS 1000	// amount of rays cast for an explosion 1000 is pretty heavy.. 300 maybe too weak.
+#define STEP_SIZE 0.25f
+#define HARDNESS_SCALE 0.0005f // how much the digging.hardness influences the resistance to explosion. Higher = materials don't break.
+#define MAX_BROKEN 1024
+struct broken_coord { w_coord_t x, y, z; };
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-bool has_line_of_sight(struct server_local* s, w_coord_t x0, w_coord_t y0, w_coord_t z0, w_coord_t x1, w_coord_t y1, w_coord_t z1) {
-    int steps = 5;
-    for (int i = 1; i < steps; i++) {
-        float t = i / (float)steps;
-        w_coord_t xi = (w_coord_t)(x0 + t * (x1 - x0));
-        w_coord_t yi = (w_coord_t)(y0 + t * (y1 - y0));
-        w_coord_t zi = (w_coord_t)(z0 + t * (z1 - z0));
-        struct block_data mid;
-        if (!server_world_get_block(&s->world, xi, yi, zi, &mid)) return false;
-        if (mid.type != 0 && blocks[mid.type]->digging.hardness > 1500) return false;
-    }
-    return true;
-}
 
 void random_unit_vector(vec3 out) {
     float z = 2.0f * ((rand() / (float)RAND_MAX) - 0.5f);
@@ -70,32 +61,26 @@ void random_unit_vector(vec3 out) {
     out[2] = z;
 }
 
-void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, float power) {
-    if (power > TNT_POWER) power = TNT_POWER;
-		
-    struct block_data tnt_blk;
-    if (!server_world_get_block(&s->world, x, y, z, &tnt_blk)) return;
-    if (tnt_blk.type == 0 || tnt_blk.type == 7) return;
 
-    server_world_set_block(&s->world, x, y, z, (struct block_data){ 0 });
+// helper to perform the ray-cast block destruction
+// 1) Ray-cast to collect blocks to destroy
+// 2) Batch-remove them and spawn drops
+static void tnt_raycast_destroy(struct server_local* s,
+                                w_coord_t x, w_coord_t y, w_coord_t z,
+                                float power)
+{
+    struct broken_coord broken[MAX_BROKEN];
+    int broken_count = 0;
 
-	// explosion particle effect
-	vec3 center = { x + 0.5f, y + 0.5f, z + 0.5f };
-	particle_generate_explosion(center, tex_atlas_lookup(TEXAT_WOOL_0),tex_atlas_lookup(TEXAT_WOOL_7), power);
-
+    // collect
     for (int i = 0; i < NUM_RAYS; i++) {
         vec3 dir;
         random_unit_vector(dir);
 
-        vec3 pos = {
-            x + 0.5f,
-            y + 0.5f,
-            z + 0.5f
-        };
+        vec3 pos = { x + 0.5f, y + 0.5f, z + 0.5f };
+        float remaining = power;
 
-        float remaining_power = power;
-
-        while (remaining_power > 0.0f) {
+        while (remaining > 0.0f) {
             pos[0] += dir[0] * STEP_SIZE;
             pos[1] += dir[1] * STEP_SIZE;
             pos[2] += dir[2] * STEP_SIZE;
@@ -105,48 +90,123 @@ void tnt_explode(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, 
             w_coord_t bz = (w_coord_t)floorf(pos[2]);
 
             struct block_data blk;
-            if (!server_world_get_block(&s->world, bx, by, bz, &blk)) break;
-
-            if (blk.type == 0) {
-                remaining_power -= STEP_SIZE;
+            if (!server_world_get_block(&s->world, bx, by, bz, &blk))
+                break;
+            if (blk.type == 0
+             || blk.type == BLOCK_BEDROCK) {
+                remaining -= STEP_SIZE;
                 continue;
             }
 
-            if (blk.type == 7 || blocks[blk.type]->digging.hardness > 3000) break;
-
             float hardness = blocks[blk.type]->digging.hardness;
-            float destroy_chance = remaining_power / power;
+            float chance   = remaining / power;
 
-            if ((rand() / (float)RAND_MAX) <= destroy_chance) {
-                server_world_set_block(&s->world, bx, by, bz, (struct block_data){ 0 });
-				if (blk.type != BLOCK_TNT && rand() % 3 == 0) {	// 1 in 3 chance a broken block drops something, and TNT doesn't 
-                server_local_spawn_block_drops(s, &(struct block_info){
-                    .x = bx, .y = by, .z = bz, .block = &blk
-				
-                });
+            if (rand_gen_flt(&gstate.rand_src) <= chance) {
+                bool seen = false;
+                for (int k = 0; k < broken_count; k++) {
+                    if (broken[k].x == bx &&
+                        broken[k].y == by &&
+                        broken[k].z == bz) {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (!seen && broken_count < MAX_BROKEN) {
+                    broken[broken_count++] = (struct broken_coord){bx, by, bz};
+                }
             }
-			}
 
-            remaining_power -= STEP_SIZE + hardness * HARDNESS_SCALE;
-            if (remaining_power <= 0.0f) break;
+            remaining -= STEP_SIZE + hardness * HARDNESS_SCALE;
+        }
+    }
+
+    // batch remove + drops
+    for (int i = 0; i < broken_count; i++) {
+        w_coord_t bx = broken[i].x;
+        w_coord_t by = broken[i].y;
+        w_coord_t bz = broken[i].z;
+
+        struct block_data blk;
+        server_world_get_block(&s->world, bx, by, bz, &blk);
+        server_world_set_block(&s->world, bx, by, bz, (struct block_data){0});
+
+        if (blk.type != BLOCK_TNT
+         && rand_gen_flt(&gstate.rand_src) < (1.0f / 3.0f)) {
+            server_local_spawn_block_drops(
+                s,
+                &(struct block_info){
+                    .x     = bx,
+                    .y     = by,
+                    .z     = bz,
+                    .block = &blk
+                }
+            );
         }
     }
 }
 
-static void onWorldTick(struct server_local* s, struct block_info* info) {
-	uint8_t fuse = info->block->metadata;
 
-	if (fuse == 0) return; // not primed
+// simplified explode: only TNT removal, particle effects, and delegate destruction
+void tnt_explode(struct server_local* s,
+                 w_coord_t x, w_coord_t y, w_coord_t z,
+                 float power)
+{
+    if (power > TNT_POWER) power = TNT_POWER;
 
-	if (fuse > 1) {
-		info->block->metadata--;
-		server_world_set_block(&s->world, info->x, info->y, info->z, *info->block);
-		vec3 center = { info->x+0.5f, info->y+0.5f, info->z+0.5f };
-		particle_generate_smoke(center, tex_atlas_lookup(TEXAT_SNOW),1.0f);
-	} else {
-		tnt_explode(s, info->x, info->y, info->z, TNT_POWER);
-	}
+    // remove TNT block
+    server_world_set_block(&s->world,
+                           x, y, z,
+                           (struct block_data){ 0 });
+
+    vec3 center = { x+0.5f, y+0.5f, z+0.5f };
+
+    // initial explosion flash
+    particle_generate_explosion(
+        center,
+        tex_atlas_lookup(TEXAT_WOOL_0),
+        tex_atlas_lookup(TEXAT_WOOL_7),
+        power
+    );
+
+    // destroy blocks
+    tnt_raycast_destroy(s, x, y, z, power);
+
+    // final explosion puffs
+    particle_generate_explosion(
+        center,
+        tex_atlas_lookup(TEXAT_WOOL_0),
+        tex_atlas_lookup(TEXAT_WOOL_7),
+        power
+    );
 }
+
+
+static void onWorldTick(struct server_local* s, struct block_info* info) {
+    uint8_t fuse = info->block->metadata;
+    if (fuse == 0) return;
+
+    if (fuse > 1) {
+        info->block->metadata--;
+        server_world_set_block(&s->world,
+                               info->x, info->y, info->z,
+                               *info->block);
+        vec3 center = {
+            info->x + 0.5f,
+            info->y + 0.5f,
+            info->z + 0.5f
+        };
+        particle_generate_smoke(
+            center,
+            tex_atlas_lookup(TEXAT_SNOW),
+            1.0f
+        );
+    } else {
+        tnt_explode(s,
+                    info->x, info->y, info->z,
+                    TNT_POWER);
+    }
+}
+
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
