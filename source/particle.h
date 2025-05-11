@@ -42,4 +42,7 @@ void particle_generate_explosion(vec3 center, uint8_t tex_flash, uint8_t tex_smo
 void particle_update(void);
 void particle_render(mat4 view, vec3 camera, float delta);
 void particle_generate_smoke(vec3 center, uint8_t tex, float intensity);
+void particle_generate_fire(vec3 pos,
+                            uint8_t tex_fire,
+                            uint8_t tex_smoke);
 #endif

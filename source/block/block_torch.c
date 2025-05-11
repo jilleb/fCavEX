@@ -19,6 +19,9 @@
 
 #include "../network/server_local.h"
 #include "blocks.h"
+#include "../particle.h"
+#include "../game/game_state.h"
+
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOD;
@@ -95,6 +98,28 @@ static size_t drop_redstone_torch(struct block_info* this, struct item_data* it,
 	return 1;
 }
 
+
+static void onWorldTick(struct server_local* s, struct block_info* blk) {
+{
+    // 1 in 3 chance per world tick
+    if (rand_gen_flt(&gstate.rand_src) > (1.0f / 3.0f))
+        return;
+
+    vec3 pos = {
+        blk->x + 0.5f,
+        blk->y + 0.7f,
+        blk->z + 0.5f
+    };
+
+    particle_generate_fire(
+        pos,
+        tex_atlas_lookup(TEXAT_TORCH),
+        tex_atlas_lookup(TEXAT_SNOW)
+    );
+}
+}
+
+
 struct block block_torch = {
 	.name = "Torch",
 	.getSideMask = getSideMask,
@@ -103,6 +128,7 @@ struct block block_torch = {
 	.getTextureIndex = getTextureIndex1,
 	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
+	.onWorldTick = onWorldTick,
 	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_torch,

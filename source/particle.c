@@ -35,6 +35,10 @@ void particle_init() {
 	array_particle_init(particles);
 }
 
+static float rnd(void) {
+    return rand_gen_flt(&gstate.rand_src);
+}
+
 static void particle_add(vec3 pos, vec3 vel, uint8_t tex,
                          float size, float age, bool gravity, bool emissive) {
     assert(pos && vel);
@@ -342,6 +346,35 @@ void particle_generate_smoke(vec3 center,
                      false,  // geen gravity
                      false); // niet emissive
     }
+}
+
+void particle_generate_fire(vec3 pos,
+                            uint8_t tex_fire,
+                            uint8_t tex_smoke)
+{
+    vec3 vel;
+
+    // flame
+    vel[0] = ((rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.02f);
+    vel[1] = 0.06f;  // écht omhoog
+    vel[2] = ((rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.02f);
+    particle_add(pos, vel,
+                 tex_fire,
+                 0.1f,   // size
+                 10.0f,  // age
+                 false,  // gravity
+                 true);  // emissive
+
+    // smoke
+    vel[0] = 0;
+    vel[1] = 0.03f;
+    vel[2] = 0;
+    particle_add(pos, vel,
+                 tex_smoke,
+                 0.15f,  // size
+                 20.0f,  // age
+                 false,  // gravity
+                 false);
 }
 
 
