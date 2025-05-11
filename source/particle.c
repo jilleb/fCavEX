@@ -304,8 +304,10 @@ void particle_update() {
 			glm_vec3_zero(p->vel);
 		}
 
-		p->vel[1] -= 0.04F;
-		glm_vec3_scale(p->vel, 0.98F, p->vel);
+        if (p->gravity) {
+            p->vel[1] -= 0.04F;
+            glm_vec3_scale(p->vel, 0.98F, p->vel);
+        }
 		p->age--;
 
 		if(p->age > 0) {
