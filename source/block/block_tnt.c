@@ -166,7 +166,7 @@ void tnt_explode(struct server_local* s,
     tnt_raycast_destroy(s, x, y, z, power);
 
     // final explosion puffs
-    //particle_generate_explosion_smoke(center, power);
+    particle_generate_explosion_smoke(center, power);
 
 }
 
