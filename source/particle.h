@@ -24,25 +24,43 @@
 #include "platform/time.h"
 #include "world.h"
 
+typedef enum {
+  TEXTURE_ATLAS_TERRAIN,
+  TEXTURE_ATLAS_PARTICLES
+} particle_atlas_t;
+
+
 struct particle {
-	vec3 pos;
-	vec3 pos_old;	
-	vec3 vel;		// velocity
-	vec2 tex_uv;	// texture
-	float size;		
-	int age;		// how long it should live
-	bool gravity; 	// true = gravity applies to it
-	bool emissive;  // true = emits light
+    vec3             pos;        // current position
+    vec3             pos_old;    // previous position for interpolation
+    vec3             vel;        // velocity
+    vec2             tex_uv;     // only for terrain‐atlas random offset
+    float            size;       // half‐quad size
+    int              age;        // remaining life in ticks
+    int              lifetime;   // initial life in ticks, for animating smoke
+    uint8_t          tex;        // base tile index
+    bool             gravity;    // apply gravity?
+    bool             emissive;   // ignore world lighting?
+    particle_atlas_t atlas;      // which atlas to sample
 };
+
+
+void particle_add(vec3 pos,
+                  vec3 vel,
+                  uint8_t tex,
+                  float size,
+                  float lifetime,
+                  bool gravity,
+                  bool emissive,
+                  particle_atlas_t atlas);
 
 void particle_init(void);
 void particle_generate_block(struct block_info* info);
 void particle_generate_side(struct block_info* info, enum side s);
-void particle_generate_explosion(vec3 center, uint8_t tex_flash, uint8_t tex_smoke, float intensity);
 void particle_update(void);
 void particle_render(mat4 view, vec3 camera, float delta);
-void particle_generate_smoke(vec3 center, uint8_t tex, float intensity);
-void particle_generate_fire(vec3 pos,
-                            uint8_t tex_fire,
-                            uint8_t tex_smoke);
+void particle_generate_explosion_flash(vec3 center, float intensity);
+void particle_generate_explosion_smoke(vec3 center, float intensity);
+void particle_generate_smoke(vec3 center, float intensity);
+void particle_generate_fire(vec3 pos);
 #endif

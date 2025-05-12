@@ -22,7 +22,8 @@
 #include "../platform/texture.h"
 #include "texture_atlas.h"
 
-static uint8_t global_atlas[TEXAT_MAX];
+static uint8_t global_block_atlas[TEXAT_MAX];
+static uint8_t global_particle_atlas[TEXAT_MAX];
 
 static int clamp_n(int x, int n) {
 	if(x < 0)
@@ -146,7 +147,11 @@ void* tex_atlas_compute(dict_atlas_src_t atlas, uint8_t* atlas_dst,
 }
 
 uint8_t tex_atlas_lookup(enum tex_atlas_entry name) {
-	return global_atlas[name];
+	return global_block_atlas[name];
+}
+
+uint8_t tex_atlas_lookup_particle(enum tex_atlas_entry name) {
+	return global_particle_atlas[name];
 }
 
 void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
@@ -318,13 +323,62 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 	for(int k = 0; k < 10; k++)
 		tex_atlas_reg(atlas, TEXAT_BREAK_0 + k, k, 15);
 
-	memset(global_atlas, 0, sizeof(global_atlas));
+	memset(global_block_atlas, 0, sizeof(global_block_atlas));
 
 	uint8_t* image = tex_read(filename, width, height);
-	void* output
-		= tex_atlas_compute(atlas, global_atlas, image, *width, *height);
+	void* output = tex_atlas_compute(atlas, global_block_atlas, image,
+									 *width, *height);
 	dict_atlas_src_clear(atlas);
 	free(image);
 
 	return output;
+}
+
+
+void* tex_atlas_particles(const char* filename, size_t* width, size_t* height) {
+    dict_atlas_src_t atlas;
+    dict_atlas_src_init(atlas);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_0,     0, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_1,     1, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_2,     2, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_3,     3, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_4,     4, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_5,     5, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_6,     6, 0);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SMOKE_7,     7, 0);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SPLASH_0,    0, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_SPLASH_1,    1, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_EMPTY,       2, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_TINY_0, 3, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_TINY_1, 4, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_TINY_2, 5, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_TINY_3, 6, 1);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_TINY_4, 7, 1);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_BUBBLE,      0, 2);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_BOBBER,      1, 2);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_FLAME,       0, 3);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_EMBER,       1, 3);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_NOTE,        0, 4);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_HEART,       0, 5);
+
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_FALL,   0, 6);
+  tex_atlas_reg(atlas, TEXAT_PARTICLE_DROP_ROUND,  1, 6);
+// you can register other rows here…
+
+  memset(global_particle_atlas, 0, sizeof(global_particle_atlas));
+	uint8_t* image = tex_read(filename, width, height);
+	void* output = tex_atlas_compute(atlas,
+									 global_particle_atlas,
+									 image,
+									 *width, *height);
+	dict_atlas_src_clear(atlas);
+	free(image);
+	return output;
+
 }

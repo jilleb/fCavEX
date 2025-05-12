@@ -112,9 +112,7 @@ static void onWorldTick(struct server_local* s, struct block_info* blk) {
     };
 
     particle_generate_fire(
-        pos,
-        tex_atlas_lookup(TEXAT_TORCH),
-        tex_atlas_lookup(TEXAT_SNOW)
+        pos
     );
 }
 }

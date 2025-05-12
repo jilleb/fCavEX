@@ -33,9 +33,8 @@
 #include "../game/game_state.h"
 
 
+
 //todo: cleanup
-//todo: hide tnt block with explosion/particles
-//todo: limit the amount of particles that is spawned in some way
 //todo: move explosion logic to a helper function outside of this
 
 #define TNT_POWER 4.0f	  // blast radius 4 looks to be right, but crashes the game
@@ -161,23 +160,14 @@ void tnt_explode(struct server_local* s,
     vec3 center = { x+0.5f, y+0.5f, z+0.5f };
 
     // initial explosion flash
-    particle_generate_explosion(
-        center,
-        tex_atlas_lookup(TEXAT_WOOL_0),
-        tex_atlas_lookup(TEXAT_WOOL_7),
-        power
-    );
+    particle_generate_explosion_flash(center, power);
 
     // destroy blocks
     tnt_raycast_destroy(s, x, y, z, power);
 
     // final explosion puffs
-    particle_generate_explosion(
-        center,
-        tex_atlas_lookup(TEXAT_WOOL_0),
-        tex_atlas_lookup(TEXAT_WOOL_7),
-        power
-    );
+    //particle_generate_explosion_smoke(center, power);
+
 }
 
 
@@ -197,7 +187,6 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
         };
         particle_generate_smoke(
             center,
-            tex_atlas_lookup(TEXAT_SNOW),
             1.0f
         );
     } else {

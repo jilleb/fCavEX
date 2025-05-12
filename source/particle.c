@@ -23,6 +23,9 @@
 #include "graphics/render_block.h"
 #include "particle.h"
 #include "platform/gfx.h"
+#include "graphics/texture_atlas.h"
+#include "platform/texture.h"
+
 
 #define PARTICLES_AREA 8
 #define PARTICLES_VOLUME 64
@@ -39,27 +42,44 @@ static float rnd(void) {
     return rand_gen_flt(&gstate.rand_src);
 }
 
-static void particle_add(vec3 pos, vec3 vel, uint8_t tex,
-                         float size, float age, bool gravity, bool emissive) {
-    assert(pos && vel);
-    struct particle* p = array_particle_push_new(particles);
+void particle_add(vec3 pos,
+                  vec3 vel,
+                  uint8_t tex,
+                  float size,
+                  float lifetime,
+                  bool gravity,
+                  bool emissive,
+                  particle_atlas_t atlas)
+{
+    struct particle *p = array_particle_push_new(particles);
     if (!p) return;
 
+    // copy position & velocity
     glm_vec3_copy(pos,    p->pos);
     glm_vec3_copy(pos,    p->pos_old);
     glm_vec3_copy(vel,    p->vel);
 
-    p->tex_uv[0] = (TEX_OFFSET(TEXTURE_X(tex))
-                   + rand_gen_flt(&gstate.rand_src) * 12.0F)
-                  / 256.0F;
-    p->tex_uv[1] = (TEX_OFFSET(TEXTURE_Y(tex))
-                   + rand_gen_flt(&gstate.rand_src) * 12.0F)
-                  / 256.0F;
+    // store basic properties
+    p->tex       = tex;
+    p->size      = size;
+    p->age       = (int)lifetime;   // remaining life
+    p->lifetime  = (int)lifetime;   // for smoke animation
+    p->gravity   = gravity;
+    p->emissive  = emissive;
+    p->atlas     = atlas;
 
-    p->size     = size;
-    p->age      = (int)age;
-    p->gravity  = gravity;
-    p->emissive = emissive;
+    // only terrain‐atlas gets a random UV offset
+    if (atlas == TEXTURE_ATLAS_TERRAIN) {
+        // pick a random 4×4px corner within the 256×256 terrain atlas
+        float fx = (TEX_OFFSET(TEXTURE_X(tex)) + rnd() * 12.0f) / 256.0f;
+        float fy = (TEX_OFFSET(TEXTURE_Y(tex)) + rnd() * 12.0f) / 256.0f;
+        p->tex_uv[0] = fx;
+        p->tex_uv[1] = fy;
+    } else {
+        // particle‐atlas uses static UVs computed from p->tex
+        p->tex_uv[0] = 0.0f;
+        p->tex_uv[1] = 0.0f;
+    }
 }
 
 void particle_generate_block(struct block_info* info) {
@@ -99,7 +119,7 @@ void particle_generate_block(struct block_info* info) {
         float size = (rand_gen_flt(&gstate.rand_src) + 1.0F) * 0.03125F;
         float age  = 4.0F / (rand_gen_flt(&gstate.rand_src) * 0.9F + 0.1F);
 
-        particle_add(pos, vel, tex, size, age, true, false);
+        particle_add(pos, vel, tex, size, age, true, false, TEXTURE_ATLAS_TERRAIN);
     }
 }
 
@@ -166,97 +186,172 @@ void particle_generate_side(struct block_info* info, enum side s) {
         float size = (rand_gen_flt(&gstate.rand_src) + 1.0F) * 0.03125F;
         float age  = 4.0F / (rand_gen_flt(&gstate.rand_src) * 0.9F + 0.1F);
 
-        particle_add(pos, vel, tex, size, age, true, false);
-    }
+        particle_add(pos, vel, tex, size, age, true, false, TEXTURE_ATLAS_TERRAIN);
+        }
 }
 
-void particle_generate_explosion(vec3 center, uint8_t tex_flash, uint8_t tex_smoke, float intensity) {
-    int num = (int)(64 * intensity);
-    for (int i = 0; i < num; i++) {
+// Generates the bright, central flash of an explosion (white sparks)
+void particle_generate_explosion_flash(vec3 center, float intensity) {
+    // In Beta 1.7.3: ~16 particles per explosion
+	uint8_t tex = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0);
+    int count = (int)(16.0F * intensity);
+    for (int i = 0; i < count; i++) {
+        // random direction in a sphere
         vec3 vel = {
-            rand_gen_flt(&gstate.rand_src) - 0.5F,
-            rand_gen_flt(&gstate.rand_src) - 0.5F,
-            rand_gen_flt(&gstate.rand_src) - 0.5F
+            rnd() * 2.0F - 1.0F,
+            rnd() * 2.0F - 1.0F,
+            rnd() * 2.0F - 1.0F
         };
         glm_vec3_normalize(vel);
-        glm_vec3_scale(vel,
-            (2.0F * rand_gen_flt(&gstate.rand_src) + 0.5F)
-            * 0.05F * intensity,
-            vel);
+        // speed: small variation around 0.5 * intensity
+        float speed = (0.5F + rnd() * 0.5F) * intensity;
+        glm_vec3_scale(vel, speed, vel);
 
+        // spawn position: slightly randomized around center
         vec3 pos = {
-            center[0] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F,
-            center[1] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F,
-            center[2] + (rand_gen_flt(&gstate.rand_src) - 0.5F) * 4.0F
+            center[0] + (rnd() - 0.5F) * 0.5F,
+            center[1] + (rnd() - 0.5F) * 0.5F,
+            center[2] + (rnd() - 0.5F) * 0.5F
         };
 
-        if (i < num / 4) {
-            // flash
-            particle_add(pos, vel,
-                         tex_flash,
-                         0.25F * intensity,  /* size */
-                         4.0F,                /* age */
-                         false,               /* gravity */
-                         true);               /* emissive */
-        } else {
-            // smoke
-            particle_add(pos, vel,
-                         tex_smoke,
-                         0.12F * intensity,  /* size */
-                         6.0F * intensity,    /* age */
-                         false,               /* gravity */
-                         false);              /* emissive */
-        }
+        particle_add(
+            pos,
+            vel,
+			tex,   // white explosion texture
+            0.6F * intensity,           // size
+            6.0F,                       // short life (~6 frames)
+            false,                      // no gravity
+            false,                       // emissive (bright)
+            TEXTURE_ATLAS_PARTICLES     // use particle atlas
+        );
     }
 }
+
+// Generates the smoke plumes after the flash
+void particle_generate_explosion_smoke(vec3 center, float intensity) {
+    // In Beta 1.7.3: ~50 smoke puffs
+	uint8_t tex = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0);
+    int count = (int)(32.0F * intensity);
+    for (int i = 0; i < count; i++) {
+        // mostly upward, with slight horizontal drift
+        vec3 vel = {
+            (rnd() - 0.5F) * 0.02F * intensity,
+            0.15F + rnd() * 0.1F,
+            (rnd() - 0.5F) * 0.02F * intensity
+        };
+
+        // spawn position: wider spread than flash
+        vec3 pos = {
+            center[0] + (rnd() - 0.5F) * 1.0F,
+            center[1] + (rnd() - 0.5F) * 1.0F,
+            center[2] + (rnd() - 0.5F) * 1.0F
+        };
+
+        particle_add(
+            pos,
+            vel,
+            tex + (rand() % 8), // cycle smoke animation frames
+            0.8F * intensity,                      // larger smoke
+            30.0F * intensity,                     // longer life (~30 frames)
+            true,                                  // gravity: let smoke settle
+            false,                                 // not emissive
+            TEXTURE_ATLAS_PARTICLES
+        );
+    }
+}
+
 
 
 
 static void render_single(struct particle* p, vec3 camera, float delta) {
-	assert(p && camera);
+    // distance cull (32 units)
+    if (glm_vec3_distance2(p->pos, camera) > 32.0f * 32.0f)
+        return;
 
-	if(glm_vec3_distance2(p->pos, camera) > glm_pow2(32.0F))
-		return;
+    // interpolate position for smooth motion
+    vec3 pos_lerp;
+    glm_vec3_lerp(p->pos_old, p->pos, delta, pos_lerp);
 
-	vec3 pos_lerp;
-	glm_vec3_lerp(p->pos_old, p->pos, delta, pos_lerp);
+    // build billboarding axes
+    vec3 view_dir, axis_s, axis_t;
+    glm_vec3_sub(pos_lerp, camera, view_dir);
+    glm_vec3_crossn(view_dir, (vec3){0,1,0}, axis_s);
+    glm_vec3_crossn(view_dir, axis_s, axis_t);
+    glm_vec3_scale(axis_s, p->size, axis_s);
+    glm_vec3_scale(axis_t, p->size, axis_t);
 
-	vec3 v, s, t;
-	glm_vec3_sub(pos_lerp, camera, v);
-	glm_vec3_crossn(v, (vec3) {0.0F, 1.0F, 0.0F}, s);
-	glm_vec3_crossn(v, s, t);
+    // lighting
+    uint8_t light = p->emissive
+        ? 255
+        : (uint8_t)(gfx_lookup_light(
+            ((world_get_block(&gstate.world,
+                floorf(pos_lerp[0]), floorf(pos_lerp[1]), floorf(pos_lerp[2]))
+              .torch_light << 4)
+             | world_get_block(&gstate.world,
+                floorf(pos_lerp[0]), floorf(pos_lerp[1]), floorf(pos_lerp[2]))
+              .sky_light))
+          * 255.0f * 0.8f);
 
-	glm_vec3_scale(s, p->size, s);
-	glm_vec3_scale(t, p->size, t);
+    // determine base tile index
+    uint8_t tile = p->tex;
 
-	uint8_t light;
-	if (p->emissive) {
-		light = 255;
-	} else {
-		struct block_data in_block = world_get_block(&gstate.world,
-			floorf(pos_lerp[0]), floorf(pos_lerp[1]), floorf(pos_lerp[2]));
-		light = roundf(gfx_lookup_light((in_block.torch_light << 4) | in_block.sky_light)
-			* 255.0F * 0.8F);
-	}
+    // animate smoke frames 7→0 if this is a smoke particle
+    if (p->atlas == TEXTURE_ATLAS_PARTICLES
+     && tile >= TEXAT_PARTICLE_SMOKE_0
+     && tile <  TEXAT_PARTICLE_SMOKE_0 + 8) {
+        float t = (float)p->age / (float)p->lifetime;  // 1.0→0.0
+        int frame = (int)(t * 7.0f + 0.5f);            // round
+        tile = TEXAT_PARTICLE_SMOKE_0 + frame;
+    }
 
-	gfx_draw_quads_flt(
-		4,
-		(float[]) {
-			-s[0] - t[0] + pos_lerp[0], -s[1] - t[1] + pos_lerp[1], -s[2] - t[2] + pos_lerp[2],
-			 s[0] - t[0] + pos_lerp[0],  s[1] - t[1] + pos_lerp[1],  s[2] - t[2] + pos_lerp[2],
-			 s[0] + t[0] + pos_lerp[0],  s[1] + t[1] + pos_lerp[1],  s[2] + t[2] + pos_lerp[2],
-			-s[0] + t[0] + pos_lerp[0], -s[1] + t[1] + pos_lerp[1], -s[2] + t[2] + pos_lerp[2]
-		},
-		(uint8_t[]) {
-			light, light, light, 255, light, light, light, 255,
-			light, light, light, 255, light, light, light, 255
-		},
-		(float[]) {
-			p->tex_uv[0], p->tex_uv[1],
-			p->tex_uv[0] + 4.0F / 256.0F, p->tex_uv[1],
-			p->tex_uv[0] + 4.0F / 256.0F, p->tex_uv[1] + 4.0F / 256.0F,
-			p->tex_uv[0], p->tex_uv[1] + 4.0F / 256.0F
-		});
+    // compute UVs
+    float u0, v0, u1, v1;
+    if (p->atlas == TEXTURE_ATLAS_TERRAIN) {
+        // use the stored random offset
+        u0 = p->tex_uv[0];
+        v0 = p->tex_uv[1];
+    } else {
+        // static/animated particle-atlas tiles
+        u0 = (TEX_OFFSET(TEXTURE_X(tile)))       / 256.0f;
+        v0 = (TEX_OFFSET(TEXTURE_Y(tile)))       / 256.0f;
+    }
+    // all tiles are 4×4px
+    u1 = u0 + (4.0f / 256.0f);
+    v1 = v0 + (4.0f / 256.0f);
+
+    // draw the quad
+    gfx_draw_quads_flt(
+        4,
+        (float[]){
+            -axis_s[0] - axis_t[0] + pos_lerp[0],
+            -axis_s[1] - axis_t[1] + pos_lerp[1],
+            -axis_s[2] - axis_t[2] + pos_lerp[2],
+
+             axis_s[0] - axis_t[0] + pos_lerp[0],
+             axis_s[1] - axis_t[1] + pos_lerp[1],
+             axis_s[2] - axis_t[2] + pos_lerp[2],
+
+             axis_s[0] + axis_t[0] + pos_lerp[0],
+             axis_s[1] + axis_t[1] + pos_lerp[1],
+             axis_s[2] + axis_t[2] + pos_lerp[2],
+
+            -axis_s[0] + axis_t[0] + pos_lerp[0],
+            -axis_s[1] + axis_t[1] + pos_lerp[1],
+            -axis_s[2] + axis_t[2] + pos_lerp[2]
+        },
+        (uint8_t[]){
+            light, light, light, 255,
+            light, light, light, 255,
+            light, light, light, 255,
+            light, light, light, 255
+        },
+        (float[]){
+            u0, v0,
+            u1, v0,
+            u1, v1,
+            u0, v1
+        }
+    );
 }
 
 void particle_update() {
@@ -322,76 +417,122 @@ void particle_update() {
 	}
 }
 
-void particle_generate_smoke(vec3 center,
-                            uint8_t tex,
-                            float intensity) {
+void particle_generate_smoke(vec3 center, float intensity) {
+    uint8_t base = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0);
     int count = (int)ceilf(intensity * 4.0f);
+
     for (int i = 0; i < count; i++) {
+        // kies één van de 8 smoke-frames
+        uint8_t frame = rand() % 8;
+        uint8_t tex   = base + frame;
+
         vec3 pos = {
-            center[0] + (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.3f,
-            center[1] + 0.7f + rand_gen_flt(&gstate.rand_src) * 0.2f,
-            center[2] + (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.3f
+            center[0] + (rnd() - 0.5f) * 0.3f,
+            center[1] + 0.7f + rnd() * 0.2f,
+            center[2] + (rnd() - 0.5f) * 0.3f
         };
         vec3 vel = {
-            (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.01f,
-            0.1f + rand_gen_flt(&gstate.rand_src) * 0.02f, // increase 0.1f to make smoke rise faster
-            (rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.01f
+            (rnd() - 0.5f) * 0.01f,
+            0.1f + rnd() * 0.02f,
+            (rnd() - 0.5f) * 0.01f
         };
-        float size = 0.15f * intensity;
-        float age  = 40.0f;
-        particle_add(pos, vel,
-                     tex,
-                     size,
-                     age,
-                     false,  // geen gravity
-                     false); // niet emissive
+
+        // hier de verbeterde aanroep:
+        particle_add(
+            pos,                     // spawn positie
+            vel,                     // velocity
+            tex,                     // base + [0..7]
+            0.15f * intensity,       // size
+            40.0f,                   // lifetime (ticks)
+            false,                   // no gravity
+            false,                   // non emissive
+            TEXTURE_ATLAS_PARTICLES  // atlas
+        );
     }
 }
 
-void particle_generate_fire(vec3 pos,
-                            uint8_t tex_fire,
-                            uint8_t tex_smoke)
-{
-    vec3 vel;
+void particle_generate_fire(vec3 pos) {
+    // atlas lookup
+    uint8_t tex_flame     = tex_atlas_lookup_particle(TEXAT_PARTICLE_FLAME);
+    uint8_t tex_smoke_base= tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0);
 
-    // flame
-    vel[0] = ((rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.02f);
-    vel[1] = 0.06f;  // écht omhoog
-    vel[2] = ((rand_gen_flt(&gstate.rand_src) - 0.5f) * 0.02f);
-    particle_add(pos, vel,
-                 tex_fire,
-                 0.1f,   // size
-                 10.0f,  // age
-                 false,  // gravity
-                 true);  // emissive
+    // 1) flickering flame: spawn 2 slightly larger sparks
+    for (int i = 0; i < 2; i++) {
+        vec3 vel = {
+            (rnd() - 0.5f) * 0.015f,      // small horizontal drift
+            0.03f + rnd() * 0.02f,       // gentle rise
+            (rnd() - 0.5f) * 0.015f
+        };
+        float size = 0.08f + rnd() * 0.04f;  // 0.08–0.12
+        float life = 6.0f + rnd() * 2.0f;    // 6–8 frames
 
-    // smoke
-    vel[0] = 0;
-    vel[1] = 0.03f;
-    vel[2] = 0;
-    particle_add(pos, vel,
-                 tex_smoke,
-                 0.15f,  // size
-                 20.0f,  // age
-                 false,  // gravity
-                 false);
+        particle_add(
+            pos,
+            vel,
+            tex_flame,
+            size,
+            life,
+            false,                   // no gravity
+            true,                    // emissive
+            TEXTURE_ATLAS_PARTICLES
+        );
+    }
+
+    // 2) heavier smoke: spawn 2 puffs per frame
+    for (int i = 0; i < 2; i++) {
+        vec3 vel = {
+            (rnd() - 0.5f) * 0.008f,   // very slight horizontal drift
+            0.015f + rnd() * 0.01f,    // slow upward drift
+            (rnd() - 0.5f) * 0.008f
+        };
+        vec3 spawn = {
+            pos[0] + (rnd() - 0.5f) * 0.04f,
+            pos[1] + (rnd() - 0.5f) * 0.04f,
+            pos[2] + (rnd() - 0.5f) * 0.04f
+        };
+        uint8_t tex_smoke = tex_smoke_base + (rand() % 8);
+        float size = 0.12f + rnd() * 0.03f;      // 0.12–0.15
+        float life = 25.0f + rnd() * 15.0f;     // 25–40 frames
+
+        particle_add(
+            spawn,
+            vel,
+            tex_smoke,
+            size,
+            life,
+            false,                  // no gravity so it rises
+            false,                  // not emissive
+            TEXTURE_ATLAS_PARTICLES
+        );
+    }
 }
 
 
+
 void particle_render(mat4 view, vec3 camera, float delta) {
-	assert(view && camera);
+    gfx_matrix_modelview(view);
+    gfx_lighting(false);
 
-	gfx_matrix_modelview(view);
-	gfx_bind_texture(&texture_terrain);
-	gfx_lighting(false);
+    // 1) Terrain/block particles
+    gfx_bind_texture(&texture_terrain);
+    array_particle_it_t it;
+    array_particle_it(it, particles);
+    while(!array_particle_end_p(it)) {
+        struct particle* p = array_particle_ref(it);
+        if(p->atlas == TEXTURE_ATLAS_TERRAIN)
+            render_single(p, camera, delta);
+        array_particle_next(it);
+    }
 
-	array_particle_it_t it;
-	array_particle_it(it, particles);
+    // 2) Particle-atlas particles (sparks, smoke, etc)
+    gfx_bind_texture(&texture_particles);
+    array_particle_it(it, particles);
+    while(!array_particle_end_p(it)) {
+        struct particle* p = array_particle_ref(it);
+        if(p->atlas == TEXTURE_ATLAS_PARTICLES)
+            render_single(p, camera, delta);
+        array_particle_next(it);
+    }
 
-	while(!array_particle_end_p(it)) {
-		render_single(array_particle_ref(it), camera, delta);
-		array_particle_next(it);
-	}
-
-	gfx_lighting(true);
+    gfx_lighting(true);
 }

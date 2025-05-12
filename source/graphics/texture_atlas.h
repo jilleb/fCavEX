@@ -172,6 +172,37 @@ enum tex_atlas_entry {
 	TEXAT_BREAK_8,
 	TEXAT_BREAK_9,
 
+    TEXAT_PARTICLE_SMOKE_0,
+    TEXAT_PARTICLE_SMOKE_1,
+    TEXAT_PARTICLE_SMOKE_2,
+    TEXAT_PARTICLE_SMOKE_3,
+    TEXAT_PARTICLE_SMOKE_4,
+    TEXAT_PARTICLE_SMOKE_5,
+    TEXAT_PARTICLE_SMOKE_6,
+    TEXAT_PARTICLE_SMOKE_7,
+
+    TEXAT_PARTICLE_SPLASH_0,
+    TEXAT_PARTICLE_SPLASH_1,
+    TEXAT_PARTICLE_EMPTY,
+    TEXAT_PARTICLE_DROP_TINY_0,
+    TEXAT_PARTICLE_DROP_TINY_1,
+    TEXAT_PARTICLE_DROP_TINY_2,
+    TEXAT_PARTICLE_DROP_TINY_3,
+    TEXAT_PARTICLE_DROP_TINY_4,
+
+    TEXAT_PARTICLE_BUBBLE,
+    TEXAT_PARTICLE_BOBBER,
+
+    TEXAT_PARTICLE_FLAME,
+    TEXAT_PARTICLE_EMBER,
+
+    TEXAT_PARTICLE_NOTE,
+
+    TEXAT_PARTICLE_HEART,
+
+    TEXAT_PARTICLE_DROP_FALL,
+    TEXAT_PARTICLE_DROP_ROUND,
+
 	TEXAT_MAX,
 };
 
@@ -203,8 +234,11 @@ void tex_atlas_reg_grass(dict_atlas_src_t atlas, enum tex_atlas_entry name,
 						 uint8_t bg_x, uint8_t bg_y);
 void* tex_atlas_compute(dict_atlas_src_t atlas, uint8_t* atlas_dst,
 						uint8_t* image, size_t width, size_t height);
+void* tex_atlas_block(const char* filename, size_t* width, size_t* height);
+void* tex_atlas_particles(const char* filename, size_t* width, size_t* height);
 
 uint8_t tex_atlas_lookup(enum tex_atlas_entry name);
-void* tex_atlas_block(const char* filename, size_t* width, size_t* height);
+uint8_t tex_atlas_lookup_particle(enum tex_atlas_entry name);
+
 
 #endif

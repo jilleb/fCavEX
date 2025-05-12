@@ -11,3 +11,5 @@ fCavEX.dol
 fCavEX.elf
 Makefile
 Makefile
+.project
+.cproject
