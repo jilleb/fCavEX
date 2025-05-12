@@ -40,7 +40,7 @@ struct particle {
     int              lifetime;   // initial life in ticks, for animating smoke
     uint8_t          tex;        // base tile index
     bool             gravity;    // apply gravity?
-    bool             emissive;   // ignore world lighting?
+    uint8_t          brightness;   // ignore world lighting?
     particle_atlas_t atlas;      // which atlas to sample
 };
 
@@ -51,7 +51,7 @@ void particle_add(vec3 pos,
                   float size,
                   float lifetime,
                   bool gravity,
-                  bool emissive,
+				  uint8_t brightness,
                   particle_atlas_t atlas);
 
 void particle_init(void);
