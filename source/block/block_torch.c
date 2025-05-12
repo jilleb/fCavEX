@@ -100,22 +100,45 @@ static size_t drop_redstone_torch(struct block_info* this, struct item_data* it,
 
 
 static void onWorldTick(struct server_local* s, struct block_info* blk) {
-{
-    // 1 in 3 chance per world tick
-    if (rand_gen_flt(&gstate.rand_src) > (1.0f / 3.0f))
-        return;
+    if (rand_gen_flt(&gstate.rand_src) > (1.0f/3.0f)) return;
+
+    // determine the position of the flame/smoke effect
+    struct AABB box;
+    blocks[blk->block->type]
+      ->getBoundingBox(blk, false, &box);
+
+    float spawnX, spawnZ;
+    switch (blk->block->metadata) {
+        case 1:
+            spawnX = box.x2;
+            spawnZ = 0.5f * (box.z1 + box.z2);
+            break;
+        case 2:
+            spawnX = box.x1;
+            spawnZ = 0.5f * (box.z1 + box.z2);
+            break;
+        case 3:
+            spawnX = 0.5f * (box.x1 + box.x2);
+            spawnZ = box.z2;
+            break;
+        case 4:
+            spawnX = 0.5f * (box.x1 + box.x2);
+            spawnZ = box.z1;
+            break;
+        default:
+            spawnX = 0.5f * (box.x1 + box.x2);
+            spawnZ = 0.5f * (box.z1 + box.z2);
+    }
 
     vec3 pos = {
-        blk->x + 0.5f,
-        blk->y + 0.7f,
-        blk->z + 0.5f
+        blk->x + spawnX,
+        blk->y + box.y2 + 0.02f,
+        blk->z + spawnZ
     };
+    // spawn the effect
+    particle_generate_fire(pos);
+}
 
-    particle_generate_fire(
-        pos
-    );
-}
-}
 
 
 struct block block_torch = {
@@ -123,7 +146,7 @@ struct block block_torch = {
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
-	.getTextureIndex = getTextureIndex1,
+	.getTextureIndex = getTextureIndex1, //getTextureIndex1,
 	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
 	.onWorldTick = onWorldTick,
