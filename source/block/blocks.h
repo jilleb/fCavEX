@@ -47,6 +47,7 @@ struct block {
 							 struct random_gen*, struct server_local*);
 	void (*onRandomTick)(struct server_local*, struct block_info*);
 	void (*onRightClick)(struct server_local*, struct item_data*,
+						 struct block_info*, struct block_info*, enum side);
     void (*onWorldTick)(struct server_local* s, struct block_info* this);
 	void (*onDay)(struct server_local* s, struct block_info* info);
 	void (*onNight)(struct server_local* s, struct block_info* info);
