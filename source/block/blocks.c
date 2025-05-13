@@ -85,7 +85,7 @@ void blocks_init() {
 	blocks[52] = &block_spawner;
 	blocks[53] = &block_wooden_stairs;
 	blocks[54] = &block_chest;
-	// redstone wire
+	blocks[55] = &block_redstone_wire;
 	blocks[56] = &block_diamondore;
 	blocks[57] = &block_diamond;
 	blocks[58] = &block_workbench;

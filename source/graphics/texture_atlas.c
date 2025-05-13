@@ -256,7 +256,6 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 	tex_atlas_reg(atlas, "piston_side", 12, 6);
 	tex_atlas_reg(atlas, "piston_back", 13, 6);
 	tex_atlas_reg(atlas, "piston_inner", 14, 6);*/
-
 	tex_atlas_reg(atlas, TEXAT_RAIL_CURVED, 0, 7);
 	tex_atlas_reg(atlas, TEXAT_REDSTONE_TORCH, 3, 7);
 	tex_atlas_reg(atlas, TEXAT_LOG_SPRUCE_SIDE, 4, 7);
@@ -284,8 +283,11 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 
 	tex_atlas_reg(atlas, TEXAT_ORE_LAPIS, 0, 10);
 	tex_atlas_reg(atlas, TEXAT_RAIL_POWERED_OFF, 3, 10);
-	/*tex_atlas_reg_col(atlas, "redstone_intersect", 4, 10, 252, 49, 0);
-	tex_atlas_reg_col(atlas, "redstone_wire", 5, 10, 252, 49, 0);*/
+
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_OFF, 5, 10, 111, 0, 0);
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_ON, 5, 10, 252, 49, 0);
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECTION_OFF, 4, 10, 111, 0, 0);
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECTION_ON, 4, 10, 252, 49, 0);
 
 	tex_atlas_reg(atlas, TEXAT_SANDSTONE_TOP, 0, 11);
 	tex_atlas_reg(atlas, TEXAT_RAIL_POWERED_ON, 3, 11);

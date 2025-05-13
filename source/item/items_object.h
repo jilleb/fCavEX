@@ -1103,6 +1103,9 @@ static struct item item_string = {
 	},
 };
 
+
+extern struct item item_redstone;
+/*
 static struct item item_redstone = {
 	.name = "Redstone",
 	.has_damage = false,
@@ -1118,6 +1121,7 @@ static struct item item_redstone = {
 		},
 	},
 };
+*/
 
 static struct item item_snow_ball = {
 	.name = "Snowball",

@@ -121,6 +121,7 @@ extern struct block block_reed;
 extern struct block block_glowstone;
 extern struct block block_torch;
 extern struct block block_rail;
+extern struct block block_redstone_wire;
 extern struct block block_powered_rail;
 extern struct block block_detector_rail;
 extern struct block block_redstone_torch;
