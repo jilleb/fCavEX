@@ -30,6 +30,7 @@
 #include "../../platform/gfx.h"
 #include "../../platform/input.h"
 #include "../game_state.h"
+#include "../../daytime.h"
 
 #include <malloc.h>
 
@@ -357,6 +358,13 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 			gstate.camera.y, gstate.camera.z, glm_deg(gstate.camera.rx),
 			glm_deg(gstate.camera.ry));
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 3, str, GFX_GUI_SCALE * 8, true);
+
+
+float time = gstate.world_time + time_diff_s(gstate.world_time_start, time_get()) * 1000.0f / 50.0f;
+float day_ticks = fmodf(time, 24000.0f);
+float angle = daytime_celestial_angle(day_ticks / 24000.0f);
+sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
+	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 4, str, GFX_GUI_SCALE * 8, true);
 
 	if(gstate.camera_hit.hit) {
 		struct block_data bd
