@@ -190,82 +190,99 @@ void particle_generate_side(struct block_info* info, enum side s) {
         }
 }
 
-// Generates the bright, central flash of an explosion (white sparks)
 void particle_generate_explosion_flash(vec3 center, float intensity) {
-    // atlas-index voor je ember/flash sprite
-    uint8_t tex_flash = tex_atlas_lookup_particle(TEXAT_PARTICLE_EMBER);
-    // 12 deeltjes per explosie (× intensity)
+    // atlas-index for the largest smoke frame (frame 7)
+    uint8_t tex_smoke_base = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_7);
+    // roughly 12 smoke puffs per unit intensity
     int count = (int)ceilf(intensity * 12.0f);
 
     for (int i = 0; i < count; i++) {
-        // willekeurige richting
+        // 1) random direction in a sphere
         vec3 vel = {
             rnd()*2.0f - 1.0f,
             rnd()*2.0f - 1.0f,
             rnd()*2.0f - 1.0f
         };
         glm_vec3_normalize(vel);
-        // iets hogere snelheid voor zichtbaarheid
-        glm_vec3_scale(vel, (0.4f + rnd()*0.2f) * intensity, vel);
+        // give them a bit of speed outward
+        glm_vec3_scale(vel, (0.3f + rnd()*0.2f) * intensity, vel);
 
-        // spawn heel dicht bij het centrum
+        // 2) spawn very close to the center, small jitter
         vec3 pos = {
-            center[0] + (rnd()-0.5f)*0.15f,
-            center[1] + (rnd()-0.5f)*0.15f,
-            center[2] + (rnd()-0.5f)*0.15f
+            center[0] + (rnd()-0.5f)*0.2f,
+            center[1] + (rnd()-0.5f)*0.2f,
+            center[2] + (rnd()-0.5f)*0.2f
         };
 
+        // 3) size scales with intensity
+        float size = 0.2f * intensity;
+
+        // 4) shorter, randomized lifetime: 8–16 ticks × intensity
+        float life = (8.0f + rnd()*8.0f) * intensity;
+
+        // 5) random gray shade for depth (50 = dark, 200 = light)
+        uint8_t brightness = (uint8_t)(rnd() * 150.0f + 50.0f);
+
+        // 6) add as smoke atlas particle (will animate smoke_7→smoke_0),
+        //    no gravity => no damping, so they drift until age runs out
         particle_add(
             pos,
             vel,
-            tex_flash,            // atlas-index
-            0.4f  * intensity,    // iets grotere size
-            8.0f,                 // life (ticks)
-            false,                // geen gravity
-			255,
-			TEXTURE_ATLAS_PARTICLES
+            tex_smoke_base,            // start frame for smoke animation
+            size,                      // particle size
+            life,                      // lifetime in ticks
+            false,                     // no gravity (no damping)
+            brightness,                // random gray brightness
+            TEXTURE_ATLAS_PARTICLES    // use particle atlas
         );
     }
 }
 
 void particle_generate_explosion_smoke(vec3 center, float intensity) {
-    uint8_t tex_smoke7 = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_7);
+    // number of smoke puffs
     int count = (int)ceilf(intensity * 12.0f);
 
     for (int i = 0; i < count; i++) {
-        // random direction in a sphere
+        // 1) Choose a random smoke frame (0…7) for variety
+        uint8_t frame = (uint8_t)(rnd() * 8.0f);
+        uint8_t tex_smoke = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0 + frame);
+
+        // 2) Random brightness between 100 (dark gray) and 255 (light gray)
+        uint8_t brightness = (uint8_t)(rnd() * 155.0f + 100.0f);
+
+        // 3) Random direction in a sphere
         vec3 vel = {
             rnd()*2.0f - 1.0f,
             rnd()*2.0f - 1.0f,
             rnd()*2.0f - 1.0f
         };
         glm_vec3_normalize(vel);
-        // lower speed so puffs stay closer in
+        // scale velocity so puffs stay reasonably close
         glm_vec3_scale(vel, (0.2f + rnd()*0.1f) * intensity, vel);
 
-        // spawn very close to center
+        // 4) Spawn very close to center, with small jitter
         vec3 pos = {
             center[0] + (rnd()-0.5f)*0.15f,
             center[1] + (rnd()-0.5f)*0.15f,
             center[2] + (rnd()-0.5f)*0.15f
         };
 
-        // randomize lifetime between 10–20 ticks × intensity
+        // 5) Randomize lifetime between 10–20 ticks × intensity
         float life = (10.0f + rnd()*10.0f) * intensity;
 
+        // 6) Add particle with no gravity (so no damping), random gray shade
         particle_add(
             pos,
             vel,
-            tex_smoke7,            // atlas-index frame 7
-            0.15f * intensity,     // particle size
-            life,                  // varied lifetime
-            false,                 // no gravity
-            255,                   // full brightness
+            tex_smoke,             // random smoke frame
+            0.15f * intensity,     // size
+            life,                  // lifetime
+            false,                 // no gravity => no damping
+            brightness,            // random gray brightness
             TEXTURE_ATLAS_PARTICLES
         );
     }
 }
-
 
 
 static void render_single(struct particle* p, vec3 camera, float delta) {
@@ -420,35 +437,46 @@ void particle_update() {
 }
 
 void particle_generate_smoke(vec3 center, float intensity) {
+    // spawn count: unchanged
     int count = (int)ceilf(intensity * 4.0f);
+    // always start at the largest smoke-frame
     uint8_t tex_smoke_base = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_7);
 
-
     for (int i = 0; i < count; i++) {
+        // 1) Position jitter around center
         vec3 pos = {
             center[0] + (rnd() - 0.5f) * 0.3f,
             center[1] + 0.7f + rnd() * 0.2f,
             center[2] + (rnd() - 0.5f) * 0.3f
         };
+
+        // 2) Upward drift + slight horizontal drift
         vec3 vel = {
             (rnd() - 0.5f) * 0.01f,
             0.1f + rnd() * 0.02f,
             (rnd() - 0.5f) * 0.01f
         };
 
-        // Always start at the largest smoke-frame (enum index TEXAT_PARTICLE_SMOKE_7)
+        // 3) Shorter, randomized lifetime (10–20 ticks) × intensity
+        float life = (10.0f + rnd() * 10.0f) * intensity;
+
+        // 4) Random gray shade: brightness between 50 (dark) and 200 (light)
+        uint8_t brightness = (uint8_t)(rnd() * 150.0f + 50.0f);
+
+        // 5) Add particle without gravity (no damping), varies in gray level
         particle_add(
             pos,
             vel,
-			tex_smoke_base,       		  // enum, not atlas-lookup
-            0.15f * intensity,            // size
-            40.0f,                        // lifetime in ticks
-            false,                        // no gravity
-			5,
-            TEXTURE_ATLAS_PARTICLES       // atlas
+            tex_smoke_base,           // enum index for frame 7
+            0.15f * intensity,        // size
+            life,                     // new, shorter lifetime
+            false,                    // no gravity => no damping
+            brightness,               // random gray brightness
+            TEXTURE_ATLAS_PARTICLES   // atlas
         );
     }
 }
+
 
 void particle_generate_fire(vec3 pos) {
     uint8_t tex_flame      = tex_atlas_lookup_particle(TEXAT_PARTICLE_FLAME);
@@ -462,19 +490,21 @@ void particle_generate_fire(vec3 pos) {
             0.015f + rnd() * 0.01f,
             (rnd() - 0.5f) * 0.015f
         };
-        float size_f = 0.04f + rnd() * 0.04f;   // now 0.04–0.08
-        float life_f = 6.0f  + rnd() * 2.0f;
+        float size_f = 0.04f + rnd() * 0.04f;   // size 0.04–0.08
+        float life_f = 6.0f  + rnd() * 2.0f;    // lifetime 6–8 ticks
 
         particle_add(
             pos, vel_f,
             tex_flame,
             size_f, life_f,
-            false, 255,
+            false,    // no gravity (no damping)
+            255,      // full brightness for flame
             TEXTURE_ATLAS_PARTICLES
         );
 
         // 2) occasional smoke: about 1 in 10 sparks
         if (rnd() < 0.1f) {
+            // a) smaller smoke puff
             vec3 vel_s = {
                 (rnd() - 0.5f) * 0.006f,
                 0.008f + rnd() * 0.005f,
@@ -487,12 +517,15 @@ void particle_generate_fire(vec3 pos) {
             };
             float size_s = 0.06f + rnd() * 0.04f;   // now 0.06–0.10
             float life_s = 25.0f + rnd() * 15.0f;
+            float life_s = 10.0f + rnd() * 10.0f;
+            uint8_t brightness_s = (uint8_t)(rnd() * 100.0f + 50.0f);
 
             particle_add(
                 spawn, vel_s,
                 tex_smoke_base,
                 size_s, life_s,
-                false, 10,
+                false,          // no gravity => no damping
+                brightness_s,   // varied gray brightness
                 TEXTURE_ATLAS_PARTICLES
             );
         }
@@ -500,6 +533,7 @@ void particle_generate_fire(vec3 pos) {
 }
 
 
+// TODO: make block/side particles follow the current light again, like on original fCavex
 
 void particle_render(mat4 view, vec3 camera, float delta) {
     gfx_matrix_modelview(view);
