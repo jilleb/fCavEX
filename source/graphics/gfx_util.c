@@ -183,6 +183,60 @@ void gutil_sky_box(mat4 view_matrix, float celestial_angle, vec3 color_top,
 
 	gfx_fog(false);
 	gfx_texture(true);
+
+
+	// draw stars
+	float brightness = daytime_brightness(gstate.world_time);
+	if (brightness < 0.6f) {
+	    gfx_texture(false);
+	    gfx_lighting(false);
+	    gfx_blending(MODE_BLEND2);
+	    gfx_alpha_test(false);
+
+	    srand(42); // vaste seed voor consistent sterrenpatroon
+
+	    uint8_t star_alpha = (uint8_t)(glm_clamp((0.6f - brightness) / 0.5f, 0.0f, 1.0f) * 255.0f);
+	    int size = 1;  // sterren zijn 1 pixel groot
+
+	    uint8_t star_r = 180;
+	    uint8_t star_g = 190;
+	    uint8_t star_b = 255;
+
+	    for (int i = 0; i < 1000; i++) {  // veel meer sterren!
+	        float theta = glm_rad(rand() % 360);
+	        float phi = glm_rad(rand() % 180);
+	        float radius = 200.0f;
+
+	        float x = cosf(theta) * sinf(phi) * radius;
+	        float y = cosf(phi) * radius;
+	        float z = sinf(theta) * sinf(phi) * radius;
+
+	        int16_t star_vertices[] = {
+	            x - size, y + size, z,
+	            x + size, y + size, z,
+	            x + size, y - size, z,
+	            x - size, y - size, z
+	        };
+
+	        uint8_t star_colors[] = {
+	            star_r, star_g, star_b, star_alpha,
+	            star_r, star_g, star_b, star_alpha,
+	            star_r, star_g, star_b, star_alpha,
+	            star_r, star_g, star_b, star_alpha
+	        };
+
+	        uint16_t star_tex[] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+	        gfx_draw_quads(4, star_vertices, star_colors, star_tex);
+	    }
+
+	    gfx_alpha_test(true);
+	    gfx_blending(MODE_OFF);
+	    gfx_texture(true);
+	}
+
+
+
 	gfx_blending(MODE_BLEND2);
 
 	mat4 tmp;
@@ -206,6 +260,7 @@ void gutil_sky_box(mat4 view_matrix, float celestial_angle, vec3 color_top,
 				   (uint8_t[]) {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 								0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
 				   (uint16_t[]) {0, 0, 0, 256, 256, 256, 256, 0});
+
 
 	gfx_blending(MODE_OFF);
 	gfx_write_buffers(true, true, true);
