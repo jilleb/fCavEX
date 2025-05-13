@@ -24,6 +24,99 @@
 #include "../platform/gfx.h"
 #include "gfx_util.h"
 
+static void gutil_render_stars(mat4 view_matrix, float time) {
+	float fade = 0.0f;
+	float day_ticks = fmodf(time, 24000.0f);
+
+	if (day_ticks > 13000.0f && day_ticks < 14000.0f)
+	    fade = (day_ticks - 13000.0f) / 1000.0f;  // fade-in
+	else if (day_ticks >= 14000.0f && day_ticks <= 22000.0f)
+	    fade = 1.0f;
+	else if (day_ticks > 22000.0f && day_ticks < 23000.0f)
+	    fade = (23000.0f - day_ticks) / 1000.0f;  // fade-out
+	else
+	    fade = 0.0f;
+
+	float scale = 0.2f; // star size. 0.2 seems about right Bigger than this
+
+	uint8_t star_alpha = (uint8_t)(fade * 255.0f);
+	if (star_alpha == 0)
+		return;
+
+	gfx_texture(false);
+	gfx_lighting(false);
+	gfx_blending(MODE_BLEND2);
+	gfx_alpha_test(false);
+	gfx_cull_func(MODE_NONE);
+
+	srand(42);
+
+	uint8_t star_r = 180;
+	uint8_t star_g = 190;
+	uint8_t star_b = 255;
+
+	for (int i = 0; i < 1000; i++) {
+	    float theta = glm_rad(rand() % 360);
+	    float phi = glm_rad(rand() % 180);
+	    float radius = 90.0f;
+
+	    float x = cosf(theta) * sinf(phi) * radius;
+	    float y = cosf(phi) * radius;
+	    float z = sinf(theta) * sinf(phi) * radius;
+
+	    vec3 pos = {x, y, z};
+
+	    // billboard-quads zoals bij particles
+	    float vertices[12];
+	    float texcoords[8] = {
+	        0.0f, 0.0f,
+	        1.0f, 0.0f,
+	        1.0f, 1.0f,
+	        0.0f, 1.0f
+	    };
+	    uint8_t colors[16] = {
+	        star_r, star_g, star_b, star_alpha,
+	        star_r, star_g, star_b, star_alpha,
+	        star_r, star_g, star_b, star_alpha,
+	        star_r, star_g, star_b, star_alpha
+	    };
+
+	    vec3 right = {
+	        view_matrix[0][0],
+	        view_matrix[1][0],
+	        view_matrix[2][0]
+	    };
+	    vec3 up = {
+	        view_matrix[0][1],
+	        view_matrix[1][1],
+	        view_matrix[2][1]
+	    };
+
+	    glm_vec3_scale(right, scale, right);
+	    glm_vec3_scale(up, scale, up);
+
+	    vec3 v0, v1, v2, v3;
+	    glm_vec3_sub(pos, right, v0); glm_vec3_add(v0, up, v0); // top-left
+	    glm_vec3_add(pos, right, v1); glm_vec3_add(v1, up, v1); // top-right
+	    glm_vec3_add(pos, right, v2); glm_vec3_sub(v2, up, v2); // bottom-right
+	    glm_vec3_sub(pos, right, v3); glm_vec3_sub(v3, up, v3); // bottom-left
+
+	    memcpy(vertices +  0, v0, sizeof(vec3));
+	    memcpy(vertices +  3, v1, sizeof(vec3));
+	    memcpy(vertices +  6, v2, sizeof(vec3));
+	    memcpy(vertices +  9, v3, sizeof(vec3));
+
+	    gfx_draw_quads_flt(4, vertices, colors, texcoords);
+	}
+
+	gfx_alpha_test(true);
+	gfx_blending(MODE_OFF);
+	gfx_texture(true);
+	gfx_cull_func(MODE_BACK);
+
+}
+
+
 void gutil_clouds(mat4 view_matrix, float brightness) {
 	assert(view_matrix);
 
@@ -184,58 +277,7 @@ void gutil_sky_box(mat4 view_matrix, float celestial_angle, vec3 color_top,
 	gfx_fog(false);
 	gfx_texture(true);
 
-
-	// draw stars
-	float brightness = daytime_brightness(gstate.world_time);
-	if (brightness < 0.6f) {
-	    gfx_texture(false);
-	    gfx_lighting(false);
-	    gfx_blending(MODE_BLEND2);
-	    gfx_alpha_test(false);
-
-	    srand(42); // vaste seed voor consistent sterrenpatroon
-
-	    uint8_t star_alpha = (uint8_t)(glm_clamp((0.6f - brightness) / 0.5f, 0.0f, 1.0f) * 255.0f);
-	    int size = 1;  // sterren zijn 1 pixel groot
-
-	    uint8_t star_r = 180;
-	    uint8_t star_g = 190;
-	    uint8_t star_b = 255;
-
-	    for (int i = 0; i < 1000; i++) {  // veel meer sterren!
-	        float theta = glm_rad(rand() % 360);
-	        float phi = glm_rad(rand() % 180);
-	        float radius = 200.0f;
-
-	        float x = cosf(theta) * sinf(phi) * radius;
-	        float y = cosf(phi) * radius;
-	        float z = sinf(theta) * sinf(phi) * radius;
-
-	        int16_t star_vertices[] = {
-	            x - size, y + size, z,
-	            x + size, y + size, z,
-	            x + size, y - size, z,
-	            x - size, y - size, z
-	        };
-
-	        uint8_t star_colors[] = {
-	            star_r, star_g, star_b, star_alpha,
-	            star_r, star_g, star_b, star_alpha,
-	            star_r, star_g, star_b, star_alpha,
-	            star_r, star_g, star_b, star_alpha
-	        };
-
-	        uint16_t star_tex[] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-	        gfx_draw_quads(4, star_vertices, star_colors, star_tex);
-	    }
-
-	    gfx_alpha_test(true);
-	    gfx_blending(MODE_OFF);
-	    gfx_texture(true);
-	}
-
-
+	gutil_render_stars(view_matrix, daytime_get_time());
 
 	gfx_blending(MODE_BLEND2);
 

@@ -197,7 +197,6 @@ void particle_generate_explosion_flash(vec3 center, float intensity) {
     int count = (int)ceilf(intensity * 12.0f);
 
     for (int i = 0; i < count; i++) {
-        // 1) random direction in a sphere
         vec3 vel = {
             rnd()*2.0f - 1.0f,
             rnd()*2.0f - 1.0f,
@@ -207,23 +206,18 @@ void particle_generate_explosion_flash(vec3 center, float intensity) {
         // give them a bit of speed outward
         glm_vec3_scale(vel, (0.3f + rnd()*0.2f) * intensity, vel);
 
-        // 2) spawn very close to the center, small jitter
         vec3 pos = {
             center[0] + (rnd()-0.5f)*0.2f,
             center[1] + (rnd()-0.5f)*0.2f,
             center[2] + (rnd()-0.5f)*0.2f
         };
 
-        // 3) size scales with intensity
         float size = 0.2f * intensity;
 
-        // 4) shorter, randomized lifetime: 8–16 ticks × intensity
         float life = (8.0f + rnd()*8.0f) * intensity;
 
-        // 5) random gray shade for depth (50 = dark, 200 = light)
         uint8_t brightness = (uint8_t)(rnd() * 150.0f + 50.0f);
 
-        // 6) add as smoke atlas particle (will animate smoke_7→smoke_0),
         //    no gravity => no damping, so they drift until age runs out
         particle_add(
             pos,
@@ -286,15 +280,12 @@ void particle_generate_explosion_smoke(vec3 center, float intensity) {
 
 
 static void render_single(struct particle* p, vec3 camera, float delta) {
-    // 1) Distance-cull at 32 units
     if (glm_vec3_distance2(p->pos, camera) > 32.0f * 32.0f)
         return;
 
-    // 2) Interpolate position
     vec3 pos_lerp;
     glm_vec3_lerp(p->pos_old, p->pos, delta, pos_lerp);
 
-    // 3) Build billboarding axes
     vec3 view_dir, axis_s, axis_t;
     glm_vec3_sub(pos_lerp, camera, view_dir);
     glm_vec3_crossn(view_dir, (vec3){0,1,0}, axis_s);
@@ -302,14 +293,11 @@ static void render_single(struct particle* p, vec3 camera, float delta) {
     glm_vec3_scale(axis_s, p->size, axis_s);
     glm_vec3_scale(axis_t, p->size, axis_t);
 
-    //
 
     uint8_t brightness = p->brightness;
 
-    // 5) Determine which atlas-index to use
     uint8_t tile = p->tex;
 
-    // 6) Animate smoke only (frames smoke_0…smoke_7) 7→0
     if (p->atlas == TEXTURE_ATLAS_PARTICLES
      && tile >= tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0)
      && tile <= tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_7))
@@ -319,7 +307,6 @@ static void render_single(struct particle* p, vec3 camera, float delta) {
         tile = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_0 + frame);
     }
 
-    // 7) Compute UVs
     float u0, v0, u1, v1;
     if (p->atlas == TEXTURE_ATLAS_TERRAIN) {
         // Terrain‐atlas uses 16×16px tiles and our stored random offset
@@ -336,7 +323,6 @@ static void render_single(struct particle* p, vec3 camera, float delta) {
         v1 = v0 + (16.0f / 256.0f);
     }
 
-    // 8) Draw quad
     gfx_draw_quads_flt(
         4,
         (float[]){
@@ -437,33 +423,32 @@ void particle_update() {
 }
 
 void particle_generate_smoke(vec3 center, float intensity) {
-    // spawn count: unchanged
     int count = (int)ceilf(intensity * 4.0f);
     // always start at the largest smoke-frame
     uint8_t tex_smoke_base = tex_atlas_lookup_particle(TEXAT_PARTICLE_SMOKE_7);
 
     for (int i = 0; i < count; i++) {
-        // 1) Position jitter around center
+        // Position jitter around center
         vec3 pos = {
             center[0] + (rnd() - 0.5f) * 0.3f,
             center[1] + 0.7f + rnd() * 0.2f,
             center[2] + (rnd() - 0.5f) * 0.3f
         };
 
-        // 2) Upward drift + slight horizontal drift
+        // Upward drift + slight horizontal drift
         vec3 vel = {
             (rnd() - 0.5f) * 0.01f,
             0.1f + rnd() * 0.02f,
             (rnd() - 0.5f) * 0.01f
         };
 
-        // 3) Shorter, randomized lifetime (10–20 ticks) × intensity
+        // Shorter, randomized lifetime (10–20 ticks) × intensity
         float life = (10.0f + rnd() * 10.0f) * intensity;
 
-        // 4) Random gray shade: brightness between 50 (dark) and 200 (light)
+        // Random gray shade: brightness between 50 (dark) and 200 (light)
         uint8_t brightness = (uint8_t)(rnd() * 150.0f + 50.0f);
 
-        // 5) Add particle without gravity (no damping), varies in gray level
+        // Add particle without gravity (no damping), varies in gray level
         particle_add(
             pos,
             vel,
@@ -516,7 +501,6 @@ void particle_generate_fire(vec3 pos) {
                 pos[2] + (rnd() - 0.5f) * 0.03f
             };
             float size_s = 0.06f + rnd() * 0.04f;   // now 0.06–0.10
-            float life_s = 25.0f + rnd() * 15.0f;
             float life_s = 10.0f + rnd() * 10.0f;
             uint8_t brightness_s = (uint8_t)(rnd() * 100.0f + 50.0f);
 

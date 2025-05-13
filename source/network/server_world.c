@@ -24,6 +24,8 @@
 #include "client_interface.h"
 #include "server_local.h"
 #include "server_world.h"
+#include "../daytime.h"
+
 
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
 	(((x1) - (x2)) * ((x1) - (x2)) + ((z1) - (z2)) * ((z1) - (z2)))
@@ -371,6 +373,13 @@ void server_world_tick(struct server_world* w,
                             .z          = baseZ + cz
                         };
                         b->onWorldTick(s, &info);
+						
+					float time = fmodf(daytime_get_time(), 24000.0f);
+					if (b->onDay && time >= 0.0f && time < 13000.0f)
+						b->onDay(s, &info);
+
+					if (b->onNight && time >= 13000.0f && time < 24000.0f)
+						b->onNight(s, &info);	
                     }
                 }
             }
