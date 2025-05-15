@@ -286,8 +286,8 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 
 	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_OFF, 5, 10, 111, 0, 0);
 	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_ON, 5, 10, 252, 49, 0);
-	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECTION_OFF, 4, 10, 111, 0, 0);
-	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECTION_ON, 4, 10, 252, 49, 0);
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECT_OFF, 5, 11, 111, 0, 0); //4, 10?
+	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECT_ON, 5, 11, 252, 49, 0);
 
 	tex_atlas_reg(atlas, TEXAT_SANDSTONE_TOP, 0, 11);
 	tex_atlas_reg(atlas, TEXAT_RAIL_POWERED_ON, 3, 11);
