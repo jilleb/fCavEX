@@ -339,13 +339,14 @@ static void screen_ingame_update(struct screen* s, float dt) {
 		screen_set(&screen_inventory);
 }
 
+#ifndef NDEBUG
 static void screen_ingame_render2D(struct screen* s, int width, int height) {
 	char str[64];
 	sprintf(str, GAME_NAME " Alpha %i.%i.%i_f%i (impl. B1.7.3)", VERSION_MAJOR,
 			VERSION_MINOR, VERSION_PATCH, VERSION_FORK);
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 0, str, GFX_GUI_SCALE * 8, true);
 
-#ifndef NDEBUG
+
 	sprintf(str, "%0.1f fps, wait: gpu %0.1fms, vsync %0.1fms",
 			gstate.stats.fps, gstate.stats.dt_gpu * 1000.0F,
 			gstate.stats.dt_vsync * 1000.0F);
@@ -358,7 +359,6 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 			gstate.camera.y, gstate.camera.z, glm_deg(gstate.camera.rx),
 			glm_deg(gstate.camera.ry));
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 3, str, GFX_GUI_SCALE * 8, true);
-
 
 float time = gstate.world_time + time_diff_s(gstate.world_time_start, time_get()) * 1000.0f / 50.0f;
 float day_ticks = fmodf(time, 24000.0f);
