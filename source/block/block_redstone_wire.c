@@ -21,7 +21,7 @@
 #include "blocks.h"
 
 static enum block_material getMaterial(struct block_info* this) {
-	return MATERIAL_CIRCUIT;
+	return MATERIAL_STONE;
 }
 
 static size_t getBoundingBox(struct block_info* this, bool entity,
@@ -46,31 +46,53 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 }
 
 
-static bool onItemPlace(struct server_local* s, struct item_data* it,
-						struct block_info* where, struct block_info* on,
-						enum side on_side) {
-	struct block_data blk;
-	if(!server_world_get_block(&s->world, where->x, where->y - 1, where->z,
-							   &blk))
-		return false;
+static void onRightClick(struct server_local* s, struct item_data* it,
+                         struct block_info* where, struct block_info* on,
+                         enum side on_side) {
+    // 1) Check we have an item in hand and it's redstone dust
+    if (it && it->id == ITEM_REDSTONE) {
+        struct block_data current;
+        // 2) Read the block we clicked on
+        if (server_world_get_block(&s->world,
+                                   on->x, on->y, on->z,
+                                   &current)
+            && current.type == BLOCK_REDSTONE_WIRE)
+        {
+            // 3) Increment metadata (0–15), wrap at 16→0
+            uint8_t level = current.metadata;
+            level = (level + 1) & 0x0F;
 
-	if(!blocks[blk.type] || blocks[blk.type]->can_see_through)
-		return false;
+            // 4) Write back the same block type with new metadata
+            server_world_set_block(&s->world,
+                                   on->x, on->y, on->z,
+                                   (struct block_data){
+                                       .type     = BLOCK_REDSTONE_WIRE,
+                                       .metadata = level
+                                   });
 
-	return block_place_default(s, it, where, on, on_side);
+            // 5) Stop further processing
+            return;
+        }
+    }
+
+    // Fallback: default behavior (place block, use item, etc.)
+    if (it && items[it->id] && items[it->id]->onItemPlace) {
+        items[it->id]->onItemPlace(s, it, where, on, on_side);
+    }
 }
+
 
 struct block block_redstone_wire = {
 	.name = "Redstone wire",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
-	.getTextureIndex = NULL,
+	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = block_drop_default,
 	.onRandomTick = NULL,
-	.onRightClick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
-	.renderBlock = render_block_rail,//render_block_redstone_wire doesn't work yet
+	.renderBlock = render_block_redstone_wire,
 	.renderBlockAlways = NULL,
 	.luminance = 0,
 	.double_sided = true,
@@ -88,7 +110,7 @@ struct block block_redstone_wire = {
 		.has_damage = false,
 		.max_stack = 64,
 		.renderItem = render_item_flat,
-		.onItemPlace = onItemPlace,
+		.onItemPlace = block_place_default,
 		.armor.is_armor = false,
 		.tool.type = TOOL_TYPE_ANY,
 	},

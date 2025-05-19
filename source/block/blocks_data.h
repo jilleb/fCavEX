@@ -39,8 +39,6 @@ enum block_material {
 	MATERIAL_ORGANIC,
 	MATERIAL_SAND,
 	MATERIAL_GLASS,
-	MATERIAL_CIRCUIT,
-	MATERIAL_MISC
 };
 
 enum block_type {
@@ -96,7 +94,7 @@ enum block_type {
 	BLOCK_DIAMOND_ORE = 56,
 	BLOCK_DIAMOND_CAST = 57,
 	BLOCK_WORKBENCH = 58,
-	BLOCK_CROPS = 59,//not sure if this should be like that
+	BLOCK_CROPS = 59,
 	BLOCK_FARMLAND = 60,
 	BLOCK_FURNACE = 61,
 	BLOCK_DOOR_WOOD = 64,

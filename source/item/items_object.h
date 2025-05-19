@@ -1103,10 +1103,7 @@ static struct item item_string = {
 	},
 };
 
-
-extern struct item item_redstone;
-/*
-static struct item item_redstone = {
+/*static struct item item_redstone = {
 	.name = "Redstone",
 	.has_damage = false,
 	.max_stack = 64,
@@ -1122,6 +1119,8 @@ static struct item item_redstone = {
 	},
 };
 */
+extern struct item item_redstone;
+
 
 static struct item item_snow_ball = {
 	.name = "Snowball",

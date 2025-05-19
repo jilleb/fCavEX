@@ -22,18 +22,27 @@
 static bool onItemPlace(struct server_local* s, struct item_data* it,
                         struct block_info* where, struct block_info* on,
                         enum side on_side) {
-	struct block_data below;
+    if (!on || !on->block) return false;
+	if (on_side != SIDE_TOP) return false;
+
+    int tx = on->x;
+    int ty = on->y + 1;
+    int tz = on->z;
+	
+/*	struct block_data below;
 	if (!server_world_get_block(&s->world, where->x, where->y - 1, where->z, &below))
 		return false;
 	if (!blocks[below.type] || blocks[below.type]->can_see_through)
 		return false;
+*/
+    server_world_set_block(&s->world, tx, ty, tz, (struct block_data) {
+        .type = BLOCK_REDSTONE_WIRE,
+        .metadata = 0,
+        .sky_light = 0,
+        .torch_light = 0,
+    });
 
-	return block_place_default(s,
-		&(struct item_data) {
-			.id = BLOCK_REDSTONE_WIRE,
-			.durability = 0,
-		},
-		where, on, on_side);
+    return true;
 }
 
 struct item item_redstone = {

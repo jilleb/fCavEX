@@ -727,6 +727,95 @@ size_t render_block_rail(struct displaylist* dl, struct block_info* this,
 	return 1;
 }
 
+
+// todo: adapt this to:
+// - show corner/intersection texture where needed
+// - change color of texture according to power level.
+
+size_t render_block_redstone_wire(struct displaylist* dl, struct block_info* this,
+						 enum side side, struct block_info* it,
+						 uint8_t* vertex_light, bool count_only) {
+	if(side != SIDE_TOP)
+		return 0;
+
+	if(!count_only) {
+		int16_t x = W2C_COORD(this->x);
+		int16_t y = W2C_COORD(this->y);
+		int16_t z = W2C_COORD(this->z);
+		uint8_t tex = blocks[this->block->type]->getTextureIndex(this, side);
+		uint8_t luminance = blocks[this->block->type]->luminance;
+
+		uint8_t tex_coords[4][2] = {
+			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex))},
+			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex))},
+			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex)) + 16},
+			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex)) + 16},
+		};
+		int tex_rotate = 0;
+
+		uint16_t a = 16, b = 16, c = 16, d = 16;
+
+		switch(this->block->metadata & 0x7) {
+			case 1: tex_rotate = 1; break;
+			case 2:
+				b = 272;
+				c = 272;
+				tex_rotate = 1;
+				break;
+			case 3:
+				a = 272;
+				d = 272;
+				tex_rotate = 1;
+				break;
+			case 4:
+				a = 272;
+				b = 272;
+				break;
+			case 5:
+				c = 272;
+				d = 272;
+				break;
+		}
+
+		if(blocks[this->block->type]->render_block_data.rail_curved_possible) {
+			switch(this->block->metadata) {
+				case 6: tex_rotate = 0; break;
+				case 7: tex_rotate = 3; break;
+				case 8: tex_rotate = 2; break;
+			}
+		}
+
+		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + a, z * BLK_LEN);
+		displaylist_color(dl,
+						  DIM_LIGHT(vertex_light[4], NULL, false, luminance));
+		displaylist_texcoord(dl, tex_coords[(tex_rotate + 0) % 4][0],
+							 tex_coords[(tex_rotate + 0) % 4][1]);
+		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + b,
+						z * BLK_LEN);
+		displaylist_color(dl,
+						  DIM_LIGHT(vertex_light[5], NULL, false, luminance));
+		displaylist_texcoord(dl, tex_coords[(tex_rotate + 1) % 4][0],
+							 tex_coords[(tex_rotate + 1) % 4][1]);
+		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + c,
+						z * BLK_LEN + BLK_LEN);
+		displaylist_color(dl,
+						  DIM_LIGHT(vertex_light[6], NULL, false, luminance));
+		displaylist_texcoord(dl, tex_coords[(tex_rotate + 2) % 4][0],
+							 tex_coords[(tex_rotate + 2) % 4][1]);
+		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + d,
+						z * BLK_LEN + BLK_LEN);
+		displaylist_color(dl,
+						  DIM_LIGHT(vertex_light[7], NULL, false, luminance));
+		displaylist_texcoord(dl, tex_coords[(tex_rotate + 3) % 4][0],
+							 tex_coords[(tex_rotate + 3) % 4][1]);
+	}
+
+	return 1;
+}
+
+
+
+
 size_t render_block_ladder(struct displaylist* d, struct block_info* this,
 						   enum side side, struct block_info* it,
 						   uint8_t* vertex_light, bool count_only) {
