@@ -33,6 +33,25 @@ static int clamp_n(int x, int n) {
 	return x;
 }
 
+static const uint8_t redstone_colors[16][3] = {
+    {111,   0,  0},  // 0: off
+    {120,   3,  0},  // 1
+    {130,   7,  0},  // 2
+    {139,  10,  0},  // 3
+    {149,  13,  0},  // 4
+    {158,  16,  0},  // 5
+    {167,  20,  0},  // 6
+    {177,  23,  0},  // 7
+    {186,  26,  0},  // 8
+    {196,  29,  0},  // 9
+    {205,  33,  0},  // 10
+    {214,  36,  0},  // 11
+    {224,  39,  0},  // 12
+    {233,  42,  0},  // 13
+    {243,  46,  0},  // 14
+    {252,  49,  0}   // 15: on
+};
+
 void tex_atlas_reg(dict_atlas_src_t atlas, enum tex_atlas_entry name, uint8_t x,
 				   uint8_t y) {
 	dict_atlas_src_push_back(atlas,
@@ -285,8 +304,24 @@ void* tex_atlas_block(const char* filename, size_t* width, size_t* height) {
 	tex_atlas_reg(atlas, TEXAT_ORE_LAPIS, 0, 10);
 	tex_atlas_reg(atlas, TEXAT_RAIL_POWERED_OFF, 3, 10);
 	
+	// redstone wire power levels, from 0 to 15
 	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_OFF, 5, 10, 111, 0, 0);
-	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_ON, 5, 10, 252, 49, 0);
+	for (int lvl = 0; lvl <= 15; ++lvl) {
+	    uint8_t r = redstone_colors[lvl][0];
+	    uint8_t g = redstone_colors[lvl][1];
+	    uint8_t b = redstone_colors[lvl][2];
+
+	    enum tex_atlas_entry entry;
+	    if (lvl == 0) {
+	        entry = TEXAT_REDSTONE_WIRE_OFF;
+	    } else {
+	        entry = TEXAT_REDSTONE_WIRE_L1 + (lvl - 1);
+	    }
+
+	    tex_atlas_reg_col(atlas, entry, 5, 10, r, g, b);
+	}
+
+	//tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_ON, 5, 10, 252, 49, 0);
 	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECT_OFF, 5, 11, 111, 0, 0); //4, 10?
 	tex_atlas_reg_col(atlas, TEXAT_REDSTONE_WIRE_INTERSECT_ON, 5, 11, 252, 49, 0);
 

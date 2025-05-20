@@ -669,6 +669,7 @@ size_t render_block_rail(struct displaylist* dl, struct block_info* this,
 
 		uint16_t a = 16, b = 16, c = 16, d = 16;
 
+		/*
 		switch(this->block->metadata & 0x7) {
 			case 1: tex_rotate = 1; break;
 			case 2:
@@ -691,6 +692,7 @@ size_t render_block_rail(struct displaylist* dl, struct block_info* this,
 				break;
 		}
 
+
 		if(blocks[this->block->type]->render_block_data.rail_curved_possible) {
 			switch(this->block->metadata) {
 				case 6: tex_rotate = 0; break;
@@ -698,6 +700,7 @@ size_t render_block_rail(struct displaylist* dl, struct block_info* this,
 				case 8: tex_rotate = 2; break;
 			}
 		}
+*/
 
 		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + a, z * BLK_LEN);
 		displaylist_color(dl,
@@ -728,10 +731,8 @@ size_t render_block_rail(struct displaylist* dl, struct block_info* this,
 }
 
 
-// todo: adapt this to:
+// todo: This is currently mostly copied from block-rail. Adapt this to:
 // - show corner/intersection texture where needed
-// - change color of texture according to power level.
-
 size_t render_block_redstone_wire(struct displaylist* dl, struct block_info* this,
 						 enum side side, struct block_info* it,
 						 uint8_t* vertex_light, bool count_only) {
@@ -755,7 +756,7 @@ size_t render_block_redstone_wire(struct displaylist* dl, struct block_info* thi
 
 		uint16_t a = 16, b = 16, c = 16, d = 16;
 
-		switch(this->block->metadata & 0x7) {
+		/*switch(this->block->metadata & 0x7) {
 			case 1: tex_rotate = 1; break;
 			case 2:
 				b = 272;
@@ -775,7 +776,7 @@ size_t render_block_redstone_wire(struct displaylist* dl, struct block_info* thi
 				c = 272;
 				d = 272;
 				break;
-		}
+		}*/
 
 		if(blocks[this->block->type]->render_block_data.rail_curved_possible) {
 			switch(this->block->metadata) {

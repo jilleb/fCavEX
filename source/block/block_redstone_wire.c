@@ -20,20 +20,27 @@
 #include "../network/server_local.h"
 #include "blocks.h"
 
+
+// Helper struct for neighboring wire info
+typedef struct {
+    bool    present;   // true if neighbor is a redstone wire
+    uint8_t power;     // its metadata (0–15)
+} NeighborInfo;
+
+
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
 static size_t getBoundingBox(struct block_info* this, bool entity,
-							 struct AABB* x) {
-	if(x)
-		aabb_setsize(x, 1.0F,
-					 ((this->block->metadata & 0x7) > 1
-					  && (this->block->metadata & 0x7) < 6) ?
-						 0.625F :
-						 0.125F,
-					 1.0F);
-	return entity ? 0 : 1;
+                             struct AABB* x) {
+    if (x) {
+        aabb_setsize(x,
+                     1.0F,
+                     0.125F,
+                     1.0F);
+    }
+    return entity ? 0 : 1;
 }
 
 static struct face_occlusion*
@@ -42,45 +49,137 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 }
 
 static uint8_t getTextureIndex(struct block_info* this, enum side side) {
-	return tex_atlas_lookup(TEXAT_REDSTONE_WIRE_OFF);
+	uint8_t lvl = this->block->metadata & 0x0F;
+	if (lvl == 0) {
+		return tex_atlas_lookup(TEXAT_REDSTONE_WIRE_OFF);
+	}
+	return tex_atlas_lookup(TEXAT_REDSTONE_WIRE_L1 + (lvl - 1));
 }
 
+// Check the four horizontal neighbors for wire power levels
+static void getAdjacentWirePower(struct server_local* s,
+                                 int x, int y, int z,
+                                 NeighborInfo neighbors[4])
+{
+    static const int dx[4] = { 1, -1,  0,  0 };
+    static const int dz[4] = { 0,  0,  1, -1 };
+    struct block_data bd;
+    for (int i = 0; i < 4; ++i) {
+        int nx = x + dx[i], ny = y, nz = z + dz[i];
+        bool ok = server_world_get_block(&s->world, nx, ny, nz, &bd);
+        if (ok && bd.type == BLOCK_REDSTONE_WIRE) {
+            neighbors[i].present = true;
+            neighbors[i].power   = bd.metadata & 0x0F;
+        } else {
+            neighbors[i].present = false;
+            neighbors[i].power   = 0;
+        }
+    }
+}
 
-static void onRightClick(struct server_local* s, struct item_data* it,
-                         struct block_info* where, struct block_info* on,
-                         enum side on_side) {
-    // 1) Check we have an item in hand and it's redstone dust
-    if (it && it->id == ITEM_REDSTONE) {
-        struct block_data current;
-        // 2) Read the block we clicked on
-        if (server_world_get_block(&s->world,
-                                   on->x, on->y, on->z,
-                                   &current)
-            && current.type == BLOCK_REDSTONE_WIRE)
+// Check six directions for "strong" power sources (e.g. torch and lever, which is still todo)
+static uint8_t getStrongPower(struct server_local* s,
+                              int x, int y, int z)
+{
+    struct block_data bd;
+
+    // check in all 6 directions
+    static const int dx6[6] = { 1, -1,  0,  0,  0,  0 };
+    static const int dy6[6] = { 0,  0,  1, -1,  0,  0 };
+    static const int dz6[6] = { 0,  0,  0,  0,  1, -1 };
+    for (int i = 0; i < 6; ++i) {
+        int nx = x + dx6[i], ny = y + dy6[i], nz = z + dz6[i];
+        if (!server_world_get_block(&s->world, nx, ny, nz, &bd))
+            continue;
+        if (bd.type == 76 )// || (bd.type == BLOCK_LEVER && (bd.metadata & 0x01)))
         {
-            // 3) Increment metadata (0–15), wrap at 16→0
-            uint8_t level = current.metadata;
-            level = (level + 1) & 0x0F;
-
-            // 4) Write back the same block type with new metadata
-            server_world_set_block(&s->world,
-                                   on->x, on->y, on->z,
-                                   (struct block_data){
-                                       .type     = BLOCK_REDSTONE_WIRE,
-                                       .metadata = level
-                                   });
-
-            // 5) Stop further processing
-            return;
+            return 15;
         }
     }
 
-    // Fallback: default behavior (place block, use item, etc.)
-    if (it && items[it->id] && items[it->id]->onItemPlace) {
-        items[it->id]->onItemPlace(s, it, where, on, on_side);
+    // Extra: torches in y+1 horizontal neighbours
+    static const int dx4[4] = {  1, -1,  0,  0 };
+    static const int dz4[4] = {  0,  0,  1, -1 };
+    for (int i = 0; i < 4; ++i) {
+        int nx = x + dx4[i];
+        int ny = y + 1;
+        int nz = z + dz4[i];
+        if (server_world_get_block(&s->world, nx, ny, nz, &bd) &&
+            bd.type == 76)
+        {
+            return 15;
+        }
+    }
+
+    return 0;
+}
+
+
+// World‐tick handler: propagate power from strong sources and neighbors
+static void onWorldTick(struct server_local* s, struct block_info* blk)
+{
+    int x = blk->x;
+    int y = blk->y;
+    int z = blk->z;
+
+
+    struct block_data current;
+    if (!server_world_get_block(&s->world, x, y, z, &current)
+        || current.type != BLOCK_REDSTONE_WIRE)
+    {
+        return;
+    }
+
+    // Check for strong power (level 15)
+    uint8_t strong = getStrongPower(s, x, y, z);
+
+    // Check neighboring wires
+    NeighborInfo neighbors[4];
+    getAdjacentWirePower(s, x, y, z, neighbors);
+    uint8_t max_neighbor = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (neighbors[i].present && neighbors[i].power > max_neighbor) {
+            max_neighbor = neighbors[i].power;
+        }
+    }
+
+    // Determine desired level
+    uint8_t desired;
+    if (strong > 0) {
+        desired = 15;
+    } else if (max_neighbor > 0) {
+        desired = max_neighbor - 1;
+    } else {
+        desired = 0;
+    }
+
+    // Update if changed
+    if ((current.metadata & 0x0F) != desired) {
+    	printf("[RST]  updating wire @ (%d,%d,%d) from %d to %d\n",
+    	       x, y, z,
+    	       current.metadata & 0x0F,
+    	       desired);
+    	server_world_set_block(&s->world,
+                               x, y, z,
+                               (struct block_data){
+                                 .type     = BLOCK_REDSTONE_WIRE,
+                                 .metadata = desired
+                               });
     }
 }
 
+static size_t getDroppedItem(struct block_info* this,
+                             struct item_data* it,
+                             struct random_gen* g,
+                             struct server_local* s)
+{
+    if (it) {
+        it->id = ITEM_REDSTONE;
+        it->durability = 0;
+        it->count = 1;
+    }
+    return 1;
+}
 
 struct block block_redstone_wire = {
 	.name = "Redstone wire",
@@ -88,9 +187,10 @@ struct block block_redstone_wire = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
-	.getDroppedItem = block_drop_default,
+	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
-	.onRightClick = onRightClick,
+	.onRightClick = NULL,
+	.onWorldTick = onWorldTick,
 	.transparent = false,
 	.renderBlock = render_block_redstone_wire,
 	.renderBlockAlways = NULL,
