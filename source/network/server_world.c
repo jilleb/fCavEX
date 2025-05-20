@@ -346,8 +346,7 @@ struct region_archive* server_world_chunk_region(struct server_world* w,
 }
 
 
-void server_world_tick(struct server_world* w,
-                                     struct server_local* s) {
+void server_world_tick(struct server_world* w, struct server_local* s) {
     dict_server_chunks_it_t it;
     dict_server_chunks_it(it, w->chunks);
 
@@ -364,15 +363,50 @@ void server_world_tick(struct server_world* w,
                         continue;
 
                     const struct block* b = blocks[blk.type];
-                    if (b && b->onWorldTick) {
-                        struct block_info info = {
-                            .block      = &blk,
-                            .neighbours = NULL,
-                            .x          = baseX + cx,
-                            .y          = y,
-                            .z          = baseZ + cz
-                        };
-                        b->onWorldTick(s, &info);
+                    if (!b || !b->onWorldTick)
+                        continue;
+
+
+                    // determine if we need any neigbour info, only is needed for these types
+                    bool needNeighbours =
+                        (blk.type == BLOCK_REDSTONE_WIRE) ||
+                        (blk.type == BLOCK_REDSTONE_TORCH);
+
+                    struct block_data neighbour_data[SIDE_MAX];
+                    struct block_data* neigh_ptr = NULL;
+                    if (needNeighbours) {
+
+						for (int side = 0; side < SIDE_MAX; ++side) {
+							int ox, oy, oz;
+							blocks_side_offset((enum side)side, &ox, &oy, &oz);
+
+							w_coord_t nx = baseX + cx + ox;
+							w_coord_t ny = y        + oy;
+							w_coord_t nz = baseZ + cz + oz;
+
+                            if (!server_world_get_block(&s->world,
+                                                        nx, ny, nz,
+                                                        &neighbour_data[side]))
+							{
+                                neighbour_data[side].type        = BLOCK_AIR;
+                                neighbour_data[side].metadata    = 0;
+                                neighbour_data[side].sky_light   = 0;
+                                neighbour_data[side].torch_light = 0;
+							}
+						}
+
+                        neigh_ptr = neighbour_data;
+
+                    }
+                    struct block_info info = {
+                        .block      = &blk,
+                        .neighbours = neigh_ptr,
+                        .x          = baseX + cx,
+                        .y          = y,
+                        .z          = baseZ + cz
+                    };
+
+                    b->onWorldTick(s, &info);
 						
 					float time = fmodf(daytime_get_time(), 24000.0f);
 					if (b->onDay && time >= 0.0f && time < 13000.0f)
@@ -383,7 +417,6 @@ void server_world_tick(struct server_world* w,
                     }
                 }
             }
-        }
 
         dict_server_chunks_next(it);
     }

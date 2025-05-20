@@ -22,10 +22,6 @@
 #include "../particle.h"
 #include "../game/game_state.h"
 
-typedef struct {
-    bool    present;   // true if neighbor is a redstone wire
-    uint8_t power;     // its metadata (0–15)
-} NeighborInfo;
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
@@ -55,118 +51,51 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	return tex_atlas_lookup(TEXAT_REDSTONE_WIRE_L1 + (lvl - 1));
 }
 
-// Check the four horizontal neighbors for wire power levels
-static void getAdjacentWirePower(struct server_local* s,
-                                 int x, int y, int z,
-                                 NeighborInfo neighbors[4])
-{
-    static const int dx[4] = { 1, -1,  0,  0 };
-    static const int dz[4] = { 0,  0,  1, -1 };
-    struct block_data bd;
-    for (int i = 0; i < 4; ++i) {
-        int nx = x + dx[i], ny = y, nz = z + dz[i];
-        bool ok = server_world_get_block(&s->world, nx, ny, nz, &bd);
-        if (ok && bd.type == BLOCK_REDSTONE_WIRE) {
-            neighbors[i].present = true;
-            neighbors[i].power   = bd.metadata & 0x0F;
-        } else {
-            neighbors[i].present = false;
-            neighbors[i].power   = 0;
-        }
-    }
-}
+static void onWorldTick(struct server_local* s, struct block_info* blk) {
+    struct block_data cur = *blk->block;
+    if (cur.type != BLOCK_REDSTONE_WIRE) return;
 
-// Check six directions for "strong" power sources (e.g. torch and lever, which is still todo)
-static uint8_t getStrongPower(struct server_local* s,
-                              int x, int y, int z)
-{
-    struct block_data bd;
-
-    // check in all 6 directions
-    static const int dx6[6] = { 1, -1,  0,  0,  0,  0 };
-    static const int dy6[6] = { 0,  0,  1, -1,  0,  0 };
-    static const int dz6[6] = { 0,  0,  0,  0,  1, -1 };
-    for (int i = 0; i < 6; ++i) {
-        int nx = x + dx6[i], ny = y + dy6[i], nz = z + dz6[i];
-        if (!server_world_get_block(&s->world, nx, ny, nz, &bd))
-            continue;
-        if (bd.type == 76 )// || (bd.type == BLOCK_LEVER && (bd.metadata & 0x01)))
+    uint8_t strong = 0;
+    for (int side = 0; side < SIDE_MAX; ++side) {
+        if (blk->neighbours
+            && blk->neighbours[side].type == BLOCK_REDSTONE_TORCH_LIT)
         {
-            return 15;
+            strong = 15;
+            break;
         }
     }
 
-    // Extra: torches in y+1 horizontal neighbours
-    static const int dx4[4] = {  1, -1,  0,  0 };
-    static const int dz4[4] = {  0,  0,  1, -1 };
+    const enum side horiz[4] = {
+            SIDE_RIGHT,  // +X
+            SIDE_LEFT,   // -X
+            SIDE_FRONT,  // +Z
+            SIDE_BACK    // -Z
+    };
+    uint8_t maxWire = 0;
     for (int i = 0; i < 4; ++i) {
-        int nx = x + dx4[i];
-        int ny = y + 1;
-        int nz = z + dz4[i];
-        if (server_world_get_block(&s->world, nx, ny, nz, &bd) &&
-            bd.type == 76)
+        if (blk->neighbours
+            && blk->neighbours[horiz[i]].type == 55)
         {
-            return 15;
+            uint8_t p = blk->neighbours[horiz[i]].metadata & 0x0F;
+            if (p > maxWire) maxWire = p;
         }
     }
 
-    return 0;
-}
+    uint8_t desired = strong
+                     ? 15
+                     : (maxWire ? maxWire - 1 : 0);
 
+    vec3 c = { blk->x + 0.5f, blk->y, blk->z + 0.5f };
+    particle_generate_redstone_wire(c, desired);
 
-// World‐tick handler: propagate power from strong sources and neighbors
-static void onWorldTick(struct server_local* s, struct block_info* blk)
-{
-    int x = blk->x;
-    int y = blk->y;
-    int z = blk->z;
-
-
-    struct block_data current;
-    if (!server_world_get_block(&s->world, x, y, z, &current)
-        || current.type != BLOCK_REDSTONE_WIRE)
-    {
-        return;
-    }
-
-    // Check for strong power (level 15)
-    uint8_t strong = getStrongPower(s, x, y, z);
-
-    // Check neighboring wires
-    NeighborInfo neighbors[4];
-    getAdjacentWirePower(s, x, y, z, neighbors);
-    uint8_t max_neighbor = 0;
-    for (int i = 0; i < 4; ++i) {
-        if (neighbors[i].present && neighbors[i].power > max_neighbor) {
-            max_neighbor = neighbors[i].power;
-        }
-    }
-
-    // Determine desired level
-    uint8_t desired;
-    if (strong > 0) {
-        desired = 15;
-    } else if (max_neighbor > 0) {
-        desired = max_neighbor - 1;
-    } else {
-        desired = 0;
-    }
-
-   vec3 center = { blk->x + 0.5f,
-                        blk->y,
-                        blk->z + 0.5f };
-   particle_generate_redstone_wire(center, desired);
-
-
-    if ((current.metadata & 0x0F) != desired) {
-    	server_world_set_block(&s->world,
-                               x, y, z,
+    if ((cur.metadata & 0x0F) != desired) {
+        server_world_set_block(&s->world,
+                               blk->x, blk->y, blk->z,
                                (struct block_data){
-                                 .type     = BLOCK_REDSTONE_WIRE,
-                                 .metadata = desired
+                                   .type     = BLOCK_REDSTONE_WIRE,
+                                   .metadata = desired
                                });
     }
-
 }
 
 static size_t getDroppedItem(struct block_info* this,
