@@ -135,11 +135,16 @@ static void onWorldTick(struct server_local* s, struct block_info* blk) {
         blk->y + box.y2 + 0.02f,
         blk->z + spawnZ
     };
-    // spawn the effect
-    particle_generate_fire(pos);
+
+    // spawn appropriate effect based on torch type
+    if (blk->block->type == 50) {
+    	particle_generate_torch(pos);
+    }
+    else {
+    	particle_generate_redstone_torch(pos);
+    }
+
 }
-
-
 
 struct block block_torch = {
 	.name = "Torch",
@@ -183,13 +188,14 @@ struct block block_redstone_torch = {
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex2,
 	.getDroppedItem = drop_redstone_torch,
+	.onWorldTick = onWorldTick,
 	.onRandomTick = NULL,
 	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_torch,
 	.renderBlockAlways = NULL,
-	.luminance = 0,
-	.double_sided = false,
+	.luminance = 7,
+	.double_sided = true,
 	.can_see_through = true,
 	.opacity = 0,
 	.ignore_lighting = false,
@@ -219,11 +225,12 @@ struct block block_redstone_torch_lit = {
 	.getDroppedItem = drop_redstone_torch,
 	.onRandomTick = NULL,
 	.onRightClick = NULL,
+	.onWorldTick = onWorldTick,
 	.transparent = false,
 	.renderBlock = render_block_torch,
 	.renderBlockAlways = NULL,
 	.luminance = 7,
-	.double_sided = false,
+	.double_sided = true,
 	.can_see_through = true,
 	.opacity = 0,
 	.ignore_lighting = false,

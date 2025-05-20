@@ -19,14 +19,13 @@
 
 #include "../network/server_local.h"
 #include "blocks.h"
+#include "../particle.h"
+#include "../game/game_state.h"
 
-
-// Helper struct for neighboring wire info
 typedef struct {
     bool    present;   // true if neighbor is a redstone wire
     uint8_t power;     // its metadata (0–15)
 } NeighborInfo;
-
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
@@ -153,12 +152,13 @@ static void onWorldTick(struct server_local* s, struct block_info* blk)
         desired = 0;
     }
 
-    // Update if changed
+   vec3 center = { blk->x + 0.5f,
+                        blk->y,
+                        blk->z + 0.5f };
+   particle_generate_redstone_wire(center, desired);
+
+
     if ((current.metadata & 0x0F) != desired) {
-    	printf("[RST]  updating wire @ (%d,%d,%d) from %d to %d\n",
-    	       x, y, z,
-    	       current.metadata & 0x0F,
-    	       desired);
     	server_world_set_block(&s->world,
                                x, y, z,
                                (struct block_data){
@@ -166,6 +166,7 @@ static void onWorldTick(struct server_local* s, struct block_info* blk)
                                  .metadata = desired
                                });
     }
+
 }
 
 static size_t getDroppedItem(struct block_info* this,

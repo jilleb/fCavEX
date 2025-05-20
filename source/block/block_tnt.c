@@ -157,6 +157,7 @@ void tnt_explode(struct server_local* s,
                            x, y, z,
                            (struct block_data){ 0 });
 
+
     vec3 center = { x+0.5f, y+0.5f, z+0.5f };
 
     // initial explosion flash
@@ -173,6 +174,7 @@ void tnt_explode(struct server_local* s,
 
 static void onWorldTick(struct server_local* s, struct block_info* info) {
     uint8_t fuse = info->block->metadata;
+
     if (fuse == 0) return;
 
     if (fuse > 1) {
@@ -190,10 +192,19 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
             1.0f
         );
     } else {
+        server_world_set_block(&s->world,
+                               info->x, info->y, info->z,
+                               (struct block_data){
+                                   .type        = BLOCK_AIR,
+                                   .metadata    = 0,
+                                   .sky_light   = 0,
+                                   .torch_light = 15
+                               });
         tnt_explode(s,
                     info->x, info->y, info->z,
                     TNT_POWER);
     }
+
 }
 
 

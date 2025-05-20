@@ -24,6 +24,7 @@
 #include "platform/time.h"
 #include "world.h"
 
+
 typedef enum {
   TEXTURE_ATLAS_TERRAIN,
   TEXTURE_ATLAS_PARTICLES
@@ -40,7 +41,8 @@ struct particle {
     int              lifetime;   // initial life in ticks, for animating smoke
     uint8_t          tex;        // base tile index
     bool             gravity;    // apply gravity?
-    uint8_t          brightness;   // ignore world lighting?
+    uint8_t     	 r, g, b;	 // rgb colorisation of a particle
+    bool             ignore_light;    // apply gravity?
     particle_atlas_t atlas;      // which atlas to sample
 };
 
@@ -51,10 +53,14 @@ void particle_add(vec3 pos,
                   float size,
                   float lifetime,
                   bool gravity,
-				  uint8_t brightness,
-                  particle_atlas_t atlas);
+                  uint8_t r,
+                  uint8_t g,
+                  uint8_t b,
+				  bool ignore_light,
+				  particle_atlas_t atlas);
 
 void particle_init(void);
+void particle_set_camera(vec3 p);
 void particle_generate_block(struct block_info* info);
 void particle_generate_side(struct block_info* info, enum side s);
 void particle_update(void);
@@ -62,5 +68,7 @@ void particle_render(mat4 view, vec3 camera, float delta);
 void particle_generate_explosion_flash(vec3 center, float intensity);
 void particle_generate_explosion_smoke(vec3 center, float intensity);
 void particle_generate_smoke(vec3 center, float intensity);
-void particle_generate_fire(vec3 pos);
+void particle_generate_torch(vec3 pos);
+void particle_generate_redstone_torch(vec3 center);
+void particle_generate_redstone_wire(vec3 center, uint8_t power);
 #endif

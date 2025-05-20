@@ -814,9 +814,6 @@ size_t render_block_redstone_wire(struct displaylist* dl, struct block_info* thi
 	return 1;
 }
 
-
-
-
 size_t render_block_ladder(struct displaylist* d, struct block_info* this,
 						   enum side side, struct block_info* it,
 						   uint8_t* vertex_light, bool count_only) {
