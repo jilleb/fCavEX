@@ -175,7 +175,29 @@ void tnt_explode(struct server_local* s,
 static void onWorldTick(struct server_local* s, struct block_info* info) {
     uint8_t fuse = info->block->metadata;
 
-    if (fuse == 0) return;
+    if (fuse == 0) {
+        const enum side sides[6] = {
+            SIDE_RIGHT, SIDE_LEFT,
+            SIDE_FRONT, SIDE_BACK,
+            SIDE_TOP,   SIDE_BOTTOM
+        };
+        for (int i = 0; i < 6; ++i) {
+            if (!info->neighbours) continue;
+            struct block_data nb = info->neighbours[sides[i]];
+            uint8_t nbMeta = nb.metadata & 0x0F;
+            if (nb.type == 55 && nbMeta > 0) {
+                // prime TNT by setting its fuse
+                server_world_set_block(&s->world,
+                                       info->x, info->y, info->z,
+                                       (struct block_data){
+                                           .type     = BLOCK_TNT,
+                                           .metadata = TNT_FUSE_TICKS
+                                       });
+                return;
+            }
+        }
+        return;
+    }
 
     if (fuse > 1) {
         info->block->metadata--;

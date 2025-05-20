@@ -101,6 +101,55 @@ static size_t getDroppedItem2(struct block_info* this, struct item_data* it,
 	return 0;
 }
 
+static void onWorldTick(struct server_local* s, struct block_info* info) {
+    // Read current metadata
+    struct block_data cur = *info->block;
+    // Compute bottom‐half position
+    bool topHalf = (cur.metadata & 0x08) != 0;
+    w_coord_t bx = info->x;
+    w_coord_t by = info->y - (topHalf ? 1 : 0);
+    w_coord_t bz = info->z;
+
+    bool powered = false;
+    const int dx[6] = {  1, -1,  0,  0,  0,  0 };
+    const int dy[6] = {  0,  0,  0,  0,  1, -1 };
+    const int dz[6] = {  0,  0,  1, -1,  0,  0 };
+    for (int i = 0; i < 6; ++i) {
+        struct block_data nb;
+        if (!server_world_get_block(&s->world,
+                                    bx + dx[i],
+                                    by + dy[i],
+                                    bz + dz[i],
+                                    &nb)) {
+            continue;
+        }
+        uint8_t m = nb.metadata & 0x0F;
+        if ((nb.type == BLOCK_REDSTONE_WIRE && m > 0) ||
+             nb.type == BLOCK_REDSTONE_TORCH_LIT) {
+            powered = true;
+            break;
+        }
+    }
+
+    bool isOpen = (cur.metadata & 0x04) != 0;
+    if (powered == isOpen) {
+        return;
+    }
+
+    for (int dh = 0; dh < 2; ++dh) {
+        struct block_data half;
+        if (!server_world_get_block(&s->world,
+                                    bx, by + dh, bz,
+                                    &half)) {
+            continue;
+        }
+        half.metadata = (half.metadata & ~0x04) | (powered ? 0x04 : 0);
+        server_world_set_block(&s->world,
+                               bx, by + dh, bz,
+                               half);
+    }
+}
+
 static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
@@ -159,6 +208,7 @@ struct block block_wooden_door = {
 	.getTextureIndex = getTextureIndex1,
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
+	.onWorldTick = onWorldTick,
 	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_door,
@@ -193,6 +243,7 @@ struct block block_iron_door = {
 	.getTextureIndex = getTextureIndex2,
 	.getDroppedItem = getDroppedItem2,
 	.onRandomTick = NULL,
+	.onWorldTick = onWorldTick,
 	.onRightClick = onRightClick2,
 	.transparent = false,
 	.renderBlock = render_block_door,

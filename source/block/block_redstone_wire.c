@@ -57,9 +57,19 @@ static void onWorldTick(struct server_local* s, struct block_info* blk) {
 
     uint8_t strong = 0;
     for (int side = 0; side < SIDE_MAX; ++side) {
-        if (blk->neighbours
-            && blk->neighbours[side].type == BLOCK_REDSTONE_TORCH_LIT)
-        {
+        if (!blk->neighbours) continue;
+        uint8_t ntype = blk->neighbours[side].type;
+        uint8_t nmeta = blk->neighbours[side].metadata & 0x0F;
+
+        // redstone torch always powers at level 15
+        if (ntype == BLOCK_REDSTONE_TORCH_LIT) {
+            strong = 15;
+            break;
+        }
+        // stone or wooden pressure plate, pressed when metadata == 1
+        if ((ntype == BLOCK_STONE_PRESSURE_PLATE ||
+             ntype == BLOCK_WOOD_PRESSURE_PLATE) &&
+             nmeta == 1) {
             strong = 15;
             break;
         }

@@ -370,7 +370,13 @@ void server_world_tick(struct server_world* w, struct server_local* s) {
                     // determine if we need any neigbour info, only is needed for these types
                     bool needNeighbours =
                         (blk.type == BLOCK_REDSTONE_WIRE) ||
-                        (blk.type == BLOCK_REDSTONE_TORCH);
+                        (blk.type == BLOCK_REDSTONE_TORCH) ||
+						(blk.type == BLOCK_TNT) ||
+						(blk.type == BLOCK_WOOD_PRESSURE_PLATE) ||
+						(blk.type == BLOCK_STONE_PRESSURE_PLATE)||
+						(blk.type == BLOCK_DOOR_WOOD)||
+						(blk.type == BLOCK_DOOR_IRON)
+						;
 
                     struct block_data neighbour_data[SIDE_MAX];
                     struct block_data* neigh_ptr = NULL;
