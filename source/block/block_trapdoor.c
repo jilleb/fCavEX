@@ -117,6 +117,29 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 	});
 }
 
+static void onWorldTick(struct server_local* s, struct block_info* info) {
+    struct block_data cur = *info->block;
+    bool powered = false;
+    for (int side = 0; side < SIDE_MAX; ++side) {
+        if (!info->neighbours) break;
+        struct block_data nb = info->neighbours[side];
+        uint8_t m = nb.metadata & 0x0F;
+        if ((nb.type == BLOCK_REDSTONE_WIRE && m > 0) ||
+            nb.type == BLOCK_REDSTONE_TORCH_LIT ||
+            ((nb.type == BLOCK_STONE_PRESSURE_PLATE ||
+              nb.type == BLOCK_WOOD_PRESSURE_PLATE) &&
+             (m & 0x01)))
+        {
+            powered = true;
+            break;
+        }
+    }
+    bool isOpen = (cur.metadata & 0x04) != 0;
+    if (powered == isOpen) return;
+    cur.metadata = (cur.metadata & ~0x04) | (powered ? 0x04 : 0);
+    server_world_set_block(&s->world, info->x, info->y, info->z, cur);
+}
+
 
 
 struct block block_trapdoor = {
@@ -126,6 +149,7 @@ struct block block_trapdoor = {
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = block_drop_default,
+	.onWorldTick = onWorldTick,
 	.onRandomTick = NULL,
 	.onRightClick = onRightClick,
 	.transparent = false,
