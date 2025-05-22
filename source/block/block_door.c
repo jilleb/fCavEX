@@ -102,53 +102,34 @@ static size_t getDroppedItem2(struct block_info* this, struct item_data* it,
 }
 
 static void onWorldTick(struct server_local* s, struct block_info* info) {
-    // Read current metadata
     struct block_data cur = *info->block;
-    // Compute bottom‐half position
-    bool topHalf = (cur.metadata & 0x08) != 0;
-    w_coord_t bx = info->x;
-    w_coord_t by = info->y - (topHalf ? 1 : 0);
-    w_coord_t bz = info->z;
-
+    if (cur.metadata & 0x08) return;
     bool powered = false;
-    const int dx[6] = {  1, -1,  0,  0,  0,  0 };
-    const int dy[6] = {  0,  0,  0,  0,  1, -1 };
-    const int dz[6] = {  0,  0,  1, -1,  0,  0 };
-    for (int i = 0; i < 6; ++i) {
-        struct block_data nb;
-        if (!server_world_get_block(&s->world,
-                                    bx + dx[i],
-                                    by + dy[i],
-                                    bz + dz[i],
-                                    &nb)) {
-            continue;
-        }
+    for (int side = 0; side < SIDE_MAX; ++side) {
+        if (!info->neighbours) break;
+        struct block_data nb = info->neighbours[side];
         uint8_t m = nb.metadata & 0x0F;
         if ((nb.type == BLOCK_REDSTONE_WIRE && m > 0) ||
-             nb.type == BLOCK_REDSTONE_TORCH_LIT) {
+            nb.type == BLOCK_REDSTONE_TORCH_LIT ||
+            ((nb.type == BLOCK_STONE_PRESSURE_PLATE ||
+              nb.type == BLOCK_WOOD_PRESSURE_PLATE) &&
+             (m & 0x01)))
+        {
             powered = true;
             break;
         }
     }
-
     bool isOpen = (cur.metadata & 0x04) != 0;
-    if (powered == isOpen) {
-        return;
-    }
-
+    if (powered == isOpen) return;
     for (int dh = 0; dh < 2; ++dh) {
-        struct block_data half;
-        if (!server_world_get_block(&s->world,
-                                    bx, by + dh, bz,
-                                    &half)) {
-            continue;
-        }
-        half.metadata = (half.metadata & ~0x04) | (powered ? 0x04 : 0);
-        server_world_set_block(&s->world,
-                               bx, by + dh, bz,
-                               half);
+        struct block_data half = cur;
+        half.metadata &= ~(0x04 | 0x08);
+        if (powered) half.metadata |= 0x04;
+        if (dh == 1) half.metadata |= 0x08;
+        server_world_set_block(&s->world, info->x, info->y + dh, info->z, half);
     }
 }
+
 
 static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,

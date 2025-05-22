@@ -52,6 +52,7 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 }
 
 static void onWorldTick(struct server_local* s, struct block_info* blk) {
+    if (!blk->neighbours) return;
     struct block_data cur = *blk->block;
     if (cur.type != BLOCK_REDSTONE_WIRE) return;
 
