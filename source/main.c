@@ -26,6 +26,7 @@
 
 #ifdef PLATFORM_WII
 #include <fat.h>
+#include <gccore.h> 
 #endif
 
 #include "chunk_mesher.h"
@@ -70,6 +71,10 @@ int main(void) {
 
 #ifdef PLATFORM_WII
 	fatInitDefault();
+	#ifndef NDEBUG
+		SYS_STDIO_Report(true);
+		SYS_Report("[INIT] STDIO redirection is now active\n");
+	#endif
 #endif
 
 	config_create(&gstate.config_user, "config.json");
@@ -133,6 +138,12 @@ int main(void) {
 		if(gstate.local_player)
 			camera_attach(&gstate.camera, gstate.local_player, tick_delta,
 							gstate.stats.dt);
+		// update particle‐system with current camera pos for spawn‐culling
+		particle_set_camera((vec3){
+		    gstate.camera.x,
+		    gstate.camera.y,
+		    gstate.camera.z
+		});
 
 		render_world
 			= gstate.current_screen->render_world && gstate.world_loaded;
