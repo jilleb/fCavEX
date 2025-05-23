@@ -1602,29 +1602,53 @@ static size_t sign_side_helper(struct displaylist* d, struct block_info* this,
 
 
 
-size_t render_block_trapdoor(struct displaylist* d, struct block_info* this,
-							 enum side side, struct block_info* it,
-							 uint8_t* vertex_light, bool count_only) {
-	size_t count = 0;
+size_t render_block_trapdoor(struct displaylist* d,
+                             struct block_info* this,
+                             enum side side,
+                             struct block_info* it,
+                             uint8_t* vertex_light,
+                             bool count_only)
+{
+    uint8_t m      = this->block->metadata;
+    bool    open   = (m & 0x04) != 0;   // open-flag
+    uint8_t orient = m & 0x03;          //  0..3
 
-	if(this->block->metadata & 0x04) {
-		count += door_side_helper(
-			d, this,
-			(enum side[]) {SIDE_FRONT, SIDE_BACK, SIDE_LEFT,
-						   SIDE_RIGHT}[this->block->metadata & 0x03],
-			side, vertex_light, false, false, count_only);
-	} else {
-		if(!count_only)
-			render_block_side(
-				d, W2C_COORD(this->x), W2C_COORD(this->y), W2C_COORD(this->z),
-				0, BLK_LEN / 16 * 3,
-				blocks[this->block->type]->getTextureIndex(this, side),
-				blocks[this->block->type]->luminance, true, 0, false, 0, side,
-				vertex_light);
-		count++;
-	}
+    if (open) {
+        static const enum side map[4] = {
+            SIDE_FRONT, SIDE_BACK,
+            SIDE_LEFT,  SIDE_RIGHT
+        };
+        enum side front = map[orient];
 
-	return count;
+        return door_side_helper(
+            d, this,
+            front, side,
+            vertex_light,
+	        !open,
+	        open,
+            count_only
+        );
+    } else {
+        if (!count_only) {
+            uint8_t tex = blocks[this->block->type]
+                              ->getTextureIndex(this, side);
+            uint8_t lumi = blocks[this->block->type]->luminance;
+            render_block_side(
+                d,
+                W2C_COORD(this->x),
+                W2C_COORD(this->y),
+                W2C_COORD(this->z),
+                /*y-offset*/   0,            // height 0..3/16
+                /*thickness*/  BLK_LEN / 16 * 3,
+                tex, lumi,
+                /*double-sided=*/true,
+                /*u=*/0, /*flip_u=*/false,
+                /*v=*/0, /*side=*/side,
+                vertex_light
+            );
+        }
+        return 1;
+    }
 }
 
 size_t render_block_sign(struct displaylist* d, struct block_info* this,
@@ -1652,18 +1676,42 @@ size_t render_block_sign(struct displaylist* d, struct block_info* this,
 	return count;
 }
 
-size_t render_block_door(struct displaylist* d, struct block_info* this,
-						 enum side side, struct block_info* it,
-						 uint8_t* vertex_light, bool count_only) {
-	uint8_t state = ((this->block->metadata & 0x03)
-					 + ((this->block->metadata & 0x04) ? 1 : 0))
-		% 4;
-	return door_side_helper(
-		d, this,
-		(enum side[]) {SIDE_RIGHT, SIDE_BACK, SIDE_LEFT, SIDE_FRONT}[state],
-		side, vertex_light, !(this->block->metadata & 0x04),
-		this->block->metadata & 0x04, count_only);
+size_t render_block_door(struct displaylist* d,
+                         struct block_info* this,
+                         enum side side,
+                         struct block_info* it,
+                         uint8_t* vertex_light,
+                         bool count_only)
+{
+    uint8_t dir  = this->block->metadata & 0x03;
+    bool    open = (this->block->metadata & 0x04) != 0;
+    uint8_t state;
+
+    if (!open) {
+        state = dir;
+    } else {
+        state = (dir + 3) % 4;
+    }
+
+    static const enum side frontForDir[4] = {
+        SIDE_RIGHT,  // 0 = east
+        SIDE_BACK,   // 1 = south
+        SIDE_LEFT,   // 2 = west
+        SIDE_FRONT   // 3 = north
+    };
+
+    return door_side_helper(
+        d,
+        this,
+        frontForDir[state],
+        side,
+        vertex_light,
+        !open,
+        open,
+        count_only
+    );
 }
+
 
 size_t render_block_layer(struct displaylist* d, struct block_info* this,
 						  enum side side, struct block_info* it,

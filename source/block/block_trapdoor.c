@@ -108,7 +108,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 }
 
 
-static void onWorldTick(struct server_local* s, struct block_info* info) {
+static void onNeighbourBlockChange(struct server_local* s, struct block_info* info) {
     struct block_data cur = *info->block;
     if (!info->neighbours) return;
 
@@ -118,25 +118,28 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
         uint8_t m = nb.metadata & 0x0F;
         if ((nb.type == BLOCK_REDSTONE_WIRE && m > 0) ||
             nb.type == BLOCK_REDSTONE_TORCH_LIT ||
-            ((nb.type == BLOCK_STONE_PRESSURE_PLATE ||
-              nb.type == BLOCK_WOOD_PRESSURE_PLATE) &&
-             (m & 0x01))) {
+           ((nb.type == BLOCK_STONE_PRESSURE_PLATE ||
+             nb.type == BLOCK_WOOD_PRESSURE_PLATE) &&
+            (m & 0x01))) {
             powered = true;
             break;
         }
     }
 
-    // direct mapping: bit2 = open when powered, clear when not
-    // todo: make it so there's no direct mapping, but it will look at neighbours changed
     uint8_t facing = cur.metadata & 0x03;
     uint8_t newMeta = facing | (powered ? 0x04 : 0x00);
+
     if (newMeta != cur.metadata) {
         cur.metadata = newMeta;
         server_world_set_block(s,
                                info->x, info->y, info->z,
                                cur);
+        // <-- trigger alleen bij echte state-change
+        notifyNeighbours(s, info->x, info->y, info->z);
     }
 }
+
+
 static void onRightClick(struct server_local* s, struct item_data* it,
                          struct block_info* where, struct block_info* on,
                          enum side on_side) {
@@ -154,7 +157,7 @@ struct block block_trapdoor = {
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
 	.getDroppedItem = block_drop_default,
-	.onWorldTick = onWorldTick,
+	.onNeighbourBlockChange = onNeighbourBlockChange,
 	.onRandomTick = NULL,
 	.onRightClick = onRightClick,
 	.transparent = false,
