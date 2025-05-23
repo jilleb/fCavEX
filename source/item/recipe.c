@@ -561,7 +561,7 @@ void recipe_init() {
 			   (struct item_data) {.id = BLOCK_TORCH}, false);
 	recipe_add(recipes_crafting,
 			   (struct item_data) {
-				   .id = BLOCK_REDSTONE_TORCH, .durability = 0, .count = 1},
+				   .id = BLOCK_REDSTONE_TORCH_LIT, .durability = 0, .count = 1},
 			   1, 2, (uint8_t[]) {1, 2},
 			   (struct item_data) {.id = ITEM_REDSTONE}, false,
 			   (struct item_data) {.id = ITEM_STICK}, false);

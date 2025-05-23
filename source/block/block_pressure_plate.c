@@ -88,9 +88,10 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
 
     if ((cur.metadata & 0x01) != newState) {
         cur.metadata = (cur.metadata & ~0x01) | newState;
-        server_world_set_block(&s->world,
+        server_world_set_block(s,
                                info->x, info->y, info->z,
                                cur);
+        notifyNeighbours(s, info->x, info->y, info->z);
     }
 }
 

@@ -156,10 +156,9 @@ bool server_world_get_block(struct server_world* w, w_coord_t x, w_coord_t y,
 	return true;
 }
 
-bool server_world_set_block(struct server_world* w, w_coord_t x, w_coord_t y,
-							w_coord_t z, struct block_data blk) {
+bool server_world_set_block(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, struct block_data blk) {
+    struct server_world* w = &s->world;
 	assert(w);
-
 	if(y < 0 || y >= WORLD_HEIGHT)
 		return false;
 
@@ -195,6 +194,32 @@ bool server_world_set_block(struct server_world* w, w_coord_t x, w_coord_t y,
 			.payload.set_block.block = blk,
 		});
 	}
+
+    static const int dx[6] = {  1, -1,  0,  0,  0,  0 };
+    static const int dy[6] = {  0,  0,  0,  0,  1, -1 };
+    static const int dz[6] = {  0,  0,  1, -1,  0,  0 };
+
+    for (int i = 0; i < 6; i++) {
+        w_coord_t nx = x + dx[i];
+        w_coord_t ny = y + dy[i];
+        w_coord_t nz = z + dz[i];
+
+        struct block_data nb;
+        if (!server_world_get_block(w, nx, ny, nz, &nb))
+            continue;
+
+        const struct block* b = blocks[nb.type];
+        if (b && b->onNeighbourBlockChange) {
+            struct block_info info = {
+                .block      = &nb,
+                .neighbours = NULL,
+                .x          = nx,
+                .y          = ny,
+                .z          = nz
+            };
+            b->onNeighbourBlockChange(s, &info);
+        }
+    }
 
 	return sc;
 }

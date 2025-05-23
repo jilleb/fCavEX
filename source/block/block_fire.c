@@ -50,7 +50,7 @@ static void onRandomTick(struct server_local* s, struct block_info* blk) {
 	// Check if fire should extinguish
 	if (rand_gen(&s->rand_src) % 10 == 0) {
 		// 10% chance to extinguish naturally
-		server_world_set_block(&s->world, blk->x, blk->y, blk->z,
+		server_world_set_block(s, blk->x, blk->y, blk->z,
 							   (struct block_data){ .type = BLOCK_AIR });
 		return;
 	}
@@ -70,7 +70,7 @@ static void onRandomTick(struct server_local* s, struct block_info* blk) {
 			// Check if the neighbor block is flammable
 			if (blocks[neighbor.type] && blocks[neighbor.type]->flammable) {
 				// Replace it with fire
-				server_world_set_block(&s->world, nx, ny, nz,
+				server_world_set_block(s, nx, ny, nz,
 					(struct block_data){
 						.type = BLOCK_FIRE,
 						.metadata = 0,
@@ -79,7 +79,7 @@ static void onRandomTick(struct server_local* s, struct block_info* blk) {
 					});
 
 				// Optionally remove the original block (burn it away)
-				server_world_set_block(&s->world, nx, ny, nz,
+				server_world_set_block(s, nx, ny, nz,
 					(struct block_data){
 						.type = BLOCK_FIRE,
 						.metadata = 0,

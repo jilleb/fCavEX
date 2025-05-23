@@ -85,7 +85,7 @@ static void onRandomTick(struct server_local* s, struct block_info* blk) {
         blk->block->metadata = stage + 1;
         
         // update the block
-        server_world_set_block(&s->world, blk->x, blk->y, blk->z, *blk->block);
+        server_world_set_block(s, blk->x, blk->y, blk->z, *blk->block);
     }
 }
 

@@ -101,85 +101,88 @@ static size_t getDroppedItem2(struct block_info* this, struct item_data* it,
 	return 0;
 }
 
-static void onWorldTick(struct server_local* s, struct block_info* info) {
+static void toggleDoor(struct server_local* s,
+                       w_coord_t x, w_coord_t y, w_coord_t z,
+                       uint8_t doorType)
+{
+    struct block_data bd;
+    if (!server_world_get_block(&s->world, x, y, z, &bd)) return;
+
+    uint8_t manual = bd.metadata & 0x01;
+    uint8_t newMeta = (bd.metadata & ~0x01) | (manual ^ 0x01);
+
+    newMeta |= bd.metadata & 0x04;
+
+    server_world_set_block(s, x,   y,   z, (struct block_data){ .type = doorType, .metadata = newMeta });
+    server_world_set_block(s, x, y+1, z,(struct block_data){ .type = doorType, .metadata = newMeta | 0x08 });}
+
+static void onRightClick(struct server_local* s,
+                              struct item_data* it,
+                              struct block_info* where,
+                              struct block_info* on,
+                              enum side on_side)
+{
+    struct block_data cur = *on->block;
+    bool topHalf = (cur.metadata & 0x08) != 0;
+    w_coord_t bx = on->x;
+    w_coord_t by = on->y - (topHalf ? 1 : 0);
+    w_coord_t bz = on->z;
+
+    toggleDoor(s, bx, by, bz, cur.type);
+}
+
+
+static void onNeighbourBlockChange(struct server_local* s,
+                                   struct block_info* info)
+{
     struct block_data cur = *info->block;
+    // alleen bottom half
     if (cur.metadata & 0x08) return;
+
+    // bepaal of we nu power hebben
+    const int dx[6] = {  1, -1,  0,  0,  0,  0 };
+    const int dy[6] = {  0,  0,  0,  0,  1, -1 };
+    const int dz[6] = {  0,  0,  1, -1,  0,  0 };
     bool powered = false;
-    for (int side = 0; side < SIDE_MAX; ++side) {
-        if (!info->neighbours) break;
-        struct block_data nb = info->neighbours[side];
+
+    for (int i = 0; i < 6; i++) {
+        w_coord_t nx = info->x + dx[i];
+        w_coord_t ny = info->y + dy[i];
+        w_coord_t nz = info->z + dz[i];
+
+        struct block_data nb;
+        if (!server_world_get_block(&s->world, nx, ny, nz, &nb))
+            continue;
+
         uint8_t m = nb.metadata & 0x0F;
         if ((nb.type == BLOCK_REDSTONE_WIRE && m > 0) ||
-            nb.type == BLOCK_REDSTONE_TORCH_LIT ||
-            ((nb.type == BLOCK_STONE_PRESSURE_PLATE ||
-              nb.type == BLOCK_WOOD_PRESSURE_PLATE) &&
-             (m & 0x01)))
+            nb.type == BLOCK_REDSTONE_TORCH_LIT            ||
+           ((nb.type == BLOCK_STONE_PRESSURE_PLATE         ||
+             nb.type == BLOCK_WOOD_PRESSURE_PLATE)         &&
+            (m & 0x01)))
         {
             powered = true;
             break;
         }
     }
-    bool isOpen = (cur.metadata & 0x04) != 0;
-    if (powered == isOpen) return;
-    for (int dh = 0; dh < 2; ++dh) {
-        struct block_data half = cur;
-        half.metadata &= ~(0x04 | 0x08);
-        if (powered) half.metadata |= 0x04;
-        if (dh == 1) half.metadata |= 0x08;
-        server_world_set_block(&s->world, info->x, info->y + dh, info->z, half);
+
+    // extraheren van de hand-bit (bit 0)
+    uint8_t handBit = cur.metadata & 0x01;
+    // nieuw meta = handBit plus (powered ? redstone-bit : 0)
+    uint8_t newMeta = handBit | (powered ? 0x04 : 0x00);
+
+    // wijzig alleen als het verschil is
+    if ((cur.metadata & 0x05) != newMeta) {
+        // onderste helft
+        server_world_set_block(s, info->x, info->y,   info->z,
+            (struct block_data){ .type = cur.type, .metadata = newMeta });
+        // bovenste helft: zet top-flag (0x08) wél altijd als het oorspronkelijk top-flag had
+        server_world_set_block(s, info->x, info->y+1, info->z,
+            (struct block_data){ .type = cur.type, .metadata = newMeta | 0x08 });
     }
 }
 
 
-static void onRightClick(struct server_local* s, struct item_data* it,
-						 struct block_info* where, struct block_info* on,
-						 enum side on_side) {
-	struct block_data blk;
-
-	if(server_world_get_block(&s->world, on->x, on->y - 1, on->z, &blk) && blk.type == BLOCK_DOOR_WOOD) {
-		server_world_set_block(&s->world, on->x, on->y - 1, on->z, (struct block_data) {
-			.type = BLOCK_DOOR_WOOD,
-			.metadata = blk.metadata ^ 1
-		});
-	}
-
-	if(server_world_get_block(&s->world, on->x, on->y + 1, on->z, &blk) && blk.type == BLOCK_DOOR_WOOD) {
-		server_world_set_block(&s->world, on->x, on->y + 1, on->z, (struct block_data) {
-			.type = BLOCK_DOOR_WOOD,
-			.metadata = blk.metadata ^ 1
-		});
-	}
-
-	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
-		.type = BLOCK_DOOR_WOOD,
-		.metadata = on->block->metadata ^ 1
-	});
-}
-
-static void onRightClick2(struct server_local* s, struct item_data* it,
-						 struct block_info* where, struct block_info* on,
-						 enum side on_side) {
-	struct block_data blk;
-
-	if(server_world_get_block(&s->world, on->x, on->y - 1, on->z, &blk) && blk.type == BLOCK_DOOR_IRON) {
-		server_world_set_block(&s->world, on->x, on->y - 1, on->z, (struct block_data) {
-			.type = BLOCK_DOOR_IRON,
-			.metadata = blk.metadata ^ 1
-		});
-	}
-
-	if(server_world_get_block(&s->world, on->x, on->y + 1, on->z, &blk) && blk.type == BLOCK_DOOR_IRON) {
-		server_world_set_block(&s->world, on->x, on->y + 1, on->z, (struct block_data) {
-			.type = BLOCK_DOOR_IRON,
-			.metadata = blk.metadata ^ 1
-		});
-	}
-
-	server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data) {
-		.type = BLOCK_DOOR_IRON,
-		.metadata = on->block->metadata ^ 1
-	});
-}
 
 struct block block_wooden_door = {
 	.name = "Wooden Door",
@@ -189,7 +192,8 @@ struct block block_wooden_door = {
 	.getTextureIndex = getTextureIndex1,
 	.getDroppedItem = getDroppedItem,
 	.onRandomTick = NULL,
-	.onWorldTick = onWorldTick,
+	.onWorldTick = NULL,
+    .onNeighbourBlockChange  = onNeighbourBlockChange,
 	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_door,
@@ -224,8 +228,8 @@ struct block block_iron_door = {
 	.getTextureIndex = getTextureIndex2,
 	.getDroppedItem = getDroppedItem2,
 	.onRandomTick = NULL,
-	.onWorldTick = onWorldTick,
-	.onRightClick = onRightClick2,
+    .onNeighbourBlockChange  = onNeighbourBlockChange,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_door,
 	.renderBlockAlways = NULL,

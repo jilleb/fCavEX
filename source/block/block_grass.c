@@ -68,7 +68,7 @@ static void onRightClick(struct server_local* s, struct item_data* it,
         struct block_data above;
         if (server_world_get_block(&s->world, on->x, on->y + 1, on->z, &above) &&
             above.type == BLOCK_AIR) {
-            server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data){
+            server_world_set_block(s, on->x, on->y, on->z, (struct block_data){
                 .type = BLOCK_FARMLAND,
                 .metadata = 0
             });
@@ -86,7 +86,7 @@ static void onRandomTick(struct server_local* s, struct block_info* this) {
 	struct block_data top;
 	if(server_world_get_block(&s->world, this->x, this->y + 1, this->z, &top)) {
 		if(top.sky_light < 5 && top.torch_light < 5) {
-			server_world_set_block(&s->world, this->x, this->y, this->z,
+			server_world_set_block(s, this->x, this->y, this->z,
 								   (struct block_data) {
 									   .type = BLOCK_DIRT,
 									   .metadata = 0,
@@ -112,7 +112,7 @@ static void onRandomTick(struct server_local* s, struct block_info* this) {
 				   && neighbour_top.type != BLOCK_WATER_STILL
 				   && neighbour_top.type != BLOCK_LAVA_FLOW
 				   && neighbour_top.type != BLOCK_LAVA_STILL) {
-					server_world_set_block(&s->world, this->x + x, this->y + y,
+					server_world_set_block(s, this->x + x, this->y + y,
 										   this->z + z,
 										   (struct block_data) {
 											   .type = BLOCK_GRASS,

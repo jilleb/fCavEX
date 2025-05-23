@@ -222,7 +222,7 @@ bool block_place_default(struct server_local* s, struct item_data* it,
 		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
 		return false;
 
-	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
+	server_world_set_block(s, where->x, where->y, where->z, blk);
 	return true;
 }
 
@@ -236,3 +236,34 @@ size_t block_drop_default(struct block_info* this, struct item_data* it,
 
 	return 1;
 }
+
+static const int dx[6] = {  1, -1,  0,  0,  0,  0 };
+static const int dy[6] = {  0,  0,  0,  0,  1, -1 };
+static const int dz[6] = {  0,  0,  1, -1,  0,  0 };
+
+void notifyNeighbours(struct server_local* s,
+                      w_coord_t x, w_coord_t y, w_coord_t z)
+{
+    for (int i = 0; i < 6; i++) {
+        w_coord_t nx = x + dx[i];
+        w_coord_t ny = y + dy[i];
+        w_coord_t nz = z + dz[i];
+
+        struct block_data nb;
+        if (!server_world_get_block(&s->world, nx, ny, nz, &nb))
+            continue;
+
+        const struct block* b = blocks[nb.type];
+        if (b && b->onNeighbourBlockChange) {
+            struct block_info info = {
+                .block      = &nb,
+                .neighbours = NULL,
+                .x          = nx,
+                .y          = ny,
+                .z          = nz
+            };
+            b->onNeighbourBlockChange(s, &info);
+        }
+    }
+}
+

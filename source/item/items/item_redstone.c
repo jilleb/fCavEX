@@ -35,7 +35,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	if (!blocks[below.type] || blocks[below.type]->can_see_through)
 		return false;
 */
-    server_world_set_block(&s->world, tx, ty, tz, (struct block_data) {
+    server_world_set_block(s, tx, ty, tz, (struct block_data) {
         .type = BLOCK_REDSTONE_WIRE,
         .metadata = 0,
         .sky_light = 0,

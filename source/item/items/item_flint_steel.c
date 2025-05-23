@@ -55,7 +55,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		return false;
 
 	// Place fire
-	server_world_set_block(&s->world, tx, ty, tz, (struct block_data) {
+	server_world_set_block(s, tx, ty, tz, (struct block_data) {
 		.type = BLOCK_FIRE,
 		.metadata = 0,
 		.sky_light = 0,

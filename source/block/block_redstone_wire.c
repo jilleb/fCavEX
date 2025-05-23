@@ -63,7 +63,8 @@ static void onWorldTick(struct server_local* s, struct block_info* blk) {
         uint8_t nmeta = blk->neighbours[side].metadata & 0x0F;
 
         // redstone torch always powers at level 15
-        if (ntype == BLOCK_REDSTONE_TORCH_LIT) {
+        if (ntype == BLOCK_REDSTONE_TORCH ||
+            ntype == BLOCK_REDSTONE_TORCH_LIT ){
             strong = 15;
             break;
         }
@@ -100,12 +101,14 @@ static void onWorldTick(struct server_local* s, struct block_info* blk) {
     particle_generate_redstone_wire(c, desired);
 
     if ((cur.metadata & 0x0F) != desired) {
-        server_world_set_block(&s->world,
+        server_world_set_block(s,
                                blk->x, blk->y, blk->z,
                                (struct block_data){
                                    .type     = BLOCK_REDSTONE_WIRE,
                                    .metadata = desired
                                });
+        notifyNeighbours(s, blk->x, blk->y, blk->z);
+
     }
 }
 

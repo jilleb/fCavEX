@@ -44,7 +44,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
         return false;
 
     // Plant the crop
-    server_world_set_block(&s->world, tx, ty, tz, (struct block_data) {
+    server_world_set_block(s, tx, ty, tz, (struct block_data) {
         .type = BLOCK_CROPS,
         .metadata = 0,
         .sky_light = 0,

@@ -59,8 +59,7 @@ void server_world_destroy(struct server_world* w);
 
 bool server_world_get_block(struct server_world* w, w_coord_t x, w_coord_t y,
 							w_coord_t z, struct block_data* blk);
-bool server_world_set_block(struct server_world* w, w_coord_t x, w_coord_t y,
-							w_coord_t z, struct block_data blk);
+bool server_world_set_block(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z, struct block_data blk);
 
 bool server_world_furthest_chunk(struct server_world* w, w_coord_t dist,
 								 w_coord_t px, w_coord_t pz, w_coord_t* x,

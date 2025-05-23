@@ -264,7 +264,7 @@ static void server_local_process(struct server_rpc* call, void* user) {
 				if(server_world_get_block(&s->world, call->payload.block_dig.x,
 										  call->payload.block_dig.y,
 										  call->payload.block_dig.z, &blk)) {
-					server_world_set_block(&s->world, call->payload.block_dig.x,
+					server_world_set_block(s, call->payload.block_dig.x,
 										   call->payload.block_dig.y,
 										   call->payload.block_dig.z,
 										   (struct block_data) {

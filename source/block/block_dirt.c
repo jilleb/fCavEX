@@ -47,7 +47,7 @@ static void onRightClick(struct server_local* s, struct item_data* it,
         struct block_data above;
         if (server_world_get_block(&s->world, on->x, on->y + 1, on->z, &above) &&
             above.type == BLOCK_AIR) {
-            server_world_set_block(&s->world, on->x, on->y, on->z, (struct block_data){
+            server_world_set_block(s, on->x, on->y, on->z, (struct block_data){
                 .type = BLOCK_FARMLAND,
                 .metadata = 0
             });

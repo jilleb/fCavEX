@@ -32,8 +32,6 @@
 #include <math.h>
 #include "../game/game_state.h"
 
-
-
 //todo: cleanup
 //todo: move explosion logic to a helper function outside of this?
 
@@ -45,11 +43,9 @@
 #define MAX_BROKEN 1024
 struct broken_coord { w_coord_t x, y, z; };
 
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
 
 void random_unit_vector(vec3 out) {
     float z = 2.0f * ((rand() / (float)RAND_MAX) - 0.5f);
@@ -127,7 +123,7 @@ static void tnt_raycast_destroy(struct server_local* s,
 
         struct block_data blk;
         server_world_get_block(&s->world, bx, by, bz, &blk);
-        server_world_set_block(&s->world, bx, by, bz, (struct block_data){0});
+        server_world_set_block(s, bx, by, bz, (struct block_data){0});
 
         if (blk.type != BLOCK_TNT
          && rand_gen_flt(&gstate.rand_src) < (1.0f / 3.0f)) {
@@ -153,7 +149,7 @@ void tnt_explode(struct server_local* s,
     if (power > TNT_POWER) power = TNT_POWER;
 
     // remove TNT block
-    server_world_set_block(&s->world,
+    server_world_set_block(s,
                            x, y, z,
                            (struct block_data){ 0 });
 
@@ -190,18 +186,18 @@ static void onWorldTick(struct server_local* s, struct block_info* info) {
             }
         }
         if (powered) {
-            server_world_set_block(&s->world, info->x, info->y, info->z,
+            server_world_set_block(s, info->x, info->y, info->z,
                 (struct block_data){ .type = BLOCK_TNT, .metadata = TNT_FUSE_TICKS });
         }
         return;
     }
     if (fuse > 1) {
         info->block->metadata--;
-        server_world_set_block(&s->world, info->x, info->y, info->z, *info->block);
+        server_world_set_block(s, info->x, info->y, info->z, *info->block);
         vec3 center = { info->x + 0.5f, info->y + 0.5f, info->z + 0.5f };
         particle_generate_smoke(center, 1.0f);
     } else {
-        server_world_set_block(&s->world, info->x, info->y, info->z,
+        server_world_set_block(s, info->x, info->y, info->z,
             (struct block_data){ .type = BLOCK_AIR, .metadata = 0, .sky_light = 0, .torch_light = 15 });
         tnt_explode(s, info->x, info->y, info->z, TNT_POWER);
     }
@@ -240,7 +236,7 @@ static void onRightClick(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
 	if (on->block->type == BLOCK_TNT && on->block->metadata == 0) {
-		server_world_set_block(&s->world, on->x, on->y, on->z,
+		server_world_set_block(s, on->x, on->y, on->z,
 			(struct block_data){ .type = BLOCK_TNT, .metadata = TNT_FUSE_TICKS });
 	}
 }
@@ -262,7 +258,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
 		return false;
 
-	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
+	server_world_set_block(s, where->x, where->y, where->z, blk);
 	return true;
 }
 

@@ -77,27 +77,28 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		default: metadata = 5; break;
 	}
 
-	server_world_set_block(&s->world, where->x, where->y, where->z,
+	server_world_set_block(s, where->x, where->y, where->z,
 						   (struct block_data) {
 							   .type = it->id,
 							   .metadata = metadata,
 							   .sky_light = 0,
 							   .torch_light = 0,
 						   });
+    notifyNeighbours(s, where->x, where->y, where->z);
+
 	return true;
 }
 
 static size_t drop_redstone_torch(struct block_info* this, struct item_data* it,
 								  struct random_gen* g, struct server_local* s) {
 	if(it) {
-		it->id = BLOCK_REDSTONE_TORCH;
+		it->id = BLOCK_REDSTONE_TORCH_LIT;
 		it->durability = 0;
 		it->count = 1;
 	}
 
 	return 1;
 }
-
 
 static void onWorldTick(struct server_local* s, struct block_info* blk) {
     if (rand_gen_flt(&gstate.rand_src) > (1.0f/3.0f)) return;

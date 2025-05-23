@@ -49,6 +49,7 @@ struct block {
 	void (*onRightClick)(struct server_local*, struct item_data*,
 						 struct block_info*, struct block_info*, enum side);
     void (*onWorldTick)(struct server_local* s, struct block_info* this);
+	void (*onNeighbourBlockChange)(struct server_local* s, struct block_info* info);
 	void (*onDay)(struct server_local* s, struct block_info* info);
 	void (*onNight)(struct server_local* s, struct block_info* info);
 	bool transparent;
@@ -175,5 +176,8 @@ bool block_place_default(struct server_local* s, struct item_data* it,
 						 enum side on_side);
 size_t block_drop_default(struct block_info* this, struct item_data* it,
 						  struct random_gen* g, struct server_local* s);
+
+
+void notifyNeighbours(struct server_local* s, w_coord_t x, w_coord_t y, w_coord_t z);
 
 #endif

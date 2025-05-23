@@ -100,13 +100,13 @@ static void onRandomTick(struct server_local* s, struct block_info* blk) {
 
 			if (mushroomType == 0) {
 				// 1 in 9 chance on red mushroom
-				server_world_set_block(&s->world, ox, oy, oz, (struct block_data){
+				server_world_set_block(s, ox, oy, oz, (struct block_data){
 					.type = BLOCK_RED_MUSHROOM,
 					.metadata = 0
 				});
 			} else {
 				// 8 in 9 kans on brown mushroom
-				server_world_set_block(&s->world, ox, oy, oz, (struct block_data){
+				server_world_set_block(s, ox, oy, oz, (struct block_data){
 					.type = BLOCK_BROWM_MUSHROOM,
 					.metadata = 0
 				});
