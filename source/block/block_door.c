@@ -108,13 +108,46 @@ static void toggleDoor(struct server_local* s,
     struct block_data bd;
     if (!server_world_get_block(&s->world, x, y, z, &bd)) return;
 
+    // flip the manual-open bit, preserve redstone bit
     uint8_t manual = bd.metadata & 0x01;
     uint8_t newMeta = (bd.metadata & ~0x01) | (manual ^ 0x01);
-
     newMeta |= bd.metadata & 0x04;
 
-    server_world_set_block(s, x,   y,   z, (struct block_data){ .type = doorType, .metadata = newMeta });
-    server_world_set_block(s, x, y+1, z,(struct block_data){ .type = doorType, .metadata = newMeta | 0x08 });}
+    // ——— NUDGE PLAYER IF THE DOOR SWINGS INTO THEM ———
+    // handle both opening (0→1) and closing (1→0)
+    if ((bd.metadata & 0x01) != (newMeta & 0x01)) {
+        struct block_data test = { .type = doorType, .metadata = newMeta };
+        struct block_info di = {
+            .x          = x,
+            .y          = y,
+            .z          = z,
+            .block      = &test,
+            .neighbours = NULL
+        };
+        if (entity_local_player_block_collide(
+                (vec3){s->player.x, s->player.y, s->player.z}, &di))
+        {
+            double dx = s->player.x - (x + 0.5);
+            double dz = s->player.z - (z + 0.5);
+            if (fabs(dx) > fabs(dz)) {
+                // push out along X
+                double push = (dx > 0.0) ? +0.6 : -0.6;
+                s->player.x = x + 0.5 + push;
+            } else {
+                // push out along Z
+                double push = (dz > 0.0) ? +0.6 : -0.6;
+                s->player.z = z + 0.5 + push;
+            }
+        }
+    }
+    // ————————————————————————————————————————————
+
+    // now actually flip the door blocks
+    server_world_set_block(s, x,   y,   z,
+        (struct block_data){ .type = doorType, .metadata = newMeta });
+    server_world_set_block(s, x, y+1, z,
+        (struct block_data){ .type = doorType, .metadata = newMeta | 0x08 });
+}
 
 static void onRightClick(struct server_local* s,
                               struct item_data* it,
