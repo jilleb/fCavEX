@@ -13,3 +13,9 @@ Makefile
 Makefile
 .project
 .cproject
+.settings/org.eclipse.cdt.core.prefs
+assets/default.png
+*.png
+*.dol
+*.elf
+*.zip

@@ -26,10 +26,12 @@
 #include "../cglm/cglm.h"
 #include "../item/items.h"
 
+
 enum entity_type {
 	ENTITY_LOCAL_PLAYER,
 	ENTITY_ITEM,
 	ENTITY_MONSTER,
+	ENTITY_MINECART
 };
 
 struct server_local;
@@ -70,6 +72,14 @@ struct entity {
 			int frame;
 			int frame_time_left;
 		} monster;
+        struct entity_minecart {
+            // no extra fields needed for basic minecart
+            // future data (e.g., rail_state, custom flags) can go here
+			struct item_data item;   // houdt id, count, durability
+
+        } minecart;
+
+
 	} data;
 };
 
@@ -108,6 +118,8 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 
 void entity_monster(uint32_t id, struct entity* e, bool server, void* world,
 				 int monster_id);
+
+void entity_minecart(uint32_t id, struct entity* e, bool server, void* world);
 
 uint32_t entity_gen_id(dict_entity_t dict);
 void entities_client_tick(dict_entity_t dict);

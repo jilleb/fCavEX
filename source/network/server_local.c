@@ -36,6 +36,46 @@
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
 	(((x1) - (x2)) * ((x1) - (x2)) + ((z1) - (z2)) * ((z1) - (z2)))
 
+
+struct entity* server_local_spawn_minecart(vec3 pos, struct server_local* s) {
+    // net als bij spawn_monster: nieuw ID en allocatie
+    uint32_t entity_id = entity_gen_id(s->entities);
+    struct entity** e_ptr = dict_entity_safe_get(s->entities, entity_id);
+    *e_ptr = malloc(sizeof(struct entity));
+    struct entity* e = *e_ptr;
+    assert(e);
+
+    // factory-aanroep voor minecart
+    entity_minecart(entity_id, e, true, &s->world);
+    // zet ’m op de goede plek
+    e->teleport(e, pos);
+
+    // optionele initiële stoot
+    glm_vec3_copy(
+        (vec3){ rand_gen_flt(&s->rand_src) - 0.5f,
+               rand_gen_flt(&s->rand_src) - 0.5f,
+               rand_gen_flt(&s->rand_src) - 0.5f },
+        e->vel
+    );
+    glm_vec3_normalize(e->vel);
+    glm_vec3_scale(
+        e->vel,
+        (2.0f * rand_gen_flt(&s->rand_src) + 0.5f) * 0.1f,
+        e->vel
+    );
+
+    // RPC naar clients, net als bij spawn_monster
+    clin_rpc_send(&(struct client_rpc) {
+        .type = CRPC_SPAWN_MINECART,                      // nieuw toevoegen
+        .payload.spawn_minecart.entity_id = e->id,
+        .payload.spawn_minecart.pos       = { pos[0], pos[1], pos[2] },
+    });
+
+    return e;
+}
+
+
+
 struct entity* server_local_spawn_item(vec3 pos, struct item_data* it,
 									   bool throw, struct server_local* s) {
 	uint32_t entity_id = entity_gen_id(s->entities);
