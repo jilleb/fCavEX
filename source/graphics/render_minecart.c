@@ -29,98 +29,152 @@
 #include "../platform/gfx.h"
 #include "gui_util.h"
 #include "gfx_settings.h"
-#include "render_item.h"  // only for frames[] and texture_mobs
+#include "../cglm/types.h"
+#include "../cglm/cglm.h"
+#include "render_item.h"   // for texture_minecart
 
 static struct displaylist dl;
-static uint8_t vertex_light[24];
-static uint8_t vertex_light_inv[24];
+static uint8_t vertex_light[24], vertex_light_inv[24];
+
+/* UV regions on 64×32 minecart.png */
+#define UV_BOT_U   0   /* bottom panel at (0,10) size 20×16 */
+#define UV_BOT_V  10
+#define UV_BOT_W  20
+#define UV_BOT_H  16
+
+#define UV_SIDE_U   0  /* side panels at (0,0) size 16×8 */
+#define UV_SIDE_V   0
+#define UV_SIDE_W  16
+#define UV_SIDE_H   8
+
+#define UV_TOP_U    0  /* top edge strip at (0,26) size 18×1 */
+#define UV_TOP_V   26
+#define UV_TOP_W   18
+#define UV_TOP_H    1
+
+/* emit a quad CCW with its own UV rectangle */
+static inline void emitFaceUV(int x0,int y0,int z0,
+                              int x1,int y1,int z1,
+                              int x2,int y2,int z2,
+                              int x3,int y3,int z3,
+                              uint8_t light,
+                              uint8_t u0, uint8_t v0,
+                              uint8_t u1, uint8_t v1)
+{
+    displaylist_pos(&dl, x0,y0,z0); displaylist_color(&dl, light); displaylist_texcoord(&dl, u0,    v0   );
+    displaylist_pos(&dl, x1,y1,z1); displaylist_color(&dl, light); displaylist_texcoord(&dl, u1,    v0   );
+    displaylist_pos(&dl, x2,y2,z2); displaylist_color(&dl, light); displaylist_texcoord(&dl, u1,    v1   );
+    displaylist_pos(&dl, x3,y3,z3); displaylist_color(&dl, light); displaylist_texcoord(&dl, u0,    v1   );
+}
 
 static inline uint8_t MAX_U8(uint8_t a, uint8_t b) {
     return a > b ? a : b;
 }
 
-static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table) {
-    return (table[l >> 4] << 4) | table[l & 0x0F];
-}
-
 void render_minecart_init(void) {
-    displaylist_init(&dl, 320, /* max verts */ 24);
+    displaylist_init(&dl, 320, 64);
     memset(vertex_light,     0x0F, sizeof(vertex_light));
     memset(vertex_light_inv, 0xFF, sizeof(vertex_light_inv));
 }
 
 void render_minecart_update_light(uint8_t light) {
-    memset(vertex_light,     light, sizeof(vertex_light));
+    memset(vertex_light,     light,  sizeof(vertex_light));
     memset(vertex_light_inv, ~light, sizeof(vertex_light_inv));
 }
 
 void render_minecart(int frame, mat4 view, bool fullbright) {
     assert(frame >= 0 && view);
 
-    // fetch the UV origin for this “frame” in the atlas
-    uint8_t s = frames[frame].x;
-    uint8_t t = frames[frame].y;
+    uint8_t raw = fullbright ? vertex_light_inv[0] : vertex_light[0];
 
-    // bind the same texture atlas you were using
-    gfx_bind_texture(&texture_minecart);
+    const float SO = 0.80f, SI = 0.60f, ST = 1.00f, SB = 0.60f;
+    uint8_t L_outer   = (uint8_t)(raw * SO);
+    uint8_t L_inner   = (uint8_t)(raw * SI);
+    uint8_t L_topedge = (uint8_t)(raw * ST);
+    uint8_t L_bottom  = (uint8_t)(raw * SB);
 
-    // pick a single lighting value for all vertices (you can expand this per-vertex if you like)
-    uint8_t light = fullbright
-        ? vertex_light_inv[0]
-        : vertex_light[0];
+    /* original Minecraft proportions (in world units) */
+    const int W = 20*16, D = 16*16, H = 8*16, T = 2*16;
 
-    // build a simple model matrix to lift the cube a bit off the ground
-    mat4 model, modelview;
+    /* build modelview: lift + rotate Y+90° */
+    mat4 model, mv;
     glm_mat4_identity(model);
-    glm_translate_make(model, (vec3){0.0F, 0.0F, 0.5F + 1.0F/32.0F});
-    glm_mat4_mul(view, model, modelview);
-    gfx_matrix_modelview(modelview);
+    glm_translate_make(model, (vec3){0.0F, 0.5F + 1.0F/32.0F, 0.0F});
+    glm_mat4_mul(view, model, mv);
+    glm_rotate_y(mv, GLM_PI_2, mv);
+    gfx_matrix_modelview(mv);
 
-    // reset and emit all 6 faces (4 verts each = 24 verts)
+    gfx_bind_texture(&texture_minecart);
     displaylist_reset(&dl);
-    const int W = 256, H = 256, D = 256;
 
-    // Front face (z = 0)
-    displaylist_pos(&dl,  0, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  W, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  W, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  0, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
+    // 1) bottom (normal down, UV_BOT)
+    emitFaceUV(
+        0,   0,   D,
+        0,   0,   0,
+        W,   0,   0,
+        W,   0,   D,
+        L_bottom,
+        UV_BOT_U, UV_BOT_V,
+        UV_BOT_U + UV_BOT_W, UV_BOT_V + UV_BOT_H
+    );
 
-    // Back face (z = D)
-    displaylist_pos(&dl,  W, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  0, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  0, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  W, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
+    // 2) outer walls (UV_SIDE)
+    emitFaceUV(W,0,0,  W,H,0,  0,H,0,   0,0,0,
+               L_outer,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(0,0,D,  0,H,D,  W,H,D,   W,0,D,
+               L_outer,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(0,0,0,  0,H,0,  0,H,D,   0,0,D,
+               L_outer,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(W,0,D,  W,H,D,  W,H,0,   W,0,0,
+               L_outer,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
 
-    // Left face (x = 0)
-    displaylist_pos(&dl,  0, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  0, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  0, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  0, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
+    // 3) inner walls (UV_SIDE)
+    emitFaceUV(0,0,T,   W,0,T,   W,H,T,   0,H,T,
+               L_inner,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(W,0,D-T, 0,0,D-T, 0,H,D-T, W,H,D-T,
+               L_inner,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(T,0,0,    T,0,D,    T,H,D,    T,H,0,
+               L_inner,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
+    emitFaceUV(W-T,0,D,  W-T,0,0,  W-T,H,0,  W-T,H,D,
+               L_inner,
+               UV_SIDE_U, UV_SIDE_V,
+               UV_SIDE_U+UV_SIDE_W, UV_SIDE_V+UV_SIDE_H);
 
-    // Right face (x = W)
-    displaylist_pos(&dl,  W, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  W, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  W, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  W, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
+    // 4) top edges (UV_TOP)
+    emitFaceUV(0, H,   0,    0, H,   T,    W, H,   T,    W, H,   0,
+               L_topedge,
+               UV_TOP_U, UV_TOP_V,
+               UV_TOP_U+UV_TOP_W, UV_TOP_V+UV_TOP_H);
+    emitFaceUV(W, H,   D,    W, H,   D-T,  0, H,   D-T,  0, H,   D,
+               L_topedge,
+               UV_TOP_U, UV_TOP_V,
+               UV_TOP_U+UV_TOP_W, UV_TOP_V+UV_TOP_H);
+    emitFaceUV(0, H,   D,    T, H,   D,    T, H,   0,    0, H,   0,
+               L_topedge,
+               UV_TOP_U, UV_TOP_V,
+               UV_TOP_U+UV_TOP_W, UV_TOP_V+UV_TOP_H);
+    emitFaceUV(W, H,   0,    W, H,   D,    W-T, H, D,    W-T, H,   0,
+               L_topedge,
+               UV_TOP_U, UV_TOP_V,
+               UV_TOP_U+UV_TOP_W, UV_TOP_V+UV_TOP_H);
 
-    // Top face (y = H)
-    displaylist_pos(&dl,  0, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  W, H, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  W, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  0, H, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
-
-    // Bottom face (y = 0)
-    displaylist_pos(&dl,  0, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t);
-    displaylist_pos(&dl,  W, 0, 0); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t);
-    displaylist_pos(&dl,  W, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s + 16, t + 32);
-    displaylist_pos(&dl,  0, 0, D); displaylist_color(&dl, light); displaylist_texcoord(&dl, s,      t + 32);
-
-    // draw all 24 verts in one go
     gfx_lighting(true);
-    displaylist_render_immediate(&dl, 24);
+    displaylist_render_immediate(&dl, 52);
     gfx_lighting(false);
 
-    // restore identity for next object
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
