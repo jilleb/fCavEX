@@ -29,7 +29,16 @@ I took yyy257's fork and decided to continue the work he's done, and add more fe
 * Minecarts
 * Fixes to existing bugs:
 	- Furnace has 4 identical sides
- 	- leaves stay floatingin the air after log has been removed 
+ 	- leaves stay floatingin the air after log has been removed
+ 
+**Known issues**
+* Texture orientation for blocks that have a specific "direction"
+	- Bed placement isn't correct yet
+	- Redstone wire texture goes only in 1 orientation, no corners and intersections are displayed (although redstone does work in all directions)
+	- Rails have the same texture behavior as redstone wire.
+* Random crashes, once in a while.. Maybe I'll implement an optional auto-save, to prevent some headaches and tears
+* Particles already spark fire before the torch is showing, after placing a torch
+* Probably more, but don't be a hater please.
 
 ## Screenshot
 
