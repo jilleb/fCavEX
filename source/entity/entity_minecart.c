@@ -25,8 +25,15 @@
 #include "../graphics/gfx_settings.h"
 #include "entity_minecart.h"
 #include "../platform/gfx.h"
-#include "../graphics/texture_atlas.h"
+#include "../platform/texture.h"
 #include <math.h>
+#include "../platform/displaylist.h"
+#include "../graphics/render_block.h"
+#include "../graphics/render_minecart.h"
+#include "../network/client_interface.h"
+#include "../network/server_local.h"
+#include "../platform/gfx.h"
+#include "entity.h"
 
 // ---- Server-side tick: simple rail following + gravity ----
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
@@ -70,40 +77,34 @@ static bool minecart_client_tick(struct entity* e) {
     return minecart_server_tick(e, NULL);
 }
 
-// ---- Render using existing item_render API ----
 static void minecart_render(struct entity* e, mat4 view, float tick_delta) {
-    // interpolate position
-    vec3 pos_lerp;
-    glm_vec3_lerp(e->pos_old, e->pos, tick_delta, pos_lerp);
+	int frame = e->data.minecart.item.id;
 
-    // update lighting from block below
-    struct block_data in_block;
-    entity_get_block(e,
-        (int)floorf(pos_lerp[0]),
-        (int)floorf(pos_lerp[1]),
-        (int)floorf(pos_lerp[2]),
-        &in_block);
-    render_item_update_light((in_block.torch_light << 4) | in_block.sky_light);
+	vec3 pos_lerp;
+	glm_vec3_lerp(e->pos_old, e->pos, tick_delta, pos_lerp);
 
-    // build model matrix: position, scale, center
-    mat4 model;
-    glm_translate_make(model, pos_lerp);
-    glm_scale(model, (vec3){1.0f, 0.5f, 1.0f});
-    glm_translate(model, (vec3){-0.5f, -0.25f, -0.5f});
+	struct block_data in_block;
+	entity_get_block(e, floorf(pos_lerp[0]), floorf(pos_lerp[1]),
+					 floorf(pos_lerp[2]), &in_block);
+	render_minecart_update_light((in_block.torch_light << 4)
+							 | in_block.sky_light);
 
-    // compose view*model
-    mat4 mv;
-    glm_mat4_mul(view, model, mv);
+	mat4 model;
+	glm_translate_make(model, pos_lerp);
+//		glm_translate_y(model, sinf(ticks / 30.0F * GLM_PIf) * 0.1F + 0.1F);
+//		glm_rotate_y(model, glm_rad(ticks * 3.0F), model);
+//		glm_scale_uni(model, 0.25F);
+//		glm_translate(model, (vec3) {-0.5F, -0.5F, -0.5F});
 
-    // correct item_get call
-    struct item* it = item_get(&e->data.minecart.item);
-    it->renderItem(it, &e->data.minecart.item, mv, false, R_ITEM_ENV_ENTITY);
+	mat4 mv;
+	glm_mat4_mul(view, model, mv);
 
-    // draw shadow
-    struct AABB bbox;
-    aabb_setsize_centered(&bbox, 0.5f, 0.25f, 0.5f);
-    aabb_translate(&bbox, pos_lerp[0], pos_lerp[1] - 0.04f, pos_lerp[2]);
-    entity_shadow(e, &bbox, view);
+	render_minecart(frame, mv, false);
+
+	struct AABB bbox;
+	aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
+	aabb_translate(&bbox, pos_lerp[0], pos_lerp[1] - 0.04F, pos_lerp[2]);
+	entity_shadow(e, &bbox, view);
 }
 
 // ---- Factory: initialize entity fields, including item_data ----

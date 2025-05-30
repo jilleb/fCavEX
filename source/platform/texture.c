@@ -32,6 +32,8 @@ struct tex_gfx texture_terrain;
 struct tex_gfx texture_particles;
 struct tex_gfx texture_items;
 struct tex_gfx texture_mobs;
+struct tex_gfx texture_minecart;
+struct tex_gfx texture_slime;
 struct tex_gfx texture_font;
 struct tex_gfx texture_anim;
 struct tex_gfx texture_gui_inventory;
@@ -87,7 +89,10 @@ void tex_init() {
 	void* output = tex_atlas_block("terrain.png", &w, &h);
 	if(output){
 		tex_gfx_load(&texture_terrain, output, w, h, TEX_FMT_RGBA16, false);
+		printf("texture_terrain loaded: data=%p, w=%zu, h=%zu\n", texture_terrain.data, texture_terrain.width, texture_terrain.height);
+
 	}
+
 
 	tex_gfx_load_file(&texture_font, "default.png", TEX_FMT_I8, false);
 	gutil_reset_font(&texture_font);
@@ -114,6 +119,12 @@ void tex_init() {
 	tex_gfx_load_file(&texture_gui2, "gui_2.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_items, "items.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_mobs, "mobs.png", TEX_FMT_RGBA16, false);
+	tex_gfx_load_file(&texture_minecart, "entity/minecart.png", TEX_FMT_RGBA16, false);
+	printf("texture_minecart loaded: data=%p, w=%zu, h=%zu\n", texture_minecart.data, texture_minecart.width, texture_minecart.height);
+
+	tex_gfx_load_file(&texture_slime, "entity/slime.png", TEX_FMT_RGBA16, false);
+
+
 	tex_gfx_load_file(&texture_controls, "controls.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_pointer, "pointer.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_clouds, "environment/clouds.png", TEX_FMT_IA4,

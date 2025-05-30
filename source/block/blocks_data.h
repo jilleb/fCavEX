@@ -121,6 +121,7 @@ enum block_type {
 	BLOCK_PUMPKIN_LIT = 91,
 	BLOCK_IRON_CHEST = 95,
 	BLOCK_TRAP_DOOR = 96,
+//	BLOCK_MINECART = 98,
 };
 
 typedef int32_t w_coord_t;

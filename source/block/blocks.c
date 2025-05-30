@@ -128,6 +128,7 @@ void blocks_init() {
 	blocks[95] = &block_iron_chest;
 	blocks[96] = &block_trapdoor;
 	blocks[97] = &block_tree2d;
+	//blocks[98] = &block_minecart;	
 
 	for(int k = 0; k < 256; k++) {
 		if(blocks[k]) {

@@ -266,7 +266,6 @@ void clin_process(struct client_rpc* call) {
 		} break;
 
 		case CRPC_SPAWN_MINECART: {
-		    // maak nieuw entity-slot aan
 		    struct entity** e_ptr = dict_entity_safe_get(
 		        gstate.entities,
 		        call->payload.spawn_minecart.entity_id
@@ -275,10 +274,9 @@ void clin_process(struct client_rpc* call) {
 		    struct entity* e = *e_ptr;
 		    assert(e);
 
-		    // init client‐kant minecart en zet ‘m op de goede plek
 		    entity_minecart(call->payload.spawn_minecart.entity_id,
 		                    e,
-		                    false,                // client‐side
+		                    false,                
 		                    &gstate.world);
 		    e->teleport(e, call->payload.spawn_minecart.pos);
 		} break;

@@ -1770,6 +1770,8 @@ static uint8_t block_cracks_light[24];
 void render_block_init() {
 	displaylist_init(&block_cracks_dl, 48, 3 * 2 + 2 * 1 + 1);
 	memset(block_cracks_light, 0xFF, sizeof(block_cracks_light));
+    for (int s = SIDE_TOP; s < SIDE_MAX; ++s) {
+    }
 }
 
 static uint8_t block_cracks_texture(struct block_info* this, enum side side) {

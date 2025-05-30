@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 ByteBit/xtreme8000
+	Copyright (c) 2023 ByteBit/xtreme8000
 
 	This file is part of CavEX.
 
@@ -17,16 +17,15 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef RENDER_MINECART_H
+#define RENDER_MINECART_H
 
-#ifndef ENTITY_MINECART_H
-#define ENTITY_MINECART_H
+#include "../item/items.h"
+#include "../platform/gfx.h"
+#include "../cglm/types.h"
 
-#include <stdbool.h>
-#include "../cglm/cglm.h"
-#include "entity.h"
-
-void entity_minecart(uint32_t id, struct entity* e, bool server, void* world);
-
+void render_minecart_init(void);
+void render_minecart(int frame, mat4 view, bool fullbright);
+void render_minecart_update_light(uint8_t light);
 
 #endif
-

@@ -160,6 +160,7 @@ extern struct block block_wooden_door;
 extern struct block block_iron_door;
 extern struct block block_tree2d;
 extern struct block block_sign;
+//extern struct block block_minecart;
 
 extern struct block* blocks[256];
 
