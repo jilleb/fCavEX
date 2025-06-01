@@ -30,13 +30,19 @@
 #include "../platform/displaylist.h"
 #include "../graphics/render_block.h"
 #include "../graphics/render_minecart.h"
+
 #include "../network/client_interface.h"
 #include "../network/server_local.h"
 #include "../platform/gfx.h"
+#include "../item/items.h"
+
 #include "entity.h"
 
 // ---- Server-side tick: simple rail following + gravity ----
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
+
+	// movement logic:
+	/*
     // copy old pos
     glm_vec3_copy(e->pos, e->pos_old);
 
@@ -70,6 +76,13 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
     // apply movement
     glm_vec3_add(e->pos, e->vel, e->pos);
     return false; // never destroy
+    */
+
+	// Wagoniëntiteit blijft gewoon op z’n plek staan; geen beweging/val
+	e->vel[0] = 0.0f;
+	e->vel[1] = 0.0f;
+	e->vel[2] = 0.0f;
+	return false;
 }
 
 // ---- Client-side tick just mirrors server logic ----
@@ -77,42 +90,50 @@ static bool minecart_client_tick(struct entity* e) {
     return minecart_server_tick(e, NULL);
 }
 
-static void minecart_render(struct entity* e, mat4 view, float tick_delta) {
-	int frame = e->data.minecart.item.id;
+static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta) {
+    // 1) Interpolate position exactly like monster does
+    vec3 pos_lerp;
+    glm_vec3_lerp(e->pos_old, e->pos, tick_delta, pos_lerp);
 
-	vec3 pos_lerp;
-	glm_vec3_lerp(e->pos_old, e->pos, tick_delta, pos_lerp);
+    // 2) Figure out which block the minecart is “in”
+    struct block_data in_block;
+    entity_get_block(e,
+        floorf(pos_lerp[0]),
+        floorf(pos_lerp[1]),
+        floorf(pos_lerp[2]),
+        &in_block
+    );
 
-	struct block_data in_block;
-	entity_get_block(e, floorf(pos_lerp[0]), floorf(pos_lerp[1]),
-					 floorf(pos_lerp[2]), &in_block);
-	render_minecart_update_light((in_block.torch_light << 4)
-							 | in_block.sky_light);
+    // 3) Update the minecart’s lighting using that block’s torch+sky
+    //    (same packing as entity_monster: torch in high nibble, sky in low nibble)
+    render_minecart_update_light(
+        (in_block.torch_light << 4) | (in_block.sky_light)
+    );
 
-	mat4 model;
-	glm_translate_make(model, pos_lerp);
-//		glm_translate_y(model, sinf(ticks / 30.0F * GLM_PIf) * 0.1F + 0.1F);
-//		glm_rotate_y(model, glm_rad(ticks * 3.0F), model);
-//		glm_scale_uni(model, 0.25F);
-//		glm_translate(model, (vec3) {-0.5F, -0.5F, -0.5F});
+    // 4) Build model→view matrix just like render_monster did
+    mat4 model, mv;
+    glm_translate_make(model, pos_lerp);
+    glm_mat4_mul(view, model, mv);
 
-	mat4 mv;
-	glm_mat4_mul(view, model, mv);
+    // 5) Finally draw the minecart cube with the current lighting
+    render_minecart(mv, false);
 
-	render_minecart(frame, mv, false);
-
-	struct AABB bbox;
-	aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
-	aabb_translate(&bbox, pos_lerp[0], pos_lerp[1] - 0.04F, pos_lerp[2]);
-	entity_shadow(e, &bbox, view);
+    // 6) (Optional) if you have a shadow routine, set up a small AABB and call it:
+    struct AABB bbox;
+    aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
+    aabb_translate(&bbox,
+        pos_lerp[0],
+        pos_lerp[1] - 0.04F,
+        pos_lerp[2]
+    );
+    entity_shadow(e, &bbox, view);
 }
-
 // ---- Factory: initialize entity fields, including item_data ----
 void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->id          = id;
     e->tick_server = minecart_server_tick;
     e->tick_client = minecart_client_tick;
-    e->render      = minecart_render;
+    e->render      = entity_minecart_render;
     e->teleport    = entity_default_teleport;
     e->type        = ENTITY_MINECART;
     e->on_ground   = true;
