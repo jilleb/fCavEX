@@ -20,3 +20,4 @@ assets/default.png
 *.elf
 *.zip
 fCavEX.elf
+Makefile
