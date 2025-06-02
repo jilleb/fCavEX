@@ -76,9 +76,9 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
         return false;
 
     // Place foot
-    server_world_set_block(&s->world, where->x, where->y, where->z, foot);
+    server_world_set_block(s, where->x, where->y, where->z, foot);
     // Place head
-    server_world_set_block(&s->world, where->x + dx, where->y, where->z + dz, head);
+    server_world_set_block(s, where->x + dx, where->y, where->z + dz, head);
 
     return true;
 }

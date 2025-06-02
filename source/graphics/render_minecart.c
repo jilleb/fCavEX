@@ -52,21 +52,13 @@ static uint8_t level_table_2[16] = {
     0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 };
 
-/*
-    DIM_LIGHT: produces the final 8-bit brightness from raw (0–255),
-    using the chosen level_table, shade_sides=true, luminance=0.
-*/
 static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table, bool shade_sides,
                                 uint8_t luminance) {
-    // Local MAX_U8 to compare high 4 bits against luminance
-    inline uint8_t MAX_U8_LOCAL(uint8_t a, uint8_t b) {
-        return a > b ? a : b;
-    }
     if (shade_sides) {
-        return (table[MAX_U8_LOCAL(l >> 4, luminance)] << 4)
-             | table[l & 0x0F];
+        return (table[ MAX_U8(l >> 4, luminance) ] << 4)
+             | table[ l & 0x0F ];
     } else {
-        return (MAX_U8_LOCAL(l >> 4, luminance) << 4)
+        return (MAX_U8(l >> 4, luminance) << 4)
              | (l & 0x0F);
     }
 }
@@ -137,16 +129,18 @@ static inline void emitFaceUV4(
 /*
     emitCubeWithSideUV:
     ===================
-    Draw an axis-aligned box from (x0,y0,z0) to (x0+Sx, y0+Sy, z0+Sz),
-    using per-vertex lighting based on vertex_light[] (updated each frame).
+    Draws an axis‐aligned box from (x0,y0,z0) to (x0+Sx, y0+Sy, z0+Sz),
+    using per‐vertex lighting driven by the single raw value in vertex_light[0],
+    but creating a vertical gradient on each side by darkening bottom corners.
 
-    level_table_0 is used for top/bottom faces,
+    level_table_0 is for top/bottom faces,
     level_table_1 for north/south faces,
     level_table_2 for east/west faces.
-
-    DIM_LIGHT(raw, table, true, 0) computes the final brightness per vertex.
+    We compute for vertical faces:
+      • raw_top    = base_raw
+      • raw_bottom = max(0, base_raw − 16)
+    so that the bottom two corners appear slightly darker.
 */
-
 static void emitCubeWithSideUV(int x0, int y0, int z0,
                                int Sx, int Sy, int Sz)
 {
@@ -154,15 +148,20 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     int y1 = y0 + Sy;
     int z1 = z0 + Sz;
 
-    // UV coordinates for all faces (using the same UV_SIDE region)
+    // UV coords (all faces use the UV_SIDE rectangle)
     const uint8_t u0 = UV_SIDE_U;
     const uint8_t v0 = UV_SIDE_V;
     const uint8_t u1 = UV_SIDE_U + UV_SIDE_W;
     const uint8_t v1 = UV_SIDE_V + UV_SIDE_H;
 
+    // The “base” raw‐light is stored in vertex_light[0] by render_minecart_update_light.
+    uint8_t base_raw = vertex_light[0];
+    uint8_t raw_top    = base_raw;
+    uint8_t raw_bottom = (base_raw > 8 ? base_raw - 8 : 0);
+
     // --------------------------------------------------------
-    // 1) Bottom face (y = y0), normal pointing down
-    //    Winding: (x1,y0,z0) → (x0,y0,z0) → (x0,y0,z1) → (x1,y0,z1)
+    // 1) Bottom face (y=y0), normal => −Y
+    //    Winding: (x1,y0,z0)->(x0,y0,z0)->(x0,y0,z1)->(x1,y0,z1)
     // --------------------------------------------------------
     {
         int vx0 = x1, vy0 = y0, vz0 = z0;
@@ -170,16 +169,11 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x0, vy2 = y0, vz2 = z1;
         int vx3 = x1, vy3 = y0, vz3 = z1;
 
-        // Bottom corners use indices 4..7 of vertex_light[]
-        uint8_t raw0 = vertex_light[4];
-        uint8_t raw1 = vertex_light[5];
-        uint8_t raw2 = vertex_light[6];
-        uint8_t raw3 = vertex_light[7];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_0, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_0, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_0, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_0, true, 0);
+        // All four bottom‐face corners use raw = base_raw
+        uint8_t l0 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l1 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l2 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l3 = DIM_LIGHT(base_raw, level_table_0, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -191,8 +185,8 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     }
 
     // --------------------------------------------------------
-    // 2) Top face (y = y1), normal pointing up
-    //    Winding: (x1,y1,z1) → (x0,y1,z1) → (x0,y1,z0) → (x1,y1,z0)
+    // 2) Top face (y=y1), normal => +Y
+    //    Winding: (x1,y1,z1)->(x0,y1,z1)->(x0,y1,z0)->(x1,y1,z0)
     // --------------------------------------------------------
     {
         int vx0 = x1, vy0 = y1, vz0 = z1;
@@ -200,16 +194,11 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x0, vy2 = y1, vz2 = z0;
         int vx3 = x1, vy3 = y1, vz3 = z0;
 
-        // Top corners also use indices 4..7 (same top/bottom group)
-        uint8_t raw0 = vertex_light[4];
-        uint8_t raw1 = vertex_light[5];
-        uint8_t raw2 = vertex_light[6];
-        uint8_t raw3 = vertex_light[7];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_0, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_0, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_0, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_0, true, 0);
+        // All four top‐face corners use raw = base_raw
+        uint8_t l0 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l1 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l2 = DIM_LIGHT(base_raw, level_table_0, true, 0);
+        uint8_t l3 = DIM_LIGHT(base_raw, level_table_0, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -221,8 +210,8 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     }
 
     // --------------------------------------------------------
-    // 3) North face (z = z1), normal pointing +Z
-    //    Winding: (x0,y0,z1) → (x0,y1,z1) → (x1,y1,z1) → (x1,y0,z1)
+    // 3) North face (z=z1), normal => +Z
+    //    Winding: (x0,y0,z1)->(x0,y1,z1)->(x1,y1,z1)->(x1,y0,z1)
     // --------------------------------------------------------
     {
         int vx0 = x0, vy0 = y0, vz0 = z1; // bottom-left
@@ -230,16 +219,11 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x1, vy2 = y1, vz2 = z1; // top-right
         int vx3 = x1, vy3 = y0, vz3 = z1; // bottom-right
 
-        // North corners use indices 8..11
-        uint8_t raw0 = vertex_light[8];
-        uint8_t raw1 = vertex_light[9];
-        uint8_t raw2 = vertex_light[10];
-        uint8_t raw3 = vertex_light[11];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_1, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_1, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_1, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_1, true, 0);
+        // top corners use raw_top, bottom corners raw_bottom
+        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
+        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
+        uint8_t l2 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
+        uint8_t l3 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -251,8 +235,8 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     }
 
     // --------------------------------------------------------
-    // 4) South face (z = z0), normal pointing −Z
-    //    Winding: (x1,y0,z0) → (x1,y1,z0) → (x0,y1,z0) → (x0,y0,z0)
+    // 4) South face (z=z0), normal => −Z
+    //    Winding: (x1,y0,z0)->(x1,y1,z0)->(x0,y1,z0)->(x0,y0,z0)
     // --------------------------------------------------------
     {
         int vx0 = x1, vy0 = y0, vz0 = z0; // bottom-left
@@ -260,16 +244,10 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x0, vy2 = y1, vz2 = z0; // top-right
         int vx3 = x0, vy3 = y0, vz3 = z0; // bottom-right
 
-        // South corners use indices 12..15
-        uint8_t raw0 = vertex_light[12];
-        uint8_t raw1 = vertex_light[13];
-        uint8_t raw2 = vertex_light[14];
-        uint8_t raw3 = vertex_light[15];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_1, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_1, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_1, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_1, true, 0);
+        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
+        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
+        uint8_t l2 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
+        uint8_t l3 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -281,8 +259,8 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     }
 
     // --------------------------------------------------------
-    // 5) West face (x = x0), normal pointing −X
-    //    Winding: (x0,y0,z0) → (x0,y1,z0) → (x0,y1,z1) → (x0,y0,z1)
+    // 5) West face (x=x0), normal => −X
+    //    Winding: (x0,y0,z0)->(x0,y1,z0)->(x0,y1,z1)->(x0,y0,z1)
     // --------------------------------------------------------
     {
         int vx0 = x0, vy0 = y0, vz0 = z0; // bottom-left
@@ -290,16 +268,10 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x0, vy2 = y1, vz2 = z1; // top-right
         int vx3 = x0, vy3 = y0, vz3 = z1; // bottom-right
 
-        // West corners use indices 16..19
-        uint8_t raw0 = vertex_light[16];
-        uint8_t raw1 = vertex_light[17];
-        uint8_t raw2 = vertex_light[18];
-        uint8_t raw3 = vertex_light[19];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_2, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_2, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_2, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_2, true, 0);
+        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
+        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
+        uint8_t l2 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
+        uint8_t l3 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -311,8 +283,8 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
     }
 
     // --------------------------------------------------------
-    // 6) East face (x = x1), normal pointing +X
-    //    Winding: (x1,y0,z1) → (x1,y1,z1) → (x1,y1,z0) → (x1,y0,z0)
+    // 6) East face (x=x1), normal => +X
+    //    Winding: (x1,y0,z1)->(x1,y1,z1)->(x1,y1,z0)->(x1,y0,z0)
     // --------------------------------------------------------
     {
         int vx0 = x1, vy0 = y0, vz0 = z1; // bottom-left
@@ -320,16 +292,10 @@ static void emitCubeWithSideUV(int x0, int y0, int z0,
         int vx2 = x1, vy2 = y1, vz2 = z0; // top-right
         int vx3 = x1, vy3 = y0, vz3 = z0; // bottom-right
 
-        // East corners use indices 20..23
-        uint8_t raw0 = vertex_light[20];
-        uint8_t raw1 = vertex_light[21];
-        uint8_t raw2 = vertex_light[22];
-        uint8_t raw3 = vertex_light[23];
-
-        uint8_t l0 = DIM_LIGHT(raw0, level_table_2, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw1, level_table_2, true, 0);
-        uint8_t l2 = DIM_LIGHT(raw2, level_table_2, true, 0);
-        uint8_t l3 = DIM_LIGHT(raw3, level_table_2, true, 0);
+        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
+        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
+        uint8_t l2 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
+        uint8_t l3 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
 
         emitFaceUV4(
             vx0, vy0, vz0, l0,
@@ -384,9 +350,9 @@ void render_minecart(mat4 view, bool fullbright) {
         0,              // x0
         0,              // y0
         0,              // z0
-        2 * 256,        // Sx = 2 blocks wide
-        1 * 256,        // Sy = 1 block tall
-        128             // Sz = 0.5 block deep
+        2 * S,       	 // Sx = 2 blocks wide
+        1 * S	,        // Sy = 1 block tall
+        128              // Sz = 0.5 block deep
     );
 
     // Flush: 6 faces × 4 vertices = 24
