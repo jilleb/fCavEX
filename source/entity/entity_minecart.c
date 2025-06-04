@@ -29,8 +29,7 @@
 #include <math.h>
 #include "../platform/displaylist.h"
 #include "../graphics/render_block.h"
-#include "../graphics/render_minecart.h"
-
+#include "../graphics/render_entity.h"
 #include "../network/client_interface.h"
 #include "../network/server_local.h"
 #include "../platform/gfx.h"
@@ -106,7 +105,7 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
 
     // 3) Update the minecart’s lighting using that block’s torch+sky
     //    (same packing as entity_monster: torch in high nibble, sky in low nibble)
-    render_minecart_update_light(
+    render_entity_update_light(
         (in_block.torch_light << 4) | (in_block.sky_light)
     );
 
@@ -116,7 +115,7 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
     glm_mat4_mul(view, model, mv);
 
     // 5) Finally draw the minecart cube with the current lighting
-    render_minecart(mv, false);
+    render_entity_minecart(mv, false);
 
     // 6) (Optional) if you have a shadow routine, set up a small AABB and call it:
     struct AABB bbox;

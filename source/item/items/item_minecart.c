@@ -46,13 +46,13 @@ struct item item_minecart = {
     .has_damage   = false,
     .max_stack    = 64, // should be 1
     .fuel         = 0,
-    .renderItem   = render_item_flat,    // like mushroom stew 
+    .renderItem   = render_item_flat,
     .onItemPlace  = onItemPlace,
     .armor.is_armor = false,
     .tool.type      = TOOL_TYPE_ANY,
     .render_data = {
         .item = {
-            .texture_x = 7,  // atlas position of chest-front-single 
+            .texture_x = 7,
             .texture_y = 8,
         },
     },

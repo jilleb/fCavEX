@@ -24,8 +24,8 @@
 #include "../platform/gfx.h"
 #include "../cglm/types.h"
 
-void render_minecart_init(void);
-void render_minecart(mat4 view, bool fullbright);
-void render_minecart_update_light(uint8_t light);
+void render_entity_minecart_init(void);
+void render_entity_minecart(mat4 view, bool fullbright);
+void render_entity_update_light(uint8_t light);
 
 #endif
