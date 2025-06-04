@@ -339,9 +339,10 @@ static void screen_ingame_update(struct screen* s, float dt) {
 		screen_set(&screen_inventory);
 }
 
-#ifndef NDEBUG
 static void screen_ingame_render2D(struct screen* s, int width, int height) {
 	char str[64];
+#ifndef NDEBUG
+
 	sprintf(str, GAME_NAME " Alpha %i.%i.%i_f%i (impl. B1.7.3)", VERSION_MAJOR,
 			VERSION_MINOR, VERSION_PATCH, VERSION_FORK);
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 0, str, GFX_GUI_SCALE * 8, true);
