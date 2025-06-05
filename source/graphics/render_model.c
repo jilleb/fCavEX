@@ -28,10 +28,6 @@ void render_model_box(mat4 view, vec3 position, vec3 pivot, vec3 rotation,
 		   && padding >= -GLM_FLT_EPSILON && brightness >= -GLM_FLT_EPSILON
 		   && brightness <= 1.0F + GLM_FLT_EPSILON);
 
-	printf("render_model_box called");
-	printf("view: %p, pos: %p, pivot: %p, rotation: %p, origin: %p, box: %p\n",
-	    (void*)view, (void*)position, (void*)pivot, (void*)rotation, (void*)origin, (void*)box);
-
 	int sw = 256 / 64;
 	int sh = 256 / 32;
 

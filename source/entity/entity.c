@@ -329,3 +329,92 @@ void entities_client_render(dict_entity_t dict, struct camera* c,
 		dict_entity_next(it);
 	}
 }
+
+bool entity_aabb_intersect_ray(const vec3 origin,
+                               const vec3 dir,
+                               const struct entity *e,
+                               float *out_t)
+{
+    assert(origin && dir && e && out_t);
+    assert(e->getBoundingBox != NULL);
+
+    // 1) Vraag de AABB van de entity op via de functiepointer
+    struct AABB box;
+    size_t count = e->getBoundingBox(e, &box);
+    if (count == 0) {
+        return false;
+    }
+
+    // 2) Voer de slab‐methode uit op box.x1..box.z2
+    float invDx = 1.0f / (fabsf(dir[0]) > GLM_FLT_EPSILON
+                          ? dir[0]
+                          : copysignf(GLM_FLT_EPSILON, dir[0]));
+    float invDy = 1.0f / (fabsf(dir[1]) > GLM_FLT_EPSILON
+                          ? dir[1]
+                          : copysignf(GLM_FLT_EPSILON, dir[1]));
+    float invDz = 1.0f / (fabsf(dir[2]) > GLM_FLT_EPSILON
+                          ? dir[2]
+                          : copysignf(GLM_FLT_EPSILON, dir[2]));
+
+    float t1 = (box.x1 - origin[0]) * invDx;
+    float t2 = (box.x2 - origin[0]) * invDx;
+    float t3 = (box.y1 - origin[1]) * invDy;
+    float t4 = (box.y2 - origin[1]) * invDy;
+    float t5 = (box.z1 - origin[2]) * invDz;
+    float t6 = (box.z2 - origin[2]) * invDz;
+
+    float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
+    float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
+
+    if (tmax < 0.0f || tmin > tmax) {
+        return false;
+    }
+    *out_t = (tmin >= 0.0f ? tmin : tmax);
+    return true;
+}
+
+
+
+//-----------------------------------------------------------------------------
+// Raycasts against all entities stored in dict_entity_t. Returns the closest
+// hit entity within maxDist; *out_tNear is set to that hit distance.
+// Returns NULL if no entity is hit.
+//-----------------------------------------------------------------------------
+struct entity *
+raycast_entity(dict_entity_t *entities,
+               const vec3 origin,
+               const vec3 dir,
+               float maxDist,
+               float *out_tNear)
+{
+    struct entity *closest = NULL;
+    float closestT = maxDist + 1.0f;
+
+    // Use the dict_entity iterator API to loop through all entities
+    dict_entity_it_t it;
+    dict_entity_it(it, *entities);
+
+    while (!dict_entity_end_p(it)) {
+        struct entity *e = dict_entity_ref(it)->value;
+
+        if (e->id == 0) {
+            dict_entity_next(it);
+            continue;
+        }
+
+        float tHit;
+        if (entity_aabb_intersect_ray(origin, dir, e, &tHit)) {
+            if (tHit >= 0.0f && tHit < closestT && tHit <= maxDist) {
+                closestT = tHit;
+                closest  = e;
+            }
+        }
+
+        dict_entity_next(it);
+    }
+
+    if (closest && out_tNear) {
+        *out_tNear = closestT;
+    }
+    return closest;
+}

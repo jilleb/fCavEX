@@ -170,15 +170,43 @@ int main(void) {
 		if(render_world) {
 			world_pre_render(&gstate.world, &gstate.camera, gstate.camera.view);
 
-			struct camera* c = &gstate.camera;
-			camera_ray_pick(&gstate.world, c->x, c->y, c->z,
-							c->x + sinf(c->rx) * sinf(c->ry) * 4.5F,
-							c->y + cosf(c->ry) * 4.5F,
-							c->z + cosf(c->rx) * sinf(c->ry) * 4.5F,
-							&gstate.camera_hit);
+			{
+				// 1) Bereken eerst de ray‐origin en direction uit de camera
+				vec3 origin, dir;
+				camera_get_ray(&gstate.camera, origin, dir);
+
+				// 2) Probeer eerst een entiteit te raken binnen 4.5 eenheid
+				float tHit;
+				struct entity *hitE = raycast_entity(&gstate.entities,
+													 origin, dir,
+													 4.5f,
+													 &tHit);
+				if (hitE == gstate.local_player) {
+				    hitE = NULL;
+				}
+
+				if (hitE) {
+					gstate.camera_hit.entity_hit = true;
+					gstate.camera_hit.entity_id  = hitE->id;
+					gstate.camera_hit.hit = false;
+				}
+				else {
+					gstate.camera_hit.entity_hit = false;
+					gstate.camera_hit.entity_id  = 0;
+
+					camera_ray_pick(&gstate.world,
+									gstate.camera.x, gstate.camera.y, gstate.camera.z,
+									gstate.camera.x + sinf(gstate.camera.rx) * sinf(gstate.camera.ry) * 4.5F,
+									gstate.camera.y +            cosf(gstate.camera.ry) * 4.5F,
+									gstate.camera.z + cosf(gstate.camera.rx) * sinf(gstate.camera.ry) * 4.5F,
+									&gstate.camera_hit);
+				}
+			}
 		} else {
-			world_pre_render_clear(&gstate.world);
-			gstate.camera_hit.hit = false;
+		    world_pre_render_clear(&gstate.world);
+		    gstate.camera_hit.hit        = false;
+		    gstate.camera_hit.entity_hit = false;
+		    gstate.camera_hit.entity_id  = 0;
 		}
 
 		world_update_lighting(&gstate.world);

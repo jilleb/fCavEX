@@ -393,3 +393,90 @@ void gutil_block_selection(mat4 view_matrix, struct block_info* this) {
 	gfx_texture(true);
 	gfx_lighting(true);
 }
+
+void gutil_entity_selection(mat4 view_matrix, const struct entity *e) {
+    assert(view_matrix && e);
+    assert(e->getBoundingBox != NULL);
+
+    struct AABB box;
+    size_t count = e->getBoundingBox(e, &box);
+    if (count == 0) {
+        return;
+    }
+
+    gfx_fog(false);
+    gfx_lighting(false);
+    gfx_blending(MODE_BLEND);
+    gfx_texture(false);
+
+
+    int base_x = (int)floorf(box.x1);
+    int base_y = (int)floorf(box.y1);
+    int base_z = (int)floorf(box.z1);
+
+    float rel_x1 = box.x1 - (float)base_x;
+    float rel_y1 = box.y1 - (float)base_y;
+    float rel_z1 = box.z1 - (float)base_z;
+    float rel_x2 = box.x2 - (float)base_x;
+    float rel_y2 = box.y2 - (float)base_y;
+    float rel_z2 = box.z2 - (float)base_z;
+
+    mat4 model_view;
+    glm_translate_to(view_matrix,
+                     (vec3){(float)base_x, (float)base_y, (float)base_z},
+                     model_view);
+    gfx_matrix_modelview(model_view);
+
+    int pad = 1;
+    int16_t sx1 = (int16_t)(rel_x1 * 256.0f) - pad;
+    int16_t sy1 = (int16_t)(rel_y1 * 256.0f) - pad;
+    int16_t sz1 = (int16_t)(rel_z1 * 256.0f) - pad;
+    int16_t sx2 = (int16_t)(rel_x2 * 256.0f) + pad;
+    int16_t sy2 = (int16_t)(rel_y2 * 256.0f) + pad;
+    int16_t sz2 = (int16_t)(rel_z2 * 256.0f) + pad;
+
+    int16_t pts[24 * 3];
+    int idx = 0;
+    #define ADD_EDGE(x0,y0,z0, x1,y1,z1) \
+        do {                             \
+            pts[idx++] = (x0);           \
+            pts[idx++] = (y0);           \
+            pts[idx++] = (z0);           \
+            pts[idx++] = (x1);           \
+            pts[idx++] = (y1);           \
+            pts[idx++] = (z1);           \
+        } while (0)
+
+    // Bottom face (y = sy1)
+    ADD_EDGE(sx1, sy1, sz1,  sx2, sy1, sz1);
+    ADD_EDGE(sx2, sy1, sz1,  sx2, sy1, sz2);
+    ADD_EDGE(sx2, sy1, sz2,  sx1, sy1, sz2);
+    ADD_EDGE(sx1, sy1, sz2,  sx1, sy1, sz1);
+
+    // Top face (y = sy2)
+    ADD_EDGE(sx1, sy2, sz1,  sx2, sy2, sz1);
+    ADD_EDGE(sx2, sy2, sz1,  sx2, sy2, sz2);
+    ADD_EDGE(sx2, sy2, sz2,  sx1, sy2, sz2);
+    ADD_EDGE(sx1, sy2, sz2,  sx1, sy2, sz1);
+
+    // Vertical edges
+    ADD_EDGE(sx1, sy1, sz1,  sx1, sy2, sz1);
+    ADD_EDGE(sx2, sy1, sz1,  sx2, sy2, sz1);
+    ADD_EDGE(sx2, sy1, sz2,  sx2, sy2, sz2);
+    ADD_EDGE(sx1, sy1, sz2,  sx1, sy2, sz2);
+
+    #undef ADD_EDGE
+
+    uint8_t colors[24 * 4];
+    for (int i = 0; i < 24; i++) {
+        colors[i * 4 + 0] = 0;   // R
+        colors[i * 4 + 1] = 0;   // G
+        colors[i * 4 + 2] = 0;   // B
+        colors[i * 4 + 3] = 153; // A
+    }
+
+    gfx_draw_lines(24, pts, colors);
+
+    gfx_texture(true);
+    gfx_lighting(true);
+}

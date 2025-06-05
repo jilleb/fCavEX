@@ -84,6 +84,14 @@ static bool entity_client_tick(struct entity* e) {
 	return false;
 }
 
+static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
+    assert(e && out);
+    aabb_setsize_centered(out, 0.25F, 0.25F, 0.25F);
+    aabb_translate(out, e->pos[0], e->pos[1], e->pos[2]);
+    return 1;
+}
+
+
 static bool entity_server_tick(struct entity* e, struct server_local* s) {
 	assert(e);
 
@@ -235,6 +243,7 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 				 struct item_data it) {
 	assert(e && world);
 
+    e->name = "Item";
 	e->id = id;
 	e->tick_server = entity_server_tick;
 	e->tick_client = entity_client_tick;
@@ -243,6 +252,7 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 	e->type = ENTITY_ITEM;
 	e->data.item.age = 0;
 	e->data.item.item = it;
+	e->getBoundingBox = getBoundingBox;
 
 	entity_default_init(e, server, world);
 }

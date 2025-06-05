@@ -136,10 +136,17 @@ static void entity_render(struct entity* e, mat4 view, float tick_delta) {
 	entity_shadow(e, &bbox, view);
 }
 
+static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
+    assert(e && out);
+    aabb_setsize_centered(out, 0.6f,  1.7f,  0.6f);
+    aabb_translate(out, e->pos[0], e->pos[1], e->pos[2]);
+    return 1;
+}
+
 void entity_monster(uint32_t id, struct entity* e, bool server, void* world,
 				 int monster_id) {
 	assert(e && world);
-
+    e->name = "Monster";
 	e->id = id;
 	e->tick_server = entity_server_tick;
 	e->tick_client = entity_client_tick;
@@ -148,6 +155,7 @@ void entity_monster(uint32_t id, struct entity* e, bool server, void* world,
 	e->type = ENTITY_MONSTER;
 	e->data.monster.id = monster_id;
 	e->data.monster.frame = 1;
+	e->getBoundingBox = getBoundingBox;
 
 	entity_default_init(e, server, world);
 }

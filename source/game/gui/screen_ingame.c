@@ -42,6 +42,23 @@ static void screen_ingame_reset(struct screen* s, int width, int height) {
 }
 
 void screen_ingame_render3D(struct screen* s, mat4 view) {
+	
+	if (gstate.world_loaded && gstate.camera_hit.entity_hit) {
+    struct entity *e = *dict_entity_get(gstate.entities,
+                                        gstate.camera_hit.entity_id);
+		if (e) {
+			if (e->type != 0 && e->type != 1){
+			gfx_blending(MODE_BLEND);
+			gfx_alpha_test(false);
+
+			gutil_entity_selection(view, e);
+
+			gfx_blending(MODE_OFF);
+			gfx_alpha_test(true);
+			}
+		}
+	}
+
 	if(gstate.world_loaded && gstate.camera_hit.hit) {
 		struct block_data blk
 			= world_get_block(&gstate.world, gstate.camera_hit.x,
@@ -65,6 +82,8 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 		gfx_blending(MODE_OFF);
 		gfx_alpha_test(true);
 	}
+
+	
 
 	float place_lerp = 0.0F;
 	size_t slot = inventory_get_hotbar(
@@ -367,7 +386,14 @@ float angle = daytime_celestial_angle(day_ticks / 24000.0f);
 sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 4, str, GFX_GUI_SCALE * 8, true);
 
-	if(gstate.camera_hit.hit) {
+	if (gstate.camera_hit.entity_hit) {
+	    // Show entity info
+		struct entity *e = *dict_entity_get(*&gstate.entities, gstate.camera_hit.entity_id);
+	    const char *ename = e->name;
+	    sprintf(str, "(%i, %i, %i), %s (%u)", gstate.camera_hit.x,
+				gstate.camera_hit.y, gstate.camera_hit.z, ename, e->id);
+		gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 5, str, GFX_GUI_SCALE * 8, true);
+	} else	if(gstate.camera_hit.hit) {
 		struct block_data bd
 			= world_get_block(&gstate.world, gstate.camera_hit.x,
 							  gstate.camera_hit.y, gstate.camera_hit.z);
@@ -384,7 +410,45 @@ sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
 	icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Inventory");
 	icon_offset += gutil_control_icon(icon_offset, IB_JUMP, "Jump");
 
-	if(gstate.camera_hit.hit) {
+
+	if (gstate.camera_hit.entity_hit) {
+	    struct entity *e = *dict_entity_get(
+	        gstate.entities,
+	        gstate.camera_hit.entity_id
+	    );
+	    if (e) {
+	        switch (e->type) {
+	            case ENTITY_MONSTER:
+	                // Toon alleen “Attack” voor monsters
+	                icon_offset += gutil_control_icon(icon_offset,
+	                                                  IB_ACTION1,
+	                                                  "Attack");
+	                break;
+
+	            case ENTITY_MINECART:
+	                // Toon alleen “Use” voor minecarts
+	                icon_offset += gutil_control_icon(icon_offset,
+	                                                  IB_ACTION2,
+	                                                  "Use");
+	                break;
+
+	            case ENTITY_ITEM:
+	                // Voor items: géén icoon tonen
+	                break;
+
+	            default:
+	                // Voor alle andere entiteiten (bv. koeien, villagers) beide
+	                icon_offset += gutil_control_icon(icon_offset,
+	                                                  IB_ACTION2,
+	                                                  "Use");
+	                icon_offset += gutil_control_icon(icon_offset,
+	                                                  IB_ACTION1,
+	                                                  "Attack");
+	                break;
+	        }
+	    }
+	}
+	else if (gstate.camera_hit.hit) {
 		struct item_data item;
 		struct block_data bd
 			= world_get_block(&gstate.world, gstate.camera_hit.x,

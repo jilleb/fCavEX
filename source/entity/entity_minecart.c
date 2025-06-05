@@ -35,7 +35,6 @@
 #include "../platform/gfx.h"
 #include "../item/items.h"
 
-#include "entity.h"
 
 // ---- Server-side tick: simple rail following + gravity ----
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
@@ -115,7 +114,7 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
     glm_mat4_mul(view, model, mv);
 
     // 5) Finally draw the minecart cube with the current lighting
-    render_entity_minecart(mv, false);
+    render_entity_minecart(mv);
 
     // 6) (Optional) if you have a shadow routine, set up a small AABB and call it:
     struct AABB bbox;
@@ -127,8 +126,37 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
     );
     entity_shadow(e, &bbox, view);
 }
+
+static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
+    assert(e && out);
+    aabb_setsize_centered_offset(
+        out,
+        1.0f,    // sx
+        0.625f,  // sy
+        1.25f,   // sz
+        0.0f,    // ox
+        0.3125f,    // oy
+        0.1f    // oz
+    );
+    aabb_translate(out, e->pos[0], e->pos[1], e->pos[2]);
+    return 1;
+}
+
+static bool onRightClick(struct entity *e) {
+    assert(e);
+    // TODO: add usage logic.
+    return true;
+}
+
+static bool onLeftClick(struct entity *e) {
+    assert(e);
+    // TODO: add breakdown logic.
+    return true;
+}
+
 // ---- Factory: initialize entity fields, including item_data ----
 void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
+    e->name 	   = "Minecart";
     e->id          = id;
     e->tick_server = minecart_server_tick;
     e->tick_client = minecart_client_tick;
@@ -136,6 +164,10 @@ void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->teleport    = entity_default_teleport;
     e->type        = ENTITY_MINECART;
     e->on_ground   = true;
+    e->getBoundingBox = getBoundingBox;
+    e->onLeftClick   = onLeftClick;
+    e->onRightClick   = onRightClick;
+
 
     // zero vectors
     glm_vec3_zero(e->pos);

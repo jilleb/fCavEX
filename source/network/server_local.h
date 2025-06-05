@@ -28,6 +28,7 @@
 #include "../world.h"
 #include "level_archive.h"
 #include "server_world.h"
+#include "../entity/entity.h"
 
 #define MAX_REGIONS 4
 #define MAX_VIEW_DISTANCE 5 // in chunks

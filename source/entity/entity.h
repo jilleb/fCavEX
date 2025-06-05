@@ -26,6 +26,7 @@
 #include "../cglm/cglm.h"
 #include "../item/items.h"
 
+struct camera;
 
 enum entity_type {
 	ENTITY_LOCAL_PLAYER,
@@ -35,6 +36,9 @@ enum entity_type {
 };
 
 struct server_local;
+
+struct AABB;
+
 
 struct entity {
 	uint32_t id;
@@ -58,6 +62,10 @@ struct entity {
 	void (*teleport)(struct entity*, vec3);
 
 	enum entity_type type;
+    const char *name;
+	size_t (*getBoundingBox)(const struct entity *e, struct AABB *out);
+    bool (*onRightClick)(struct entity *e);
+    bool (*onLeftClick)(struct entity *e);
 	union entity_data {
 		struct entity_local_player {
 			int jump_ticks;
@@ -106,6 +114,9 @@ struct monster {
 
 extern struct monster_frame frames[256];
 
+
+
+
 DICT_DEF2(dict_entity, uint32_t, M_BASIC_OPLIST, struct entity*, M_POD_OPLIST)
 
 #include "../world.h"
@@ -144,5 +155,15 @@ bool entity_block_aabb_test(struct AABB* entity, struct block_info* blk_info);
 bool entity_aabb_intersection(struct entity* e, struct AABB* a);
 void entity_try_move(struct entity* e, vec3 pos, vec3 vel, struct AABB* bbox,
 					 size_t coord, bool* collision_xz, bool* on_ground);
+bool entity_aabb_intersect_ray(const vec3 origin,
+                               const vec3 dir,
+                               const struct entity *e,
+                               float *out_t);
+
+struct entity *raycast_entity(dict_entity_t *entities,
+                              const vec3 origin,
+                              const vec3 dir,
+                              float maxDist,
+                              float *out_tNear);
 
 #endif

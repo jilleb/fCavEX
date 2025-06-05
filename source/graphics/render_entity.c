@@ -38,44 +38,16 @@
 static struct displaylist dl;
 static uint8_t vertex_light[24], vertex_light_inv[24];
 
-
-
-/*
-   Copies of level_table_* arrays from render_block.c,
-   for top/bottom (0), north/south (1), east/west (2).
-*/
-static uint8_t level_table_0[16] = {
-    0, 0, 0, 0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12,
-};
-static uint8_t level_table_1[16] = {
-    0, 0, 0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
-};
-static uint8_t level_table_2[16] = {
-    0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-};
-
-/*
-    DIM_LIGHT: produces the final 8-bit brightness from raw (0–255),
-    using the chosen level_table, shade_sides=true, luminance=0.
-*/
-static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table, bool shade_sides,
-                                uint8_t luminance) {
-    // Local MAX_U8 to compare high 4 bits against luminance
-    inline uint8_t MAX_U8_LOCAL(uint8_t a, uint8_t b) {
-        return a > b ? a : b;
-    }
+static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table, bool shade_sides, uint8_t luminance) {
+    inline uint8_t MAX_U8_LOCAL(uint8_t a, uint8_t b) { return a > b ? a : b; }
     if (shade_sides) {
-        return (table[MAX_U8_LOCAL(l >> 4, luminance)] << 4)
-             | table[l & 0x0F];
+        return (table[MAX_U8_LOCAL(l >> 4, luminance)] << 4) | table[l & 0x0F];
     } else {
-        return (MAX_U8_LOCAL(l >> 4, luminance) << 4)
-             | (l & 0x0F);
+        return (MAX_U8_LOCAL(l >> 4, luminance) << 4) | (l & 0x0F);
     }
 }
 
 
-
-// Define a helper struct for one face’s UV rectangle
 typedef struct {
     uint8_t u, v, w, h;
 } UVRect;
@@ -129,7 +101,7 @@ static void render_entity_fill_rotated_UVs(
 }
 
 /*
-    emitCubeWithSideUVRot:
+    render_entity_create_cube:
     ======================
     Draws an axis-aligned box from (x0,y0,z0) to (x0+Sx, y0+Sy, z0+Sz),
     using per-vertex lighting from vertex_light[0], and sampling six independent
@@ -145,10 +117,10 @@ static void render_entity_fill_rotated_UVs(
     faceRotations: array of 6 ints, each 0/90/180/−90.
 */
 static void render_entity_create_cube(
-    int x0_px, int y0_px, int z0_px, // position in px
-    int sx_px, int sy_px, int sz_px, // dimensons in px
-    const UVRect faceUVs[6], //  u, v, w, h per face
-    const int faceRotations[6] // rotate texture mapping per face, 0, 90, -90, 180 degrees.
+    int x0_px, int y0_px, int z0_px,
+    int sx_px, int sy_px, int sz_px,
+    const UVRect faceUVs[6],
+    const int faceRotations[6]
 ) {
     int x0 = x0_px * 16;
     int y0 = y0_px * 16;
@@ -156,12 +128,9 @@ static void render_entity_create_cube(
     int x1 = x0 + sx_px * 16;
     int y1 = y0 + sy_px * 16;
     int z1 = z0 + sz_px * 16;
-
-    // sw, sh are scale factors from UVRect units to actual texture‐space units
     const int sw = 256 / 64;
     const int sh = 256 / 32;
 
-    // Precompute raw UV corners for each face (u0,v0 → u1,v1):
     uint8_t ub0 = faceUVs[0].u * sw;
     uint8_t vb0 = faceUVs[0].v * sh;
     uint8_t ub1 = faceUVs[0].u * sw + faceUVs[0].w * sw;
@@ -192,49 +161,37 @@ static void render_entity_create_cube(
     uint8_t ue1 = faceUVs[5].u * sw + faceUVs[5].w * sw;
     uint8_t ve1 = faceUVs[5].v * sh + faceUVs[5].h * sh;
 
-    // Compute base lighting values (same as original emitCubeWithSideUV):
-    uint8_t base_raw   = vertex_light[0];
-    uint8_t raw_top    = base_raw;
-    uint8_t raw_bottom = (base_raw > 16 ? base_raw - 16 : 0);
-
-    // Each face will need an array of 8 bytes for rotated UVs:
+    uint8_t uniform_light = vertex_light[0];
+    uint8_t l0, l1;
     uint8_t uv4[8];
 
-    // ---- Bottom face (Y−, index 0) ----
     {
         int vx0 = x1, vy0 = y0, vz0 = z0;
         int vx1 = x0, vy1 = y0, vz1 = z0;
         int vx2 = x0, vy2 = y0, vz2 = z1;
         int vx3 = x1, vy3 = y0, vz3 = z1;
-        uint8_t l0 = DIM_LIGHT(base_raw, level_table_0, true, 0);
-
+        l0 = uniform_light;
         render_entity_fill_rotated_UVs(ub0, vb0, ub1, vb1, faceRotations[0], uv4);
-        // Vertex 0 (BL)
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
         displaylist_texcoord(&dl, uv4[0], uv4[1]);
-        // Vertex 1 (BR)
         displaylist_pos(&dl, vx1, vy1, vz1);
         displaylist_color(&dl, l0);
         displaylist_texcoord(&dl, uv4[2], uv4[3]);
-        // Vertex 2 (TR)
         displaylist_pos(&dl, vx2, vy2, vz2);
         displaylist_color(&dl, l0);
         displaylist_texcoord(&dl, uv4[4], uv4[5]);
-        // Vertex 3 (TL)
         displaylist_pos(&dl, vx3, vy3, vz3);
         displaylist_color(&dl, l0);
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 
-    // ---- Top face (Y+, index 1) ----
     {
         int vx0 = x1, vy0 = y1, vz0 = z1;
         int vx1 = x0, vy1 = y1, vz1 = z1;
         int vx2 = x0, vy2 = y1, vz2 = z0;
         int vx3 = x1, vy3 = y1, vz3 = z0;
-        uint8_t l0 = DIM_LIGHT(base_raw, level_table_0, true, 0);
-
+        l0 = uniform_light;
         render_entity_fill_rotated_UVs(ut0, vt0, ut1, vt1, faceRotations[1], uv4);
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
@@ -250,15 +207,13 @@ static void render_entity_create_cube(
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 
-    // ---- North face (+Z, index 2) ----
     {
-        int vx0 = x0,  vy0 = y0, vz0 = z1;
-        int vx1 = x0,  vy1 = y1, vz1 = z1;
-        int vx2 = x1,  vy2 = y1, vz2 = z1;
-        int vx3 = x1,  vy3 = y0, vz3 = z1;
-        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
-
+        int vx0 = x0, vy0 = y0, vz0 = z1;
+        int vx1 = x0, vy1 = y1, vz1 = z1;
+        int vx2 = x1, vy2 = y1, vz2 = z1;
+        int vx3 = x1, vy3 = y0, vz3 = z1;
+        l0 = uniform_light;
+        l1 = uniform_light;
         render_entity_fill_rotated_UVs(un0, vn0, un1, vn1, faceRotations[2], uv4);
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
@@ -274,15 +229,13 @@ static void render_entity_create_cube(
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 
-    // ---- South face (−Z, index 3) ----
     {
         int vx0 = x1, vy0 = y0, vz0 = z0;
         int vx1 = x1, vy1 = y1, vz1 = z0;
         int vx2 = x0, vy2 = y1, vz2 = z0;
         int vx3 = x0, vy3 = y0, vz3 = z0;
-        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_1, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_1, true, 0);
-
+        l0 = uniform_light;
+        l1 = uniform_light;
         render_entity_fill_rotated_UVs(us0, vs0, us1, vs1, faceRotations[3], uv4);
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
@@ -298,15 +251,13 @@ static void render_entity_create_cube(
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 
-    // ---- West face (−X, index 4) ----
     {
         int vx0 = x0, vy0 = y0, vz0 = z0;
         int vx1 = x0, vy1 = y1, vz1 = z0;
         int vx2 = x0, vy2 = y1, vz2 = z1;
         int vx3 = x0, vy3 = y0, vz3 = z1;
-        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
-
+        l0 = uniform_light;
+        l1 = uniform_light;
         render_entity_fill_rotated_UVs(uw0, vw0, uw1, vw1, faceRotations[4], uv4);
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
@@ -322,15 +273,13 @@ static void render_entity_create_cube(
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 
-    // ---- East face (+X, index 5) ----
     {
         int vx0 = x1, vy0 = y0, vz0 = z1;
         int vx1 = x1, vy1 = y1, vz1 = z1;
         int vx2 = x1, vy2 = y1, vz2 = z0;
         int vx3 = x1, vy3 = y0, vz3 = z0;
-        uint8_t l0 = DIM_LIGHT(raw_bottom, level_table_2, true, 0);
-        uint8_t l1 = DIM_LIGHT(raw_top,    level_table_2, true, 0);
-
+        l0 = uniform_light;
+        l1 = uniform_light;
         render_entity_fill_rotated_UVs(ue0, ve0, ue1, ve1, faceRotations[5], uv4);
         displaylist_pos(&dl, vx0, vy0, vz0);
         displaylist_color(&dl, l0);
@@ -346,6 +295,7 @@ static void render_entity_create_cube(
         displaylist_texcoord(&dl, uv4[6], uv4[7]);
     }
 }
+
 
 void render_entity_update_light(uint8_t light) {
     memset(vertex_light,     light,  sizeof(vertex_light));
@@ -366,7 +316,7 @@ void render_entity_minecart_init(void) {
     memset(vertex_light_inv, 0xFF, sizeof(vertex_light_inv));
 }
 
-void render_entity_minecart(mat4 view, bool fullbright) {
+void render_entity_minecart(mat4 view) {
     assert(view);
 
     mat4 model, mv;
