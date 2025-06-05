@@ -253,6 +253,10 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 	e->data.item.age = 0;
 	e->data.item.item = it;
 	e->getBoundingBox = getBoundingBox;
+    e->leftClickText = NULL;
+//    e->onLeftClick   = onLeftClick;
+    e->rightClickText = NULL;
+//    e->onRightClick   = onRightClick;
 
 	entity_default_init(e, server, world);
 }

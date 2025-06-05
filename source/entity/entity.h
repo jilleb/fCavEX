@@ -64,6 +64,8 @@ struct entity {
 	enum entity_type type;
     const char *name;
 	size_t (*getBoundingBox)(const struct entity *e, struct AABB *out);
+    const char *leftClickText;
+    const char *rightClickText;
     bool (*onRightClick)(struct entity *e);
     bool (*onLeftClick)(struct entity *e);
 	union entity_data {

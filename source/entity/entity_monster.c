@@ -156,6 +156,10 @@ void entity_monster(uint32_t id, struct entity* e, bool server, void* world,
 	e->data.monster.id = monster_id;
 	e->data.monster.frame = 1;
 	e->getBoundingBox = getBoundingBox;
+    e->leftClickText = "Attack";
+//    e->onLeftClick   = onLeftClick;
+    e->rightClickText = NULL;
+//    e->onRightClick   = onRightClick;
 
 	entity_default_init(e, server, world);
 }

@@ -21,3 +21,6 @@ assets/default.png
 *.zip
 fCavEX.elf
 Makefile
+fCavEX.dol
+fCavEX.elf
+Makefile

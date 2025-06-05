@@ -246,6 +246,10 @@ void entity_local_player(uint32_t id, struct entity* e, struct world* w) {
 	e->teleport = entity_default_teleport;
 	e->type = ENTITY_LOCAL_PLAYER;
 	e->data.local_player.capture_input = false;
+    e->leftClickText = NULL;
+//    e->onLeftClick   = onLeftClick;
+    e->rightClickText = NULL;
+//    e->onRightClick   = onRightClick;
 
 	entity_default_init(e, false, w);
 	e->data.local_player.jump_ticks = 0;

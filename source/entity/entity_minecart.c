@@ -165,7 +165,9 @@ void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->type        = ENTITY_MINECART;
     e->on_ground   = true;
     e->getBoundingBox = getBoundingBox;
+    e->leftClickText = NULL;
     e->onLeftClick   = onLeftClick;
+    e->rightClickText = "Use";
     e->onRightClick   = onRightClick;
 
 

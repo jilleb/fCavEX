@@ -179,6 +179,59 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 }
 
 static void screen_ingame_update(struct screen* s, float dt) {
+	// left click interaction
+	if (gstate.camera_hit.entity_hit
+	    && input_pressed(IB_ACTION1)
+	    && !gstate.digging.active)
+	{
+	    struct entity **ptr = dict_entity_get(
+	        gstate.entities,
+	        gstate.camera_hit.entity_id
+	    );
+	    if (ptr) {
+	        struct entity *e = *ptr;
+	        if (e && e->onLeftClick) {
+	            e->onLeftClick(e);
+	            // Optionele punch‐animatie (zoals eerder)
+	            struct item_data held;
+	            if (inventory_get_hotbar_item(
+	                   windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]), &held))
+	            {
+	                gstate.held_item_animation.punch.start = time_get();
+	                gstate.held_item_animation.punch.place = false;
+	            }
+	            return;
+	        }
+	    }
+	}
+
+	// right click interaction met entity via dict_entity_get
+	if (gstate.camera_hit.entity_hit
+	    && input_pressed(IB_ACTION2)
+	    && !gstate.digging.active)
+	{
+	    struct entity **ptr = dict_entity_get(
+	        gstate.entities,
+	        gstate.camera_hit.entity_id
+	    );
+	    if (ptr) {
+	        struct entity *e = *ptr;
+	        if (e && e->onRightClick) {
+	            e->onRightClick(e);
+	            struct item_data held;
+	            if (inventory_get_hotbar_item(
+	                   windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]), &held))
+	            {
+	                gstate.held_item_animation.punch.start = time_get();
+	                gstate.held_item_animation.punch.place = false;
+	            }
+	            return;
+	        }
+	    }
+	}
+
+
+// block place
 	if(gstate.camera_hit.hit && input_pressed(IB_ACTION2)
 	   && !gstate.digging.active) {
 		svin_rpc_send(&(struct server_rpc) {
@@ -196,6 +249,7 @@ static void screen_ingame_update(struct screen* s, float dt) {
 		}
 	}
 
+	// block dig
 	if(gstate.digging.active) {
 		struct block_data blk
 			= world_get_block(&gstate.world, gstate.digging.x, gstate.digging.y,
@@ -387,11 +441,25 @@ sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 4, str, GFX_GUI_SCALE * 8, true);
 
 	if (gstate.camera_hit.entity_hit) {
-	    // Show entity info
-		struct entity *e = *dict_entity_get(*&gstate.entities, gstate.camera_hit.entity_id);
-	    const char *ename = e->name;
-	    sprintf(str, "(%i, %i, %i), %s (%u)", gstate.camera_hit.x,
-				gstate.camera_hit.y, gstate.camera_hit.z, ename, e->id);
+		// Show entity info
+		struct entity **ptr = dict_entity_get(
+		    gstate.entities,
+		    gstate.camera_hit.entity_id
+		);
+		if (ptr) {
+		    struct entity *e = *ptr;
+		    const char *ename = e->name;
+		    sprintf(str, "(%i, %i, %i), %s (%u)",
+		            gstate.camera_hit.x,
+		            gstate.camera_hit.y,
+		            gstate.camera_hit.z,
+		            ename, e->id);
+		} else {
+		    sprintf(str, "(%i, %i, %i)",
+		            gstate.camera_hit.x,
+		            gstate.camera_hit.y,
+		            gstate.camera_hit.z);
+		}
 		gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 5, str, GFX_GUI_SCALE * 8, true);
 	} else	if(gstate.camera_hit.hit) {
 		struct block_data bd
@@ -410,44 +478,26 @@ sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
 	icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Inventory");
 	icon_offset += gutil_control_icon(icon_offset, IB_JUMP, "Jump");
 
-
 	if (gstate.camera_hit.entity_hit) {
-	    struct entity *e = *dict_entity_get(
+	    struct entity **ptr = dict_entity_get(
 	        gstate.entities,
 	        gstate.camera_hit.entity_id
 	    );
-	    if (e) {
-	        switch (e->type) {
-	            case ENTITY_MONSTER:
-	                // Toon alleen “Attack” voor monsters
-	                icon_offset += gutil_control_icon(icon_offset,
-	                                                  IB_ACTION1,
-	                                                  "Attack");
-	                break;
-
-	            case ENTITY_MINECART:
-	                // Toon alleen “Use” voor minecarts
-	                icon_offset += gutil_control_icon(icon_offset,
-	                                                  IB_ACTION2,
-	                                                  "Use");
-	                break;
-
-	            case ENTITY_ITEM:
-	                // Voor items: géén icoon tonen
-	                break;
-
-	            default:
-	                // Voor alle andere entiteiten (bv. koeien, villagers) beide
-	                icon_offset += gutil_control_icon(icon_offset,
-	                                                  IB_ACTION2,
-	                                                  "Use");
-	                icon_offset += gutil_control_icon(icon_offset,
-	                                                  IB_ACTION1,
-	                                                  "Attack");
-	                break;
+	    if (ptr) {
+	        struct entity *e = *ptr;
+	        if (e->leftClickText) {
+	            icon_offset += gutil_control_icon(icon_offset,
+	                                              IB_ACTION1,
+	                                              e->leftClickText);
+	        }
+	        if (e->rightClickText) {
+	            icon_offset += gutil_control_icon(icon_offset,
+	                                              IB_ACTION2,
+	                                              e->rightClickText);
 	        }
 	    }
 	}
+
 	else if (gstate.camera_hit.hit) {
 		struct item_data item;
 		struct block_data bd
