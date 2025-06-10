@@ -24,8 +24,13 @@
 #include "../platform/gfx.h"
 #include "../cglm/types.h"
 
+typedef struct {
+    uint8_t u, v, w, h;
+} UVRect;
+
 void render_entity_minecart_init(void);
 void render_entity_minecart(mat4 view);
 void render_entity_update_light(uint8_t light);
+void render_entity_creeper(mat4 view, float headYawDeg);
 
 #endif

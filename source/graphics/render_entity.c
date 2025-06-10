@@ -16,9 +16,9 @@
 	You should have received a copy of the GNU General Public License
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
-/* render_minecart.c
+/* entity.c
    -----------------
-   Draws the minecart entity as a simple 3D cube instead of a billboard.
+   Draws the entities as a simple 3D cubes instead of a billboard.
 */
 
 #include <assert.h>
@@ -46,7 +46,6 @@ static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table, bool shade_sides, uin
         return (MAX_U8_LOCAL(l >> 4, luminance) << 4) | (l & 0x0F);
     }
 }
-
 
 typedef struct {
     uint8_t u, v, w, h;
@@ -130,36 +129,67 @@ static void render_entity_create_cube(
     int z1 = z0 + sz_px * 16;
     const int sw = 256 / 64;
     const int sh = 256 / 32;
+    const int UV_MAX = 255;
 
+    // bottom face UV
     uint8_t ub0 = faceUVs[0].u * sw;
     uint8_t vb0 = faceUVs[0].v * sh;
-    uint8_t ub1 = faceUVs[0].u * sw + faceUVs[0].w * sw;
-    uint8_t vb1 = faceUVs[0].v * sh + faceUVs[0].h * sh;
+    int    ub1_i = faceUVs[0].u * sw + faceUVs[0].w * sw;
+    int    vb1_i = faceUVs[0].v * sh + faceUVs[0].h * sh;
+    if (ub1_i > UV_MAX) ub1_i = UV_MAX;
+    if (vb1_i > UV_MAX) vb1_i = UV_MAX;
+    uint8_t ub1 = (uint8_t)ub1_i;
+    uint8_t vb1 = (uint8_t)vb1_i;
 
+    // top face UV
     uint8_t ut0 = faceUVs[1].u * sw;
     uint8_t vt0 = faceUVs[1].v * sh;
-    uint8_t ut1 = faceUVs[1].u * sw + faceUVs[1].w * sw;
-    uint8_t vt1 = faceUVs[1].v * sh + faceUVs[1].h * sh;
+    int    ut1_i = faceUVs[1].u * sw + faceUVs[1].w * sw;
+    int    vt1_i = faceUVs[1].v * sh + faceUVs[1].h * sh;
+    if (ut1_i > UV_MAX) ut1_i = UV_MAX;
+    if (vt1_i > UV_MAX) vt1_i = UV_MAX;
+    uint8_t ut1 = (uint8_t)ut1_i;
+    uint8_t vt1 = (uint8_t)vt1_i;
 
+    // north face UV
     uint8_t un0 = faceUVs[2].u * sw;
     uint8_t vn0 = faceUVs[2].v * sh;
-    uint8_t un1 = faceUVs[2].u * sw + faceUVs[2].w * sw;
-    uint8_t vn1 = faceUVs[2].v * sh + faceUVs[2].h * sh;
+    int    un1_i = faceUVs[2].u * sw + faceUVs[2].w * sw;
+    int    vn1_i = faceUVs[2].v * sh + faceUVs[2].h * sh;
+    if (un1_i > UV_MAX) un1_i = UV_MAX;
+    if (vn1_i > UV_MAX) vn1_i = UV_MAX;
+    uint8_t un1 = (uint8_t)un1_i;
+    uint8_t vn1 = (uint8_t)vn1_i;
 
+    // south face UV
     uint8_t us0 = faceUVs[3].u * sw;
     uint8_t vs0 = faceUVs[3].v * sh;
-    uint8_t us1 = faceUVs[3].u * sw + faceUVs[3].w * sw;
-    uint8_t vs1 = faceUVs[3].v * sh + faceUVs[3].h * sh;
+    int    us1_i = faceUVs[3].u * sw + faceUVs[3].w * sw;
+    int    vs1_i = faceUVs[3].v * sh + faceUVs[3].h * sh;
+    if (us1_i > UV_MAX) us1_i = UV_MAX;
+    if (vs1_i > UV_MAX) vs1_i = UV_MAX;
+    uint8_t us1 = (uint8_t)us1_i;
+    uint8_t vs1 = (uint8_t)vs1_i;
 
+    // west face UV
     uint8_t uw0 = faceUVs[4].u * sw;
     uint8_t vw0 = faceUVs[4].v * sh;
-    uint8_t uw1 = faceUVs[4].u * sw + faceUVs[4].w * sw;
-    uint8_t vw1 = faceUVs[4].v * sh + faceUVs[4].h * sh;
+    int    uw1_i = faceUVs[4].u * sw + faceUVs[4].w * sw;
+    int    vw1_i = faceUVs[4].v * sh + faceUVs[4].h * sh;
+    if (uw1_i > UV_MAX) uw1_i = UV_MAX;
+    if (vw1_i > UV_MAX) vw1_i = UV_MAX;
+    uint8_t uw1 = (uint8_t)uw1_i;
+    uint8_t vw1 = (uint8_t)vw1_i;
 
+    // east face UV
     uint8_t ue0 = faceUVs[5].u * sw;
     uint8_t ve0 = faceUVs[5].v * sh;
-    uint8_t ue1 = faceUVs[5].u * sw + faceUVs[5].w * sw;
-    uint8_t ve1 = faceUVs[5].v * sh + faceUVs[5].h * sh;
+    int    ue1_i = faceUVs[5].u * sw + faceUVs[5].w * sw;
+    int    ve1_i = faceUVs[5].v * sh + faceUVs[5].h * sh;
+    if (ue1_i > UV_MAX) ue1_i = UV_MAX;
+    if (ve1_i > UV_MAX) ve1_i = UV_MAX;
+    uint8_t ue1 = (uint8_t)ue1_i;
+    uint8_t ve1 = (uint8_t)ve1_i;
 
     uint8_t uniform_light = vertex_light[0];
     uint8_t l0, l1;
@@ -307,9 +337,7 @@ static inline uint8_t MAX_U8(uint8_t a, uint8_t b) {
     return a > b ? a : b;
 }
 
-
-
-// minecart specific:
+// minecart
 void render_entity_minecart_init(void) {
     displaylist_init(&dl, 320, 64);
     memset(vertex_light,     0x0F, sizeof(vertex_light));
@@ -428,6 +456,129 @@ void render_entity_minecart(mat4 view) {
     gfx_lighting(true);
     displaylist_render_immediate(&dl, 5 * 24);
     gfx_lighting(false);
+    gfx_matrix_modelview(GLM_MAT4_IDENTITY);
+}
+
+// creeper
+// todo: leg movement.
+void render_entity_creeper(mat4 view, float headYawDeg) {
+    assert(view);
+
+    mat4 model, body_mv;
+    glm_mat4_identity(model);
+    glm_translate_make(model, (vec3){-0.5f, 0.0f, -0.5f});
+    glm_mat4_mul(view, model, body_mv);
+
+    gfx_bind_texture(&texture_creeper);
+
+    // head
+    displaylist_reset(&dl);
+    {
+        mat4 head_model;
+        glm_mat4_identity(head_model);
+        glm_translate_make(head_model, (vec3){-0.5f, 0.0f, -0.5f});
+
+        vec3 pivot = {
+            (4.0f + 8.0f/2.0f) / 16.0f,  // x
+            (18.0f + 8.0f/2.0f) / 16.0f, // y
+            (4.0f + 8.0f/2.0f) / 16.0f   // z
+        };
+        glm_translate(head_model, pivot);
+        glm_rotate_y(head_model, glm_rad(headYawDeg), head_model);
+        vec3 invPivot = {-pivot[0], -pivot[1], -pivot[2]};
+        glm_translate(head_model, invPivot);
+
+        mat4 head_mv;
+        glm_mat4_mul(view, head_model, head_mv);
+        gfx_matrix_modelview(head_mv);
+    }
+
+	static const UVRect creeperHeadUVs[6] = {
+		{16,  0, 8, 8}, {8,   0, 8, 8},
+		{0,   8, 8, 8}, {8,   8, 8, 8},
+		{16,  8, 8, 8}, {24,  8, 8, 8}
+	};
+	int creeperHeadDirection[6] = {-90, -90, -90, -90, -90, -90};
+
+	render_entity_create_cube(
+		4, 18, 4,  // x0,y0,z0 in “px”
+		8,  8,  8, // sx,sy,sz
+		creeperHeadUVs,
+		creeperHeadDirection
+	);
+	displaylist_render_immediate(&dl,24);
+
+	// body
+    displaylist_reset(&dl);
+    gfx_matrix_modelview(body_mv);
+
+    const int bwidth = 8;
+    const int bheight = 12; //12
+    const int bdepth = 4;
+
+    static const UVRect creeperBodyUVs[6] = {
+    		{   20, 16,  bwidth, bdepth },  // bottom
+    		{   28,  16, bwidth, bdepth },   // top
+    		{   32, 20,  bwidth, bheight },  // back
+    		{   20,  20, bwidth, bheight },  // front
+    		{   28,  20, bdepth, bheight },  // left
+    		{   16,  20, bdepth, bheight }   // right
+    };
+    int creeperBodyDirection[6] =  {0,0,-90,-90,-90,-90};
+    render_entity_create_cube(
+        4, 6, 6,    // x0=4, y0=6,  z0=6
+        8, 12, 4,   // sx=8, sy=12, sz=4
+		creeperBodyUVs,
+		creeperBodyDirection
+    );
+
+const int width = 4;
+const int height = 6;
+const int depth = 4;
+// legs
+    static const UVRect creeperLegUVs[6] = {
+		{   8, 16,  width, depth }, // bottom
+		{   4,  16, width, depth },   // top
+		{   12, 20, width, height },  // back
+		{   4,  20, width, height },  // front
+		{   8,  20, width, height },  // left
+		{   0,  20, width, height }   // right
+    };
+
+    static const int creeperLegDirection[6] = {
+    		0,0,-90,-90,-90,-90
+    };
+
+
+    int legPositions[4][3] = {
+        { 4, 0,  2 },
+        { 8, 0,  2 },
+        { 4, 0, 10 },
+        { 8, 0, 10 }
+    };
+
+    for (int i = 0; i < 4; i++) {
+        render_entity_create_cube(
+            legPositions[i][0], legPositions[i][1], legPositions[i][2],
+			width,          height,          depth,
+            creeperLegUVs,     creeperLegDirection
+        );
+    }
+//
+//    //back left leg
+//    render_entity_create_cube(4, 0, 2, 4, 6, 4, creeperLegUVs, creeperLegDirection);
+//
+//    // back right leg
+//    render_entity_create_cube(8, 0, 2, 4, 6, 4, creeperLegUVs, creeperLegDirection);
+//
+//    //Front-left leg
+//    render_entity_create_cube(4, 0, 10, 4, 6, 4, creeperLegUVs, creeperLegDirection);
+//
+//    // front-right leg
+//    render_entity_create_cube(8, 0, 10, 4, 6, 4, creeperLegUVs, creeperLegDirection);
+
+    displaylist_render_immediate(&dl, 5 * 24);
+    gfx_lighting(true);
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
 
