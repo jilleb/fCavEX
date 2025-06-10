@@ -115,7 +115,6 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
 
     // 5) Finally draw the minecart cube with the current lighting
     render_entity_minecart(mv);
-
     // 6) (Optional) if you have a shadow routine, set up a small AABB and call it:
     struct AABB bbox;
     aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);

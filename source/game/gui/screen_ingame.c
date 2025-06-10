@@ -441,7 +441,6 @@ sprintf(str, "time: %.0f (%.0f)  angle: %.3f", time, day_ticks, angle);
 	gutil_text(4, 4 + (GFX_GUI_SCALE * 8 + 1) * 4, str, GFX_GUI_SCALE * 8, true);
 
 	if (gstate.camera_hit.entity_hit) {
-		// Show entity info
 		struct entity **ptr = dict_entity_get(
 		    gstate.entities,
 		    gstate.camera_hit.entity_id
