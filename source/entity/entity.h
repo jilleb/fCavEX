@@ -35,6 +35,15 @@ enum entity_type {
 	ENTITY_MINECART
 };
 
+enum ai_state {
+    AI_IDLE,
+    AI_CHASE,
+    AI_FUSE,
+    AI_ATTACK,
+    // todo: add more
+};
+
+
 struct server_local;
 
 struct AABB;
@@ -55,6 +64,10 @@ struct entity {
 	bool on_ground;
 
 	vec3 network_pos;
+
+    float         detection_range;
+    float         ai_timer;
+    enum ai_state ai_state;
 
 	bool (*tick_client)(struct entity*);
 	bool (*tick_server)(struct entity*, struct server_local*);
@@ -93,28 +106,12 @@ struct entity {
 	} data;
 };
 
-struct monster_frame {
-	int x;
-	int y;
-	int length;
-	void (*action)();
-	int next_frame;
-};
-
 struct monster {
 	int max_health;
 	int speed;
 	int width;
 	int height;
-	int frame_init;
-	int frame_alert;
-	int frame_hurt;
-	int frame_melee;
-	int frame_attack;
-	int frame_death;
 };
-
-extern struct monster_frame frames[256];
 
 
 

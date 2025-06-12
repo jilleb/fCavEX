@@ -459,6 +459,13 @@ void render_entity_minecart(mat4 view) {
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
 
+
+void render_entity_init(void) {
+    displaylist_init(&dl, 320, 64);
+    memset(vertex_light,     0x0F, sizeof(vertex_light));
+    memset(vertex_light_inv, 0xFF, sizeof(vertex_light_inv));
+}
+
 // creeper
 // todo: leg movement.
 void render_entity_creeper(mat4 view, float headYawDeg) {
@@ -582,4 +589,79 @@ const int depth = 4;
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
 
+// pig
+// todo: leg movement.
+// todo: texture mapping
+// todo: proportions / placement
+void render_entity_pig(mat4 view, float headYawDeg) {
+    assert(view);
 
+    // 1) Basis‐matrix
+    mat4 model, body_mv;
+    glm_mat4_identity(model);
+    glm_translate_make(model, (vec3){ -0.5f, 0.0f, -0.5f });
+    glm_mat4_mul(view, model, body_mv);
+
+    gfx_bind_texture(&texture_pig);
+
+    // 2) Head (8×8×8), y0 = 4
+    displaylist_reset(&dl);
+    {
+        // pivot uit Java: setRotationPoint(0,6,...) → in px = 6*1/16 = 0.375
+        vec3 pivot = { (4.0f+4.0f)/16.0f, (6.0f)/16.0f, (4.0f+4.0f)/16.0f };
+        mat4 head_m;
+        glm_mat4_identity(head_m);
+        glm_translate(head_m, pivot);
+        glm_rotate_y(head_m, glm_rad(headYawDeg), head_m);
+        glm_translate(head_m, (vec3){ -pivot[0], -pivot[1], -pivot[2] });
+        mat4 head_mv;
+        glm_mat4_mul(view, head_m, head_mv);
+        gfx_matrix_modelview(head_mv);
+    }
+    static const UVRect headUV[6] = {
+        {16, 0, 8, 8}, { 8,  0, 8, 8},
+        { 0, 8, 8, 8}, { 8,  8, 8, 8},
+        {16, 8, 8, 8}, {24,  8, 8, 8}
+    };
+    static const int headDir[6] = {0,0,-90,-90,-90,-90};
+    render_entity_create_cube(4, 4, 4,  8, 8, 8, headUV, headDir);
+    displaylist_render_immediate(&dl, 24);
+
+    // 3) Body (8×12×4), y0 = 0
+    displaylist_reset(&dl);
+    gfx_matrix_modelview(body_mv);
+    static const UVRect bodyUV[6] = {
+        {20,16, 8,4}, {28,16, 8,4},
+        {32,20, 8,12},{20,20, 8,12},
+        {28,20, 4,12},{16,20, 4,12}
+    };
+    static const int bodyDir[6] = {0,0,-90,-90,-90,-90};
+    render_entity_create_cube(4, 0, 6,  8,12,4, bodyUV, bodyDir);
+
+    // 4) Legs (4×6×4), y0 = 0
+    displaylist_reset(&dl);
+    gfx_matrix_modelview(body_mv);
+    static const UVRect legUV[6] = {
+        { 8,16,4,4}, {4,16,4,4},
+        {12,20,4,6},{4,20,4,6},
+        { 8,20,6,6},{0,20,6,6}
+    };
+    static const int legDir[6] = {0,0,-90,-90,-90,-90};
+    int legPos[4][3] = {
+        {4,0, 2},
+        {8,0, 2},
+        {4,0,10},
+        {8,0,10}
+    };
+    for(int i=0;i<4;i++){
+        render_entity_create_cube(
+            legPos[i][0], legPos[i][1], legPos[i][2],
+            4,6,4, legUV, legDir
+        );
+    }
+    displaylist_render_immediate(&dl, 4*24);
+
+    // 5) Cleanup
+    gfx_lighting(true);
+    gfx_matrix_modelview(GLM_MAT4_IDENTITY);
+}

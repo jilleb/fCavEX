@@ -17,15 +17,21 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RENDER_MONSTER_H
-#define RENDER_MONSTER_H
 
+#ifndef ENTITY_MONSTER_H
+#define ENTITY_MONSTER_H
+
+#include <stdbool.h>
 #include "../cglm/cglm.h"
+#include "entity.h"
 
-#include "../entity/entity.h"
+enum {
+    MONSTER_ZOMBIE  = 0,
+    MONSTER_CREEPER = 1,
+    MONSTER_COUNT
+};
 
-void render_monster_init(void);
-void render_monster_update_light(uint8_t light);
-void render_monster(int frame, mat4 view, bool fullbright);
+void entity_monster(uint32_t id, struct entity* e, bool server, void* world, int monster_id);
 
 #endif
+

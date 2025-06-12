@@ -265,6 +265,10 @@ void entity_try_move(struct entity* e, vec3 pos, vec3 vel, struct AABB* bbox,
 
 	float threshold;
 	if(entity_intersection_threshold(e, bbox, pos, tmp, &threshold)) {
+		if (e->type != 0){
+	    printf("[COLL] axis=%d  pos=%.2f→%.2f  threshold=%.2f  vel=%.2f\n",
+	           coord, pos[coord], tmp[coord], threshold, vel[coord]);
+		}
 		if(coord == 1 && vel[1] < 0.0F)
 			*on_ground = true;
 
@@ -274,6 +278,9 @@ void entity_try_move(struct entity* e, vec3 pos, vec3 vel, struct AABB* bbox,
 		vel[coord] = 0.0F;
 	} else if(coord == 1) {
 		*on_ground = false;
+	} else {
+	    printf("[FREE]  axis=%d  pos=%.2f→%.2f  threshold=%.2f\n",
+	           coord, pos[coord], tmp[coord], threshold);
 	}
 
 	pos[coord] = pos[coord] * (1.0F - threshold) + tmp[coord] * threshold;
