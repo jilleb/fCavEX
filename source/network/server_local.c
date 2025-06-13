@@ -120,7 +120,12 @@ struct entity* server_local_spawn_monster(vec3 pos, int monster_id,
 	struct entity* e = *e_ptr;
 	assert(e);
 
+
 	entity_monster(entity_id, e, true, &s->world, monster_id);
+
+	pos[0] = floorf(pos[0]) + 0.5f;
+	pos[2] = floorf(pos[2]) + 0.5f;
+	//pos[1] = pos[1] + 1.0f;
 	e->teleport(e, pos);
 
 	glm_vec3_copy((vec3) {rand_gen_flt(&s->rand_src) - 0.5F,
