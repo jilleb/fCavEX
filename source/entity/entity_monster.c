@@ -1,20 +1,20 @@
 /*
-	Copyright (c) 2023 ByteBit/xtreme8000
+    Copyright (c) 2023 ByteBit/xtreme8000
 
-	This file is part of CavEX.
+    This file is part of CavEX.
 
-	CavEX is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    CavEX is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	CavEX is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    CavEX is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with CavEX. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <assert.h>
@@ -31,8 +31,8 @@
 // Creeper movement constants
 #define CREEPER_ACCEL            2.0f    // acceleration per tick
 #define CREEPER_MAX_SPEED        2.0f    // max horizontal speed per tick
-#define CREEPER_WANDER_INTERVAL  4      // ticks between direction changes
-#define GRAVITY                  0.08f   // gravity per tick
+#define CREEPER_WANDER_INTERVAL  20      // ticks between direction changes
+#define GRAVITY                  0.1f   // gravity per tick
 #define UNSTUCK_MOVE             0.01f   // slight upward nudge if stuck
 #define YAW_SMOOTH_FACTOR        0.2f    // smoothing factor [0..1]
 
@@ -48,7 +48,7 @@ static bool client_tick_creeper(struct entity* e) {
     assert(e);
     // Position interpolation
     glm_vec3_copy(e->pos, e->pos_old);
-    glm_vec3_copy(e->network_pos, e->pos);
+    glm_vec3_lerp(e->pos, e->network_pos, 0.3f, e->pos);
 
     // Compute movement delta
     vec3 delta;
@@ -90,18 +90,17 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
         e->ai_timer = CREEPER_WANDER_INTERVAL;
     }
 
-    // Gravity
-    e->vel[1] -= GRAVITY;
-    e->on_ground = false;
-
     // Unstuck if embedded
     struct AABB b0, b1;
     make_creeper_bbox(&b0);
+    aabb_translate(&b0, e->pos[0], e->pos[1], e->pos[2]);
+
     b1 = b0;
     aabb_translate(&b1, 0.0f, UNSTUCK_MOVE, 0.0f);
     if (entity_aabb_intersection(e, &b0) && !entity_aabb_intersection(e, &b1)) {
         e->pos[1] += UNSTUCK_MOVE;
     }
+
 
     // Collision sweep: Y, X, Z
     bool collision_xz = false;
@@ -118,11 +117,44 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
         if (axes[i] == 1 && e->on_ground) e->vel[1] = 0.0f;
     }
 
+//auto jump
+    if (e->on_ground && collision_xz) {
+        // Bereken richting van beweging
+        float dx = e->vel[0];
+        float dz = e->vel[2];
+        float mag = sqrtf(dx * dx + dz * dz);
+        if (mag > 0.01f) {
+            dx /= mag;
+            dz /= mag;
+
+            // Kijk of er een blok voor hem ligt, en lucht erboven
+            int tx = (int)floorf(e->pos[0] + dx);
+            int ty = (int)floorf(e->pos[1]);
+            int tz = (int)floorf(e->pos[2] + dz);
+
+            struct block_data blk1, blk2;
+            bool has_front = entity_get_block(e, tx, ty,     tz, &blk1);
+            bool has_top   = entity_get_block(e, tx, ty + 1, tz, &blk2);
+
+            if (has_front && has_top
+                && !blocks[blk1.type]->can_see_through   // obstakel voor je
+                &&  blocks[blk2.type]->can_see_through)  // lucht erboven
+            {
+            	e->vel[1] = 0.42f;
+
+            }
+        }
+    }
+    // Gravity
+    e->vel[1] -= GRAVITY;
+    e->on_ground = false;
+
+
     // Friction
     float slip = e->on_ground ? 0.6f : 1.0f;
-    e->vel[0] *= slip * 0.91f;
-    e->vel[2] *= slip * 0.91f;
-
+    e->vel[0] *= slip * 0.8f;
+    e->vel[2] *= slip * 0.8f;
+    e->vel[1] *= 0.9f;
     // Update orientation to face motion
     if (e->vel[0] != 0.0f || e->vel[2] != 0.0f) {
         e->orient[1] = atan2f(e->vel[0], e->vel[2]) + M_PI;
@@ -135,6 +167,17 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
         .payload.entity_move.entity_id = e->id,
         .payload.entity_move.pos = {e->pos[0], e->pos[1], e->pos[2]}
     });
+
+    float walk_speed = sqrtf(e->vel[0]*e->vel[0] + e->vel[2]*e->vel[2]);
+    if (walk_speed > 0.01f) {
+        e->data.monster.frame_time_left--;
+        if (e->data.monster.frame_time_left <= 0) {
+            e->data.monster.frame = (e->data.monster.frame + 1) % 60; // 60 = volle cyclus
+            e->data.monster.frame_time_left = 1; // of 2–3 voor langzamer ritme
+        }
+    }
+
+
     return false;
 }
 
@@ -196,6 +239,11 @@ void entity_monster(uint32_t id,
     e->leftClickText = "Attack";
     e->onRightClick = NULL;
     e->rightClickText = NULL;
+    // spawn slightly higher, to prevent getting stuck
+    if (server) {
+        e->pos[1] += 0.1f;
+        e->pos_old[1] = e->pos[1];
+    }
 
     e->ai_timer     = CREEPER_WANDER_INTERVAL;
 }
