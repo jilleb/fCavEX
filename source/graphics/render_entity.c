@@ -38,15 +38,6 @@
 static struct displaylist dl;
 static uint8_t vertex_light[24], vertex_light_inv[24];
 
-static inline uint8_t DIM_LIGHT(uint8_t l, uint8_t* table, bool shade_sides, uint8_t luminance) {
-    inline uint8_t MAX_U8_LOCAL(uint8_t a, uint8_t b) { return a > b ? a : b; }
-    if (shade_sides) {
-        return (table[MAX_U8_LOCAL(l >> 4, luminance)] << 4) | table[l & 0x0F];
-    } else {
-        return (MAX_U8_LOCAL(l >> 4, luminance) << 4) | (l & 0x0F);
-    }
-}
-
 typedef struct {
     uint8_t u, v, w, h;
 } UVRect;
@@ -333,10 +324,6 @@ void render_entity_update_light(uint8_t light) {
 }
 
 
-static inline uint8_t MAX_U8(uint8_t a, uint8_t b) {
-    return a > b ? a : b;
-}
-
 // minecart
 void render_entity_minecart_init(void) {
     displaylist_init(&dl, 320, 64);
@@ -454,7 +441,6 @@ void render_entity_minecart(mat4 view) {
     );
 
     gfx_lighting(true);
-    displaylist_render_immediate(&dl, 5 * 24);
     gfx_lighting(false);
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
@@ -467,18 +453,28 @@ void render_entity_init(void) {
 }
 
 // creeper
-// todo: leg movement.
-void render_entity_creeper(mat4 view, float headYawDeg) {
-    assert(view);
+void render_entity_creeper(mat4 view, float headYawDeg, float bodyYawDeg, int frame){
+	assert(view);
 
+    float walkAngle = sinf((float)(frame % 60) / 60.0f * 2.0f * M_PI) * (30.0f * (M_PI / 180.0f));
+
+    // Compute body matrix with rotation around center
     mat4 model, body_mv;
     glm_mat4_identity(model);
+    vec3 bodyPivot = {
+        (4.0f + 8.0f / 2.0f) / 16.0f,
+        (6.0f + 12.0f / 2.0f) / 16.0f,
+        (6.0f + 4.0f / 2.0f) / 16.0f
+    };
     glm_translate_make(model, (vec3){-0.5f, 0.0f, -0.5f});
+    glm_translate(model, bodyPivot);
+    glm_rotate_y(model, glm_rad(bodyYawDeg - 90.0f), model);
+    glm_translate(model, (vec3){ -bodyPivot[0], -bodyPivot[1], -bodyPivot[2] });
     glm_mat4_mul(view, model, body_mv);
 
     gfx_bind_texture(&texture_creeper);
 
-    // head
+    // Head
     displaylist_reset(&dl);
     {
         mat4 head_model;
@@ -486,12 +482,13 @@ void render_entity_creeper(mat4 view, float headYawDeg) {
         glm_translate_make(head_model, (vec3){-0.5f, 0.0f, -0.5f});
 
         vec3 pivot = {
-            (4.0f + 8.0f/2.0f) / 16.0f,  // x
-            (18.0f + 8.0f/2.0f) / 16.0f, // y
-            (4.0f + 8.0f/2.0f) / 16.0f   // z
+            (4.0f + 8.0f/2.0f) / 16.0f,
+            (18.0f + 8.0f/2.0f) / 16.0f,
+            (4.0f + 8.0f/2.0f) / 16.0f
         };
         glm_translate(head_model, pivot);
-        glm_rotate_y(head_model, glm_rad(headYawDeg), head_model);
+        glm_rotate_y(head_model, glm_rad(headYawDeg+180.0f	), head_model);
+
         vec3 invPivot = {-pivot[0], -pivot[1], -pivot[2]};
         glm_translate(head_model, invPivot);
 
@@ -508,83 +505,82 @@ void render_entity_creeper(mat4 view, float headYawDeg) {
 	int creeperHeadDirection[6] = {-90, -90, -90, -90, -90, -90};
 
 	render_entity_create_cube(
-		4, 18, 4,  // x0,y0,z0 in “px”
-		8,  8,  8, // sx,sy,sz
+		4, 18, 4,
+		8,  8,  8,
 		creeperHeadUVs,
 		creeperHeadDirection
 	);
-	displaylist_render_immediate(&dl,24);
+	displaylist_render_immediate(&dl, 24);
 
-	// body
+	// Body
     displaylist_reset(&dl);
     gfx_matrix_modelview(body_mv);
 
-    const int bwidth = 8;
-    const int bheight = 12; //12
-    const int bdepth = 4;
-
     static const UVRect creeperBodyUVs[6] = {
-    		{   20, 16,  bwidth, bdepth },  // bottom
-    		{   28,  16, bwidth, bdepth },   // top
-    		{   32, 20,  bwidth, bheight },  // back
-    		{   20,  20, bwidth, bheight },  // front
-    		{   28,  20, bdepth, bheight },  // left
-    		{   16,  20, bdepth, bheight }   // right
+        {20, 16, 8, 4}, {28, 16, 8, 4},
+        {32, 20, 8, 12}, {20, 20, 8, 12},
+        {28, 20, 4, 12}, {16, 20, 4, 12}
     };
-    int creeperBodyDirection[6] =  {0,0,-90,-90,-90,-90};
+    int creeperBodyDirection[6] = {0, 0, -90, -90, -90, -90};
+
     render_entity_create_cube(
-        4, 6, 6,    // x0=4, y0=6,  z0=6
-        8, 12, 4,   // sx=8, sy=12, sz=4
-		creeperBodyUVs,
-		creeperBodyDirection
+        4, 6, 6,
+        8, 12, 4,
+        creeperBodyUVs,
+        creeperBodyDirection
     );
+    displaylist_render_immediate(&dl, 24);
 
-const int width = 4;
-const int height = 6;
-const int depth = 4;
-// legs
+    // Legs
     static const UVRect creeperLegUVs[6] = {
-		{   8, 16,  width, depth }, // bottom
-		{   4,  16, width, depth },   // top
-		{   12, 20, width, height },  // back
-		{   4,  20, width, height },  // front
-		{   8,  20, width, height },  // left
-		{   0,  20, width, height }   // right
+        {8, 16, 4, 4}, {4, 16, 4, 4},
+        {12, 20, 4, 6}, {4, 20, 4, 6},
+        {8, 20, 4, 6}, {0, 20, 4, 6}
     };
+    static const int creeperLegDirection[6] = {0, 0, -90, -90, -90, -90};
 
-    static const int creeperLegDirection[6] = {
-    		0,0,-90,-90,-90,-90
-    };
-
-
+    const int width = 4, height = 6, depth = 4;
     int legPositions[4][3] = {
-        { 4, 0,  2 },
-        { 8, 0,  2 },
-        { 4, 0, 10 },
-        { 8, 0, 10 }
+        { 4, 0,  2 }, // front-left
+        { 8, 0,  2 }, // front-right
+        { 4, 0, 10 }, // back-left
+        { 8, 0, 10 }  // back-right
     };
+    int legAnimDir[4] = { +1, -1, -1, +1 };
 
     for (int i = 0; i < 4; i++) {
-        render_entity_create_cube(
-            legPositions[i][0], legPositions[i][1], legPositions[i][2],
-			width,          height,          depth,
-            creeperLegUVs,     creeperLegDirection
-        );
-    }
-//
-//    //back left leg
-//    render_entity_create_cube(4, 0, 2, 4, 6, 4, creeperLegUVs, creeperLegDirection);
-//
-//    // back right leg
-//    render_entity_create_cube(8, 0, 2, 4, 6, 4, creeperLegUVs, creeperLegDirection);
-//
-//    //Front-left leg
-//    render_entity_create_cube(4, 0, 10, 4, 6, 4, creeperLegUVs, creeperLegDirection);
-//
-//    // front-right leg
-//    render_entity_create_cube(8, 0, 10, 4, 6, 4, creeperLegUVs, creeperLegDirection);
+        displaylist_reset(&dl);
 
-    displaylist_render_immediate(&dl, 5 * 24);
+        bool isFront = (i < 2);
+        vec3 pivot = {
+            (width / 2.0f) / 16.0f,
+            height / 16.0f,
+            (isFront ? depth : 0.0f) / 16.0f
+        };
+
+        mat4 leg_model;
+        glm_mat4_identity(leg_model);
+        glm_translate_make(leg_model, (vec3){
+            legPositions[i][0] / 16.0f,
+            legPositions[i][1] / 16.0f,
+            legPositions[i][2] / 16.0f
+        });
+        glm_translate(leg_model, pivot);
+        glm_rotate_x(leg_model, legAnimDir[i] * walkAngle, leg_model);
+        glm_translate(leg_model, (vec3){ -pivot[0], -pivot[1], -pivot[2] });
+
+        mat4 leg_mv;
+        glm_mat4_mul(body_mv, leg_model, leg_mv);
+        gfx_matrix_modelview(leg_mv);
+
+        render_entity_create_cube(
+            0, 0, 0,
+            width, height, depth,
+            creeperLegUVs, creeperLegDirection
+        );
+        displaylist_render_immediate(&dl, 24);
+    }
+
     gfx_lighting(true);
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }

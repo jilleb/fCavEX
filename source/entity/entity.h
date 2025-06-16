@@ -94,6 +94,10 @@ struct entity {
 			int id;
 			int frame;
 			int frame_time_left;
+			vec2 direction;
+			int direction_time;
+			float body_yaw;
+		    float head_yaw;
 		} monster;
         struct entity_minecart {
             // no extra fields needed for basic minecart

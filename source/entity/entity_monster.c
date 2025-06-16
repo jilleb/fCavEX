@@ -27,12 +27,14 @@
 #include "../world.h"
 #include "../graphics/render_entity.h"
 #include "../platform/gfx.h"
+#include "../util.h"
+
 
 // Creeper movement constants
-#define CREEPER_ACCEL            2.0f    // acceleration per tick
-#define CREEPER_MAX_SPEED        2.0f    // max horizontal speed per tick
+#define CREEPER_ACCEL            0.25f    // acceleration per tick
+#define CREEPER_MAX_SPEED        1.25f    // max horizontal speed per tick
 #define CREEPER_WANDER_INTERVAL  20      // ticks between direction changes
-#define GRAVITY                  0.1f   // gravity per tick
+#define GRAVITY                  2.0f   // gravity per tick
 #define UNSTUCK_MOVE             0.01f   // slight upward nudge if stuck
 #define YAW_SMOOTH_FACTOR        0.2f    // smoothing factor [0..1]
 
@@ -46,51 +48,93 @@ static void make_creeper_bbox(struct AABB* b) {
 // Client-side tick: interpolate and smooth orientation
 static bool client_tick_creeper(struct entity* e) {
     assert(e);
-    // Position interpolation
+
+    // Interpolate position
     glm_vec3_copy(e->pos, e->pos_old);
     glm_vec3_lerp(e->pos, e->network_pos, 0.3f, e->pos);
 
-    // Compute movement delta
+    // determine directoin
     vec3 delta;
     glm_vec3_sub(e->pos, e->pos_old, delta);
-    if (delta[0] != 0.0f || delta[2] != 0.0f) {
-        float targetYaw = atan2f(delta[0], delta[2]);
-        // smooth between old and target yaw
-        e->orient[1] = e->orient_old[1] * (1.0f - YAW_SMOOTH_FACTOR)
-                      + targetYaw * YAW_SMOOTH_FACTOR;
-    }
-    // No pitch for creeper
-    e->orient[0] = 0.0f;
 
-    // Copy for next frame
+    float speed = sqrtf(delta[0]*delta[0] + delta[2]*delta[2]);
+    if (speed > 0.001f) {
+        float moveYaw = atan2f(delta[0], delta[2]);
+
+        // head spin in direction
+        float head_yaw = moveYaw;
+        e->data.monster.head_yaw = head_yaw;
+
+        // body tries to keep up with head
+        float current_body = e->data.monster.body_yaw;
+        float diff = head_yaw - current_body;
+
+        while (diff >  M_PI) diff -= 2.0f * M_PI;
+        while (diff < -M_PI) diff += 2.0f * M_PI;
+
+        e->data.monster.body_yaw += diff * YAW_SMOOTH_FACTOR;
+    } else {
+        // if standing still, move body to head position
+        float current_body = e->data.monster.body_yaw;
+        float diff = e->data.monster.head_yaw - current_body;
+
+        while (diff >  M_PI) diff -= 2.0f * M_PI;
+        while (diff < -M_PI) diff += 2.0f * M_PI;
+
+        e->data.monster.body_yaw += diff * YAW_SMOOTH_FACTOR;
+    }
+
+    // No pitch
+    e->orient[0] = 0.0f;
+    e->orient[1] = e->data.monster.body_yaw + e->data.monster.head_yaw;
+
+    // Save for next frame
     glm_vec2_copy(e->orient, e->orient_old);
+
+    float walk_speed = sqrtf(delta[0] * delta[0] + delta[2] * delta[2]);
+    if (walk_speed > 0.001f) {
+        e->data.monster.frame_time_left--;
+        if (e->data.monster.frame_time_left <= 0) {
+            e->data.monster.frame = (e->data.monster.frame + 1) % 60;
+            e->data.monster.frame_time_left = 1;
+        }
+    }
     return false;
 }
 
 // Server-side creeper logic
 static bool server_tick_creeper(struct entity* e, struct server_local* s) {
     assert(e && s);
+
     // Save old for interpolation
     glm_vec3_copy(e->pos,    e->pos_old);
     glm_vec2_copy(e->orient, e->orient_old);
-    // Damp tiny velocities
-    for (int i = 0; i < 3; i++) if (fabsf(e->vel[i]) < 0.005f) e->vel[i] = 0.0f;
 
-    // Random wander
-    if (--e->ai_timer <= 0) {
-        float ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
-        e->vel[0] += CREEPER_ACCEL * cosf(ang);
-        e->vel[2] += CREEPER_ACCEL * sinf(ang);
-        float mag = sqrtf(e->vel[0]*e->vel[0] + e->vel[2]*e->vel[2]);
-        if (mag > CREEPER_MAX_SPEED) {
-            float scale = CREEPER_MAX_SPEED / mag;
-            e->vel[0] *= scale;
-            e->vel[2] *= scale;
-        }
-        e->ai_timer = CREEPER_WANDER_INTERVAL;
+    // Damp tiny velocities
+    for (int i = 0; i < 3; i++) {
+        if (fabsf(e->vel[i]) < 0.005f) e->vel[i] = 0.0f;
     }
 
-    // Unstuck if embedded
+    // Random wandering
+    if (--e->data.monster.direction_time <= 0) {
+        float ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
+        e->data.monster.direction[0] = cosf(ang);
+        e->data.monster.direction[1] = sinf(ang);
+        e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30); // 30–60 ticks
+    }
+
+    // Walk in direction
+    e->vel[0] += CREEPER_ACCEL * e->data.monster.direction[0];
+    e->vel[2] += CREEPER_ACCEL * e->data.monster.direction[1];
+
+    float mag = sqrtf(e->vel[0]*e->vel[0] + e->vel[2]*e->vel[2]);
+    if (mag > CREEPER_MAX_SPEED) {
+        float scale = CREEPER_MAX_SPEED / mag;
+        e->vel[0] *= scale;
+        e->vel[2] *= scale;
+    }
+
+    // Unstuck check
     struct AABB b0, b1;
     make_creeper_bbox(&b0);
     aabb_translate(&b0, e->pos[0], e->pos[1], e->pos[2]);
@@ -101,85 +145,79 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
         e->pos[1] += UNSTUCK_MOVE;
     }
 
-
-    // Collision sweep: Y, X, Z
+    // Collision sweep: first Y-axis
     bool collision_xz = false;
-    size_t axes[3] = {1, 0, 2};
-    for (int i = 0; i < 3; i++) {
+    {
         struct AABB bb;
         make_creeper_bbox(&bb);
-        entity_try_move(e,
-                        e->pos, e->vel,
-                        &bb,
-                        axes[i],
-                        &collision_xz,
-                        &e->on_ground);
-        if (axes[i] == 1 && e->on_ground) e->vel[1] = 0.0f;
+        entity_try_move(e, e->pos, e->vel, &bb, 1, &collision_xz, &e->on_ground);
+        if (e->on_ground) e->vel[1] = 0.0f;
     }
 
-//auto jump
-    if (e->on_ground && collision_xz) {
-        // Bereken richting van beweging
-        float dx = e->vel[0];
-        float dz = e->vel[2];
-        float mag = sqrtf(dx * dx + dz * dz);
-        if (mag > 0.01f) {
-            dx /= mag;
-            dz /= mag;
+    // Auto-jump on collision
+    if (e->on_ground) {
+        struct AABB bb_check;
+        make_creeper_bbox(&bb_check);
+        bb_check.y1 -= 0.01f;
+        bb_check.y2 += 0.01f;
+        aabb_translate(&bb_check, e->pos[0], e->pos[1], e->pos[2]);
 
-            // Kijk of er een blok voor hem ligt, en lucht erboven
-            int tx = (int)floorf(e->pos[0] + dx);
-            int ty = (int)floorf(e->pos[1]);
-            int tz = (int)floorf(e->pos[2] + dz);
+        if (collision_xz || entity_aabb_intersection(e, &bb_check)) {
+            float dx = e->vel[0];
+            float dz = e->vel[2];
+            float mag = sqrtf(dx * dx + dz * dz);
+            if (mag > 0.01f) {
+                dx /= mag;
+                dz /= mag;
 
-            struct block_data blk1, blk2;
-            bool has_front = entity_get_block(e, tx, ty,     tz, &blk1);
-            bool has_top   = entity_get_block(e, tx, ty + 1, tz, &blk2);
+                int tx = (int)floorf(e->pos[0] + dx);
+                int ty = (int)floorf(e->pos[1]);
+                int tz = (int)floorf(e->pos[2] + dz);
 
-            if (has_front && has_top
-                && !blocks[blk1.type]->can_see_through   // obstakel voor je
-                &&  blocks[blk2.type]->can_see_through)  // lucht erboven
-            {
-            	e->vel[1] = 0.42f;
+                struct block_data blk1, blk2;
+                bool has_front = entity_get_block(e, tx, ty,     tz, &blk1);
+                bool has_top   = entity_get_block(e, tx, ty + 1, tz, &blk2);
 
+                if (has_front && !blocks[blk1.type]->can_see_through
+                    && (!has_top || blocks[blk2.type]->can_see_through)) {
+                    e->vel[1] = 4.0f;
+                    // After jump, choose different direction
+                    float new_ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
+                    e->data.monster.direction[0] = cosf(new_ang);
+                    e->data.monster.direction[1] = sinf(new_ang);
+                    e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30);
+                }
             }
         }
     }
+
+    // Collision sweep X and Z
+    for (int i = 0; i < 3; i += 2) {
+        struct AABB bb;
+        make_creeper_bbox(&bb);
+        entity_try_move(e, e->pos, e->vel, &bb, i, &collision_xz, &e->on_ground);
+    }
+
     // Gravity
     e->vel[1] -= GRAVITY;
     e->on_ground = false;
-
 
     // Friction
     float slip = e->on_ground ? 0.6f : 1.0f;
     e->vel[0] *= slip * 0.8f;
     e->vel[2] *= slip * 0.8f;
     e->vel[1] *= 0.9f;
-    // Update orientation to face motion
-    if (e->vel[0] != 0.0f || e->vel[2] != 0.0f) {
-        e->orient[1] = atan2f(e->vel[0], e->vel[2]) + M_PI;
-    }
-    e->orient[0] = 0.0f;
 
-    // Broadcast move
+    // Send position update
     clin_rpc_send(&(struct client_rpc){
         .type = CRPC_ENTITY_MOVE,
         .payload.entity_move.entity_id = e->id,
         .payload.entity_move.pos = {e->pos[0], e->pos[1], e->pos[2]}
     });
 
-    float walk_speed = sqrtf(e->vel[0]*e->vel[0] + e->vel[2]*e->vel[2]);
-    if (walk_speed > 0.01f) {
-        e->data.monster.frame_time_left--;
-        if (e->data.monster.frame_time_left <= 0) {
-            e->data.monster.frame = (e->data.monster.frame + 1) % 60; // 60 = volle cyclus
-            e->data.monster.frame_time_left = 1; // of 2–3 voor langzamer ritme
-        }
-    }
-
-
     return false;
 }
+
 
 static bool entity_server_tick(struct entity* e, struct server_local* s) {
     return (e->data.monster.id == MONSTER_CREEPER)
@@ -194,16 +232,31 @@ static bool entity_client_tick(struct entity* e) {
 
 // Render creeper
 static void entity_render(struct entity* e, mat4 view, float td) {
+    assert(e);
+
     vec3 p;
     glm_vec3_lerp(e->pos_old, e->pos, td, p);
+
+    vec3 delta;
+    glm_vec3_sub(e->pos, e->pos_old, delta);
+    float bodyYaw = e->data.monster.body_yaw;
+    float headYaw = bodyYaw + e->data.monster.head_yaw;
+
+    // update light
     struct block_data blk;
-    entity_get_block(e,
-        floorf(p[0]), floorf(p[1]), floorf(p[2]), &blk);
+    entity_get_block(e, floorf(p[0]), floorf(p[1]), floorf(p[2]), &blk);
     render_entity_update_light((blk.torch_light << 4) | blk.sky_light);
+
     mat4 model, mv;
     glm_translate_make(model, p);
     glm_mat4_mul(view, model, mv);
-    render_entity_creeper(mv, glm_deg(e->orient[1]));
+
+    render_entity_creeper(mv,
+                          glm_deg(bodyYaw),
+                          glm_deg(headYaw),
+                          e->data.monster.frame);
+
+    // shadow, doesn't seem to work currently
     struct AABB shadow_bb;
     aabb_setsize_centered(&shadow_bb, 0.25f, 0.25f, 0.25f);
     aabb_translate(&shadow_bb, p[0], p[1] - 0.04f, p[2]);
@@ -230,6 +283,14 @@ void entity_monster(uint32_t id,
     e->type = ENTITY_MONSTER;
     e->name = "Monster";
     e->data.monster.id = monster_id;
+    e->data.monster.head_yaw = 0.0f;
+    e->data.monster.body_yaw = 0.0f;
+    e->data.monster.direction[0] = 0.0f;
+    e->data.monster.direction[1] = 0.0f;
+    e->data.monster.direction_time= 0;
+    e->data.monster.frame = 0;
+    e->data.monster.frame_time_left = 1;
+    glm_vec3_copy(e->pos, e->network_pos);
     e->tick_server = entity_server_tick;
     e->tick_client = entity_client_tick;
     e->render      = entity_render;
