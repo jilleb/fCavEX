@@ -24,10 +24,16 @@
 #include "../block/blocks_data.h"
 #include "../network/server_local.h"
 #include "../network/client_interface.h"
+#include "../network/server_interface.h"
 #include "../world.h"
 #include "../graphics/render_entity.h"
 #include "../platform/gfx.h"
 #include "../util.h"
+#include "../particle.h"
+#include "../game/game_state.h"
+#include "../network/server_world.h"
+
+
 
 
 // Creeper movement constants
@@ -39,176 +45,145 @@
 #define YAW_SMOOTH_FACTOR        0.2f    // smoothing factor [0..1]
 
 // Local bounding box for collision (centered, half-height offset)
-static void make_creeper_bbox(struct AABB* b) {
+void make_creeper_bbox(struct AABB* out) {
     const float sx = 0.6f, sy = 1.7f, sz = 0.6f;
-    aabb_setsize_centered_offset(b, sx, sy, sz,
-                                 0.0f, sy * 0.5f, 0.0f);
+    aabb_setsize_centered_offset(out, sx, sy, sz, 0.0f, sy * 0.5f, 0.0f);
+}
+
+static struct AABB make_creeper_bbox_ret(void) {
+    struct AABB b;
+    make_creeper_bbox(&b);
+    return b;
 }
 
 // Client-side tick: interpolate and smooth orientation
 static bool client_tick_creeper(struct entity* e) {
     assert(e);
 
-    // Interpolate position
     glm_vec3_copy(e->pos, e->pos_old);
     glm_vec3_lerp(e->pos, e->network_pos, 0.3f, e->pos);
 
-    // determine directoin
     vec3 delta;
-    glm_vec3_sub(e->pos, e->pos_old, delta);
-
+    entity_get_delta(e, delta);
     float speed = sqrtf(delta[0]*delta[0] + delta[2]*delta[2]);
     if (speed > 0.001f) {
-        float moveYaw = atan2f(delta[0], delta[2]);
-
-        // head spin in direction
-        float head_yaw = moveYaw;
-        e->data.monster.head_yaw = head_yaw;
-
-        // body tries to keep up with head
-        float current_body = e->data.monster.body_yaw;
-        float diff = head_yaw - current_body;
-
-        while (diff >  M_PI) diff -= 2.0f * M_PI;
-        while (diff < -M_PI) diff += 2.0f * M_PI;
-
-        e->data.monster.body_yaw += diff * YAW_SMOOTH_FACTOR;
-    } else {
-        // if standing still, move body to head position
-        float current_body = e->data.monster.body_yaw;
-        float diff = e->data.monster.head_yaw - current_body;
-
-        while (diff >  M_PI) diff -= 2.0f * M_PI;
-        while (diff < -M_PI) diff += 2.0f * M_PI;
-
-        e->data.monster.body_yaw += diff * YAW_SMOOTH_FACTOR;
+        e->data.monster.head_yaw = atan2f(delta[0], delta[2]);
     }
+    entity_blend_body_to_head(&e->data.monster.body_yaw,
+                              e->data.monster.head_yaw,
+                              YAW_SMOOTH_FACTOR);
 
-    // No pitch
     e->orient[0] = 0.0f;
     e->orient[1] = e->data.monster.body_yaw + e->data.monster.head_yaw;
 
-    // Save for next frame
-    glm_vec2_copy(e->orient, e->orient_old);
+    entity_tick_animation(e, speed, 60);
+    if (e->health <= 0 && e->data.monster.fuse > 0) {
+        vec3 interp;
+        glm_vec3_lerp(e->pos_old, e->pos, 1.0f, interp);
+        particle_generate_explosion_smoke(interp, 1.0f);
 
-    float walk_speed = sqrtf(delta[0] * delta[0] + delta[2] * delta[2]);
-    if (walk_speed > 0.001f) {
-        e->data.monster.frame_time_left--;
-        if (e->data.monster.frame_time_left <= 0) {
-            e->data.monster.frame = (e->data.monster.frame + 1) % 60;
-            e->data.monster.frame_time_left = 1;
-        }
     }
+
     return false;
 }
+
+void server_explode(struct server_local *s, vec3 center, float radius) {
+    int r = ceilf(radius);
+    for(int dx = -r; dx <= r; dx++) {
+      for(int dy = -r; dy <= r; dy++) {
+        for(int dz = -r; dz <= r; dz++) {
+          float dist = sqrtf(dx*dx + dy*dy + dz*dz);
+          if (dist > radius) continue;
+
+          int bx = (int)floorf(center[0]) + dx;
+          int by = (int)floorf(center[1]) + dy;
+          int bz = (int)floorf(center[2]) + dz;
+
+          // *** BOUNDARY CHECK ***
+          if (by < 0 || by >= WORLD_HEIGHT) continue;
+          // eventueel ook x/z check binnen chunk-limieten,
+          // maar server_world_get_block doet dat vaak al intern.
+
+          if (server_world_get_block(&s->world, bx, by, bz, NULL)) {
+            server_world_set_block(s, bx, by, bz,
+              (struct block_data){ .type = BLOCK_AIR, .metadata = 0 });
+          }
+        }
+      }
+    }
+}
+
 
 // Server-side creeper logic
 static bool server_tick_creeper(struct entity* e, struct server_local* s) {
     assert(e && s);
 
-    // Save old for interpolation
     glm_vec3_copy(e->pos,    e->pos_old);
     glm_vec2_copy(e->orient, e->orient_old);
 
-    // Damp tiny velocities
-    for (int i = 0; i < 3; i++) {
-        if (fabsf(e->vel[i]) < 0.005f) e->vel[i] = 0.0f;
+    entity_damp_velocity(e, 0.005f);
+
+    if (e->health <= 0 && e->data.monster.fuse < 0) {
+            e->data.monster.fuse = 30;
+            e->ai_state = AI_FUSE;
+        }
+
+    vec3 center = { e->pos[0], e->pos[1], e->pos[2] };
+
+    if (e->data.monster.fuse >= 0) {
+        printf("[DEBUG] Creeper %u fuse remaining: %d ticks\n",
+               (unsigned)e->id,
+               e->data.monster.fuse);
+        particle_generate_explosion_smoke(center, 2.0f);
+
+
+        if (--e->data.monster.fuse == 0) {
+            // explosie
+            particle_generate_explosion_flash(center, 3.0f);
+            particle_generate_explosion_smoke(center, 3.0f);
+            server_world_explode(s, center, 3.0f);
+            e->delay_destroy = 0;
+        }
+        return false;  // sla rest van AI over zolang we fuseren
     }
 
-    // Random wandering
     if (--e->data.monster.direction_time <= 0) {
         float ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
         e->data.monster.direction[0] = cosf(ang);
         e->data.monster.direction[1] = sinf(ang);
-        e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30); // 30–60 ticks
+        e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30);
     }
 
-    // Walk in direction
-    e->vel[0] += CREEPER_ACCEL * e->data.monster.direction[0];
-    e->vel[2] += CREEPER_ACCEL * e->data.monster.direction[1];
+    entity_move_in_direction(e, CREEPER_ACCEL, e->data.monster.direction);
+    entity_clamp_speed(e, CREEPER_MAX_SPEED);
 
-    float mag = sqrtf(e->vel[0]*e->vel[0] + e->vel[2]*e->vel[2]);
-    if (mag > CREEPER_MAX_SPEED) {
-        float scale = CREEPER_MAX_SPEED / mag;
-        e->vel[0] *= scale;
-        e->vel[2] *= scale;
-    }
+    entity_try_unstuck(e, make_creeper_bbox);
 
-    // Unstuck check
-    struct AABB b0, b1;
-    make_creeper_bbox(&b0);
-    aabb_translate(&b0, e->pos[0], e->pos[1], e->pos[2]);
-
-    b1 = b0;
-    aabb_translate(&b1, 0.0f, UNSTUCK_MOVE, 0.0f);
-    if (entity_aabb_intersection(e, &b0) && !entity_aabb_intersection(e, &b1)) {
-        e->pos[1] += UNSTUCK_MOVE;
-    }
-
-    // Collision sweep: first Y-axis
     bool collision_xz = false;
-    {
-        struct AABB bb;
-        make_creeper_bbox(&bb);
-        entity_try_move(e, e->pos, e->vel, &bb, 1, &collision_xz, &e->on_ground);
-        if (e->on_ground) e->vel[1] = 0.0f;
-    }
+    entity_try_move_axis(e, 1, make_creeper_bbox_ret, &collision_xz, &e->on_ground);
 
-    // Auto-jump on collision
     if (e->on_ground) {
-        struct AABB bb_check;
-        make_creeper_bbox(&bb_check);
+        struct AABB bb_check = make_creeper_bbox_ret();
         bb_check.y1 -= 0.01f;
         bb_check.y2 += 0.01f;
         aabb_translate(&bb_check, e->pos[0], e->pos[1], e->pos[2]);
 
         if (collision_xz || entity_aabb_intersection(e, &bb_check)) {
-            float dx = e->vel[0];
-            float dz = e->vel[2];
-            float mag = sqrtf(dx * dx + dz * dz);
-            if (mag > 0.01f) {
-                dx /= mag;
-                dz /= mag;
-
-                int tx = (int)floorf(e->pos[0] + dx);
-                int ty = (int)floorf(e->pos[1]);
-                int tz = (int)floorf(e->pos[2] + dz);
-
-                struct block_data blk1, blk2;
-                bool has_front = entity_get_block(e, tx, ty,     tz, &blk1);
-                bool has_top   = entity_get_block(e, tx, ty + 1, tz, &blk2);
-
-                if (has_front && !blocks[blk1.type]->can_see_through
-                    && (!has_top || blocks[blk2.type]->can_see_through)) {
-                    e->vel[1] = 4.0f;
-                    // After jump, choose different direction
-                    float new_ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
-                    e->data.monster.direction[0] = cosf(new_ang);
-                    e->data.monster.direction[1] = sinf(new_ang);
-                    e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30);
-                }
+            if (entity_try_auto_jump(e, 4.0f, 0.01f)) {
+                float ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
+                e->data.monster.direction[0] = cosf(ang);
+                e->data.monster.direction[1] = sinf(ang);
+                e->data.monster.direction_time = 30 + rand_gen_int(&s->rand_src, 30);
             }
         }
     }
 
-    // Collision sweep X and Z
-    for (int i = 0; i < 3; i += 2) {
-        struct AABB bb;
-        make_creeper_bbox(&bb);
-        entity_try_move(e, e->pos, e->vel, &bb, i, &collision_xz, &e->on_ground);
-    }
+    entity_try_move_axis(e, 0, make_creeper_bbox_ret, &collision_xz, &e->on_ground);
+    entity_try_move_axis(e, 2, make_creeper_bbox_ret, &collision_xz, &e->on_ground);
 
-    // Gravity
-    e->vel[1] -= GRAVITY;
-    e->on_ground = false;
+    entity_apply_gravity(e, GRAVITY);
+    entity_apply_friction(e, e->on_ground ? 0.6f : 1.0f);
 
-    // Friction
-    float slip = e->on_ground ? 0.6f : 1.0f;
-    e->vel[0] *= slip * 0.8f;
-    e->vel[2] *= slip * 0.8f;
-    e->vel[1] *= 0.9f;
-
-    // Send position update
     clin_rpc_send(&(struct client_rpc){
         .type = CRPC_ENTITY_MOVE,
         .payload.entity_move.entity_id = e->id,
@@ -218,16 +193,28 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
     return false;
 }
 
-
 static bool entity_server_tick(struct entity* e, struct server_local* s) {
     return (e->data.monster.id == MONSTER_CREEPER)
         ? server_tick_creeper(e, s)
         : false;
 }
+
 static bool entity_client_tick(struct entity* e) {
-    return (e->data.monster.id == MONSTER_CREEPER)
-        ? client_tick_creeper(e)
-        : false;
+    if (e->delay_destroy == 0) {
+        return true;
+    }
+
+    if (e->type == ENTITY_MONSTER) {
+        switch (e->data.monster.id) {
+            case MONSTER_CREEPER:
+                return client_tick_creeper(e);
+            // todo: other monsters
+          // case MONSTER_ZOMBIE: return client_tick_zombie(e);
+            default:
+                return false;
+        }
+    }
+    return false;
 }
 
 // Render creeper
@@ -263,12 +250,24 @@ static void entity_render(struct entity* e, mat4 view, float td) {
     entity_shadow(e, &shadow_bb, view);
 }
 
+
+
 // Raycast & interaction bounding box (world-translated)
 static size_t getBoundingBox_creeper(const struct entity* e, struct AABB* out) {
     assert(e && out);
     make_creeper_bbox(out);
     aabb_translate(out, e->pos[0], e->pos[1], e->pos[2]);
     return 1;
+}
+
+bool onLeftClick(struct entity *e) {
+
+    svin_rpc_send(&(struct server_rpc){
+        .type = SRPC_ENTITY_ATTACK,
+        .payload.entity_attack.entity_id = e->id,
+    });
+
+    return true;
 }
 
 // Factory
@@ -284,11 +283,13 @@ void entity_monster(uint32_t id,
     e->name = "Monster";
     e->data.monster.id = monster_id;
     e->data.monster.head_yaw = 0.0f;
+    e->health     = 20;
     e->data.monster.body_yaw = 0.0f;
     e->data.monster.direction[0] = 0.0f;
     e->data.monster.direction[1] = 0.0f;
     e->data.monster.direction_time= 0;
     e->data.monster.frame = 0;
+    e->data.monster.fuse = -1;
     e->data.monster.frame_time_left = 1;
     glm_vec3_copy(e->pos, e->network_pos);
     e->tick_server = entity_server_tick;
@@ -296,10 +297,11 @@ void entity_monster(uint32_t id,
     e->render      = entity_render;
     e->teleport    = entity_default_teleport;
     e->getBoundingBox = getBoundingBox_creeper;
-    e->onLeftClick = NULL; // todo: attack
+    e->onLeftClick = onLeftClick;
     e->leftClickText = "Attack";
     e->onRightClick = NULL;
     e->rightClickText = NULL;
+    e->delay_destroy = -1;
     // spawn slightly higher, to prevent getting stuck
     if (server) {
         e->pos[1] += 0.1f;

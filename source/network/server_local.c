@@ -435,6 +435,18 @@ static void server_local_process(struct server_rpc* call, void* user) {
 			s->player.finished_loading = false;
 			string_reset(s->level_name);
 			break;
+
+		case SRPC_ENTITY_ATTACK:
+		  uint32_t id = call->payload.entity_attack.entity_id;
+		  struct entity **ptr = dict_entity_get(s->entities, id);
+		  if (ptr && *ptr) {
+		    (*ptr)->health -= 5;    // of welk DAMAGE‐getal je wilt
+		    if ((*ptr)->health <= 0) {
+		      (*ptr)->data.monster.fuse = 30;
+		      (*ptr)->ai_state = AI_FUSE;
+		    }
+		  }
+		  break;
 		case SRPC_LOAD_WORLD:
 			assert(!s->player.has_pos);
 

@@ -98,6 +98,7 @@ struct entity {
 			int direction_time;
 			float body_yaw;
 		    float head_yaw;
+		    int fuse;
 		} monster;
         struct entity_minecart {
             // no extra fields needed for basic minecart
@@ -110,14 +111,9 @@ struct entity {
 	} data;
 };
 
-struct monster {
-	int max_health;
-	int speed;
-	int width;
-	int height;
-};
 
 
+void make_creeper_bbox(struct AABB* out);
 
 
 DICT_DEF2(dict_entity, uint32_t, M_BASIC_OPLIST, struct entity*, M_POD_OPLIST)
@@ -168,5 +164,17 @@ struct entity *raycast_entity(dict_entity_t *entities,
                               const vec3 dir,
                               float maxDist,
                               float *out_tNear);
+void entity_damp_velocity(struct entity* e, float threshold);
+void entity_move_in_direction(struct entity* e, float accel, vec2 dir);
+void entity_clamp_speed(struct entity* e, float max_speed);
+void entity_apply_gravity(struct entity* e, float gravity);
+void entity_apply_friction(struct entity* e, float slip);
+bool entity_try_auto_jump(struct entity* e, float jump_force, float threshold);
+void entity_try_unstuck(struct entity* e, void (*make_bbox)(struct AABB*));
+void entity_try_move_axis(struct entity* e, int axis, struct AABB (*make_bbox)(void), bool* collision_flag, bool* on_ground_flag);
+void entity_get_delta(struct entity* e, vec3 out_delta);
+void entity_blend_body_to_head(float* body_yaw, float head_yaw, float factor);
+void entity_tick_animation(struct entity* e, float walk_speed, int max_frame);
+void entity_choose_random_direction(struct entity* e, vec2 out_dir);
 
 #endif

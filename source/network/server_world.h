@@ -82,5 +82,7 @@ void server_world_tick(struct server_world* w, struct server_local* s);
 void server_world_random_tick(struct server_world* w, struct random_gen* g,
 							  struct server_local* s, w_coord_t px,
 							  w_coord_t pz, w_coord_t dist);
+void server_world_explode(struct server_local *s, vec3 center, float power);
+
 
 #endif

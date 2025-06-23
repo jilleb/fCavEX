@@ -26,12 +26,30 @@
 #include "server_world.h"
 #include "../daytime.h"
 
+#define EXPLOSION_MAX_RAYS 300
+#define EXPLOSION_STEP     0.5f
+#define HARDNESS_SCALE     0.0005f
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
 
 #define CHUNK_DIST2(x1, x2, z1, z2)                                            \
 	(((x1) - (x2)) * ((x1) - (x2)) + ((z1) - (z2)) * ((z1) - (z2)))
 
 #define S_CHUNK_IDX(x, y, z)                                                   \
 	((y) + (W2C_COORD(z) + W2C_COORD(x) * CHUNK_SIZE) * WORLD_HEIGHT)
+
+static void random_unit_vector(vec3 out) {
+    float z = 2.0f * ((rand()/(float)RAND_MAX) - 0.5f);
+    float t = 2.0f * M_PI * (rand()/(float)RAND_MAX);
+    float r = sqrtf(1.0f - z*z);
+    out[0] = r * cosf(t);
+    out[1] = r * sinf(t);
+    out[2] = z;
+}
+
+
 
 void server_world_chunk_destroy(struct server_chunk* sc) {
 	assert(sc);
@@ -491,4 +509,72 @@ void server_world_random_tick(struct server_world* w, struct random_gen* g,
 
 		dict_server_chunks_next(it);
 	}
+}
+
+
+void server_world_explode(struct server_local *s, vec3 center, float power) {
+    struct broken_coord { int x,y,z; };
+    struct broken_coord broken[512];
+    int bc = 0;
+
+    for (int i = 0; i < EXPLOSION_MAX_RAYS; i++) {
+        vec3 dir;
+        random_unit_vector(dir);
+
+        vec3 pos = { center[0], center[1], center[2] };
+        float rem = power;
+
+        while (rem > 0.0f) {
+            pos[0] += dir[0] * EXPLOSION_STEP;
+            pos[1] += dir[1] * EXPLOSION_STEP;
+            pos[2] += dir[2] * EXPLOSION_STEP;
+
+            int bx = (int)floorf(pos[0]);
+            int by = (int)floorf(pos[1]);
+            int bz = (int)floorf(pos[2]);
+
+            struct block_data blk;
+            if (!server_world_get_block(&s->world, bx, by, bz, &blk))
+                break;
+
+            if (blk.type == 0 || blk.type == BLOCK_BEDROCK) {
+                rem -= EXPLOSION_STEP;
+                continue;
+            }
+
+            float hardness = blocks[blk.type]->digging.hardness;
+            if ((rem / power) > (rand()/(float)RAND_MAX)) {
+                bool seen = false;
+                for (int k = 0; k < bc; k++) {
+                    if (broken[k].x == bx
+                     && broken[k].y == by
+                     && broken[k].z == bz) {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (!seen && bc < 512) {
+                    broken[bc].x = bx;
+                    broken[bc].y = by;
+                    broken[bc].z = bz;
+                    bc++;
+                }
+            }
+            rem -= EXPLOSION_STEP + hardness * HARDNESS_SCALE;
+        }
+    }
+
+    for (int i = 0; i < bc; i++) {
+        int bx = broken[i].x, by = broken[i].y, bz = broken[i].z;
+        struct block_data old;
+        server_world_get_block(&s->world, bx, by, bz, &old);
+        server_world_set_block(s, bx, by, bz, (struct block_data){0});
+        if (old.type != BLOCK_TNT
+            && rand()/(float)RAND_MAX < 0.33f) {
+            server_local_spawn_block_drops(
+                s,
+                &(struct block_info){ .x=bx,.y=by,.z=bz,.block=&old }
+            );
+        }
+    }
 }

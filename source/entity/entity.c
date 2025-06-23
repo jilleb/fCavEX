@@ -19,6 +19,8 @@
 
 #include "entity.h"
 #include "../network/server_world.h"
+#include "../network/server_local.h"
+
 #include "../platform/gfx.h"
 #include "../world.h"
 
@@ -265,24 +267,15 @@ void entity_try_move(struct entity* e, vec3 pos, vec3 vel, struct AABB* bbox,
 
 	float threshold;
 	if(entity_intersection_threshold(e, bbox, pos, tmp, &threshold)) {
-		if (e->type != 0){
-	    printf("[COLL] axis=%d  pos=%.2f→%.2f  threshold=%.2f  vel=%.2f\n",
-	           coord, pos[coord], tmp[coord], threshold, vel[coord]);
-		}
 		if(coord == 1 && vel[1] < 0.0F)
 			*on_ground = true;
-
 		if(coord == 0 || coord == 2)
 			*collision_xz = true;
 
 		vel[coord] = 0.0F;
 	} else if(coord == 1) {
 		*on_ground = false;
-	} else {
-	    printf("[FREE]  axis=%d  pos=%.2f→%.2f  threshold=%.2f\n",
-	           coord, pos[coord], tmp[coord], threshold);
 	}
-
 	pos[coord] = pos[coord] * (1.0F - threshold) + tmp[coord] * threshold;
 }
 
@@ -309,17 +302,27 @@ uint32_t entity_gen_id(dict_entity_t dict) {
 }
 
 void entities_client_tick(dict_entity_t dict) {
-	dict_entity_it_t it;
-	dict_entity_it(it, dict);
+    dict_entity_it_t it;
+    dict_entity_it(it, dict);
 
-	while(!dict_entity_end_p(it)) {
-		struct entity* e = dict_entity_ref(it)->value;
+    while (!dict_entity_end_p(it)) {
+        uint32_t key = dict_entity_ref(it)->key;
+        struct entity *e = dict_entity_ref(it)->value;
 
-		if(e->tick_client)
-			e->tick_client(e);
+        if (e->tick_client) {
 
-		dict_entity_next(it);
-	}
+            bool remove = (e->delay_destroy == 0) || e->tick_client(e);
+
+            dict_entity_next(it);
+
+            if (remove) {
+                free(e);
+                dict_entity_erase(dict, key);
+            }
+        } else {
+            dict_entity_next(it);
+        }
+    }
 }
 
 void entities_client_render(dict_entity_t dict, struct camera* c,
@@ -424,4 +427,127 @@ raycast_entity(dict_entity_t *entities,
         *out_tNear = closestT;
     }
     return closest;
+}
+
+
+void entity_move_in_direction(struct entity* e, float accel, vec2 dir) {
+    e->vel[0] += accel * dir[0];
+    e->vel[2] += accel * dir[1];
+}
+
+void entity_clamp_speed(struct entity* e, float max_speed) {
+    float vx = e->vel[0], vz = e->vel[2];
+    float mag = sqrtf(vx * vx + vz * vz);
+    if (mag > max_speed) {
+        float scale = max_speed / mag;
+        e->vel[0] *= scale;
+        e->vel[2] *= scale;
+    }
+}
+
+void entity_apply_gravity(struct entity* e, float gravity) {
+    e->vel[1] -= gravity;
+    e->on_ground = false;
+}
+
+void entity_apply_friction(struct entity* e, float slip) {
+    e->vel[0] *= slip * 0.8f;
+    e->vel[2] *= slip * 0.8f;
+    e->vel[1] *= 0.9f;
+}
+
+void entity_apply_gravity_and_friction(struct entity* e, float gravity, float slip_ground, float slip_air) {
+    e->vel[1] -= gravity;
+    float slip = e->on_ground ? slip_ground : slip_air;
+    e->vel[0] *= slip * 0.8f;
+    e->vel[2] *= slip * 0.8f;
+    e->vel[1] *= 0.9f;
+    e->on_ground = false;
+}
+
+bool entity_try_auto_jump(struct entity* e, float jump_force, float threshold) {
+    float dx = e->vel[0];
+    float dz = e->vel[2];
+    float mag = sqrtf(dx * dx + dz * dz);
+    if (mag < threshold) return false;
+
+    dx /= mag;
+    dz /= mag;
+
+    int tx = (int)floorf(e->pos[0] + dx);
+    int ty = (int)floorf(e->pos[1]);
+    int tz = (int)floorf(e->pos[2] + dz);
+
+    struct block_data blk1, blk2;
+    bool has_front = entity_get_block(e, tx, ty,     tz, &blk1);
+    bool has_top   = entity_get_block(e, tx, ty + 1, tz, &blk2);
+
+    bool blocked_ahead = has_front && !blocks[blk1.type]->can_see_through;
+    bool space_above   = !has_top || blocks[blk2.type]->can_see_through;
+
+    if (blocked_ahead && space_above) {
+        e->vel[1] = jump_force;
+        return true;
+    }
+    return false;
+}
+
+
+void entity_try_unstuck(struct entity* e, void (*make_bbox)(struct AABB*)) {
+    struct AABB b0, b1;
+    make_bbox(&b0);
+    aabb_translate(&b0, e->pos[0], e->pos[1], e->pos[2]);
+    b1 = b0;
+    aabb_translate(&b1, 0.0f, 0.01f, 0.0f);
+
+    if (entity_aabb_intersection(e, &b0) && !entity_aabb_intersection(e, &b1)) {
+        e->pos[1] += 0.01f;
+    }
+}
+
+void entity_try_move_axis(struct entity* e, int axis, struct AABB (*make_bbox)(void), bool* collision_flag, bool* on_ground_flag) {
+    struct AABB bb = make_bbox();
+    entity_try_move(e, e->pos, e->vel, &bb, axis, collision_flag, on_ground_flag);
+    if (axis == 1 && *on_ground_flag) {
+        e->vel[1] = 0.0f;
+    }
+}
+
+void entity_damp_velocity(struct entity* e, float threshold) {
+    if (fabsf(e->vel[0]) < threshold) e->vel[0] = 0.0f;
+    if (fabsf(e->vel[2]) < threshold) e->vel[2] = 0.0f;
+// don't touch Y unless we really need it
+    }
+
+void entity_get_delta(struct entity* e, vec3 out_delta) {
+    glm_vec3_sub(e->pos, e->pos_old, out_delta);
+}
+
+float entity_get_horizontal_speed(vec3 delta) {
+    return sqrtf(delta[0]*delta[0] + delta[2]*delta[2]);
+}
+
+
+void entity_blend_body_to_head(float* body_yaw, float head_yaw, float factor) {
+    float diff = head_yaw - *body_yaw;
+    while (diff >  M_PI) diff -= 2.0f * M_PI;
+    while (diff < -M_PI) diff += 2.0f * M_PI;
+    *body_yaw += diff * factor;
+}
+
+void entity_tick_animation(struct entity* e, float walk_speed, int max_frame) {
+    if (walk_speed > 0.001f) {
+        e->data.monster.frame_time_left--;
+        if (e->data.monster.frame_time_left <= 0) {
+            e->data.monster.frame = (e->data.monster.frame + 1) % max_frame;
+            e->data.monster.frame_time_left = 1;
+        }
+    }
+}
+
+void entity_choose_random_direction(struct entity* e, vec2 out_dir) {
+    struct server_local* s = e->world;
+    float ang = rand_gen_flt(&s->rand_src) * 2.0f * M_PI;
+    out_dir[0] = cosf(ang);
+    out_dir[1] = sinf(ang);
 }

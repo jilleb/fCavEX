@@ -40,7 +40,7 @@
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
 
 	// movement logic:
-	/*
+
     // copy old pos
     glm_vec3_copy(e->pos, e->pos_old);
 
@@ -63,7 +63,8 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
         e->vel[2] += dz * 0.02f;
         e->vel[1]  = 0.0f;
     } else {
-        e->vel[1] -= 0.04f;
+        e->vel[2] = 0.0f;
+        e->vel[0] = 0.0f;
     }
 
     // friction
@@ -74,12 +75,12 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
     // apply movement
     glm_vec3_add(e->pos, e->vel, e->pos);
     return false; // never destroy
-    */
+
 
 	// Wagoniëntiteit blijft gewoon op z’n plek staan; geen beweging/val
-	e->vel[0] = 0.0f;
-	e->vel[1] = 0.0f;
-	e->vel[2] = 0.0f;
+//	e->vel[0] = 0.0f;
+//	e->vel[1] = 0.0f;
+//	e->vel[2] = 0.0f;
 	return false;
 }
 
