@@ -32,6 +32,7 @@
 #include <math.h>
 #include "../game/game_state.h"
 
+
 //todo: cleanup
 //todo: move explosion logic to a helper function outside of this?
 
@@ -60,85 +61,6 @@ void random_unit_vector(vec3 out) {
 // helper to perform the ray-cast block destruction
 // 1) Ray-cast to collect blocks to destroy
 // 2) Batch-remove them and spawn drops
-static void tnt_raycast_destroy(struct server_local* s,
-                                w_coord_t x, w_coord_t y, w_coord_t z,
-                                float power)
-{
-    struct broken_coord broken[MAX_BROKEN];
-    int broken_count = 0;
-
-    // collect
-    for (int i = 0; i < NUM_RAYS; i++) {
-        vec3 dir;
-        random_unit_vector(dir);
-
-        vec3 pos = { x + 0.5f, y + 0.5f, z + 0.5f };
-        float remaining = power;
-
-        while (remaining > 0.0f) {
-            pos[0] += dir[0] * STEP_SIZE;
-            pos[1] += dir[1] * STEP_SIZE;
-            pos[2] += dir[2] * STEP_SIZE;
-
-            w_coord_t bx = (w_coord_t)floorf(pos[0]);
-            w_coord_t by = (w_coord_t)floorf(pos[1]);
-            w_coord_t bz = (w_coord_t)floorf(pos[2]);
-
-            struct block_data blk;
-            if (!server_world_get_block(&s->world, bx, by, bz, &blk))
-                break;
-            if (blk.type == 0
-             || blk.type == BLOCK_BEDROCK) {
-                remaining -= STEP_SIZE;
-                continue;
-            }
-
-            float hardness = blocks[blk.type]->digging.hardness;
-            float chance   = remaining / power;
-
-            if (rand_gen_flt(&gstate.rand_src) <= chance) {
-                bool seen = false;
-                for (int k = 0; k < broken_count; k++) {
-                    if (broken[k].x == bx &&
-                        broken[k].y == by &&
-                        broken[k].z == bz) {
-                        seen = true;
-                        break;
-                    }
-                }
-                if (!seen && broken_count < MAX_BROKEN) {
-                    broken[broken_count++] = (struct broken_coord){bx, by, bz};
-                }
-            }
-
-            remaining -= STEP_SIZE + hardness * HARDNESS_SCALE;
-        }
-    }
-
-    // batch remove + drops
-    for (int i = 0; i < broken_count; i++) {
-        w_coord_t bx = broken[i].x;
-        w_coord_t by = broken[i].y;
-        w_coord_t bz = broken[i].z;
-
-        struct block_data blk;
-        server_world_get_block(&s->world, bx, by, bz, &blk);
-        server_world_set_block(s, bx, by, bz, (struct block_data){0});
-
-        if (blk.type != BLOCK_TNT
-         && rand_gen_flt(&gstate.rand_src) < (1.0f / 3.0f)) {
-            server_local_spawn_block_drops(
-                s,
-                &(struct block_info){
-                    .x     = bx,
-                    .y     = by,
-                    .z     = bz,
-                    .block = &blk
-                }
-            );
-        }
-    }
-}
 
 
 // simplified explode: only TNT removal, particle effects, and delegate destruction
@@ -160,7 +82,8 @@ void tnt_explode(struct server_local* s,
     particle_generate_explosion_flash(center, power);
 
     // destroy blocks
-    tnt_raycast_destroy(s, x, y, z, power);
+    server_world_explode(s, center,	 TNT_POWER);
+
 
     // final explosion puffs
     particle_generate_explosion_smoke(center, power);
