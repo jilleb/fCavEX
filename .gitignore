@@ -30,3 +30,8 @@ Makefile
 fCavEX.dol
 fCavEX.elf
 Makefile
+.cproject
+.project
+fCavEX.dol
+fCavEX.elf
+Makefile

@@ -418,7 +418,10 @@ void server_world_tick(struct server_world* w, struct server_local* s) {
 						(blk.type == BLOCK_WOOD_PRESSURE_PLATE) ||
 						(blk.type == BLOCK_STONE_PRESSURE_PLATE)||
 						(blk.type == BLOCK_DOOR_WOOD)||
-						(blk.type == BLOCK_DOOR_IRON)
+						(blk.type == BLOCK_DOOR_IRON) ||
+						(blk.type == BLOCK_RAIL) ||
+						(blk.type == BLOCK_POWERED_RAIL) ||
+						(blk.type == BLOCK_DETECTOR_RAIL)
 						;
 
                     struct block_data neighbour_data[SIDE_MAX];

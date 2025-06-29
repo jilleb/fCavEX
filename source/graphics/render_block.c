@@ -646,90 +646,169 @@ size_t render_block_fluid(struct displaylist* d, struct block_info* this,
 	return 1;
 }
 
-size_t render_block_rail(struct displaylist* dl, struct block_info* this,
-						 enum side side, struct block_info* it,
-						 uint8_t* vertex_light, bool count_only) {
-	if(side != SIDE_TOP)
-		return 0;
+//size_t render_block_rail(struct displaylist* dl, struct block_info* this,
+//						 enum side side, struct block_info* it,
+//						 uint8_t* vertex_light, bool count_only) {
+//	if(side != SIDE_TOP)
+//		return 0;
+//
+//	if(!count_only) {
+//		int16_t x = W2C_COORD(this->x);
+//		int16_t y = W2C_COORD(this->y);
+//		int16_t z = W2C_COORD(this->z);
+//		uint8_t tex = blocks[this->block->type]->getTextureIndex(this, side);
+//		uint8_t luminance = blocks[this->block->type]->luminance;
+//
+//		uint8_t tex_coords[4][2] = {
+//			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex))},
+//			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex))},
+//			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex)) + 16},
+//			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex)) + 16},
+//		};
+//		int tex_rotate = 0;
+//
+//		uint16_t a = 16, b = 16, c = 16, d = 16;
+//
+//		/*
+//		switch(this->block->metadata & 0x7) {
+//			case 1: tex_rotate = 1; break;
+//			case 2:
+//				b = 272;
+//				c = 272;
+//				tex_rotate = 1;
+//				break;
+//			case 3:
+//				a = 272;
+//				d = 272;
+//				tex_rotate = 1;
+//				break;
+//			case 4:
+//				a = 272;
+//				b = 272;
+//				break;
+//			case 5:
+//				c = 272;
+//				d = 272;
+//				break;
+//		}
+//
+//
+//		if(blocks[this->block->type]->render_block_data.rail_curved_possible) {
+//			switch(this->block->metadata) {
+//				case 6: tex_rotate = 0; break;
+//				case 7: tex_rotate = 3; break;
+//				case 8: tex_rotate = 2; break;
+//			}
+//		}
+//*/
+//
+//		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + a, z * BLK_LEN);
+//		displaylist_color(dl,
+//						  DIM_LIGHT(vertex_light[4], NULL, false, luminance));
+//		displaylist_texcoord(dl, tex_coords[(tex_rotate + 0) % 4][0],
+//							 tex_coords[(tex_rotate + 0) % 4][1]);
+//		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + b,
+//						z * BLK_LEN);
+//		displaylist_color(dl,
+//						  DIM_LIGHT(vertex_light[5], NULL, false, luminance));
+//		displaylist_texcoord(dl, tex_coords[(tex_rotate + 1) % 4][0],
+//							 tex_coords[(tex_rotate + 1) % 4][1]);
+//		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + c,
+//						z * BLK_LEN + BLK_LEN);
+//		displaylist_color(dl,
+//						  DIM_LIGHT(vertex_light[6], NULL, false, luminance));
+//		displaylist_texcoord(dl, tex_coords[(tex_rotate + 2) % 4][0],
+//							 tex_coords[(tex_rotate + 2) % 4][1]);
+//		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + d,
+//						z * BLK_LEN + BLK_LEN);
+//		displaylist_color(dl,
+//						  DIM_LIGHT(vertex_light[7], NULL, false, luminance));
+//		displaylist_texcoord(dl, tex_coords[(tex_rotate + 3) % 4][0],
+//							 tex_coords[(tex_rotate + 3) % 4][1]);
+//	}
+//
+//	return 1;
+//}
 
-	if(!count_only) {
-		int16_t x = W2C_COORD(this->x);
-		int16_t y = W2C_COORD(this->y);
-		int16_t z = W2C_COORD(this->z);
-		uint8_t tex = blocks[this->block->type]->getTextureIndex(this, side);
-		uint8_t luminance = blocks[this->block->type]->luminance;
 
-		uint8_t tex_coords[4][2] = {
-			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex))},
-			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex))},
-			{TEX_OFFSET(TEXTURE_X(tex)) + 16, TEX_OFFSET(TEXTURE_Y(tex)) + 16},
-			{TEX_OFFSET(TEXTURE_X(tex)), TEX_OFFSET(TEXTURE_Y(tex)) + 16},
-		};
-		int tex_rotate = 0;
+size_t render_block_rail(struct displaylist* dl,
+                         struct block_info* this,
+                         enum side side,
+                         struct block_info* it,
+                         uint8_t* vertex_light,
+                         bool count_only) {
+    if (side != SIDE_TOP) return 0;
+    if (count_only)       return 1;
 
-		uint16_t a = 16, b = 16, c = 16, d = 16;
+    int16_t x = W2C_COORD(this->x);
+    int16_t y = W2C_COORD(this->y);
+    int16_t z = W2C_COORD(this->z);
 
-		/*
-		switch(this->block->metadata & 0x7) {
-			case 1: tex_rotate = 1; break;
-			case 2:
-				b = 272;
-				c = 272;
-				tex_rotate = 1;
-				break;
-			case 3:
-				a = 272;
-				d = 272;
-				tex_rotate = 1;
-				break;
-			case 4:
-				a = 272;
-				b = 272;
-				break;
-			case 5:
-				c = 272;
-				d = 272;
-				break;
-		}
+    uint8_t tex       = blocks[this->block->type]->getTextureIndex(this, side);
+    uint8_t luminance = blocks[this->block->type]->luminance;
 
+    uint8_t shape     = this->block->metadata & 0xF;
+    bool    is_slope  = (shape >= 2 && shape <= 5);
+    int     tex_rotate;
 
-		if(blocks[this->block->type]->render_block_data.rail_curved_possible) {
-			switch(this->block->metadata) {
-				case 6: tex_rotate = 0; break;
-				case 7: tex_rotate = 3; break;
-				case 8: tex_rotate = 2; break;
-			}
-		}
-*/
+    if (shape == 0) {
+        // NS
+        tex_rotate = 0;
+    } else if (shape == 1) {
+        // EW
+        tex_rotate = 1;
+    } else if (is_slope) {
+        // slopes: X‐slopes (2,3) 90°
+        tex_rotate = (shape == 2 || shape == 3) ? 1 : 0;
+    } else {
+        // curves 6–9: map 6->0°, 7->270°, 8->180°, 9->90°
+    	// `(shape-6)&3` is in [0..3], subtract from 4 then mod 4
+    	tex_rotate = (4 - ((shape - 6) & 3)) & 3;
+    }
 
-		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + a, z * BLK_LEN);
-		displaylist_color(dl,
-						  DIM_LIGHT(vertex_light[4], NULL, false, luminance));
-		displaylist_texcoord(dl, tex_coords[(tex_rotate + 0) % 4][0],
-							 tex_coords[(tex_rotate + 0) % 4][1]);
-		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + b,
-						z * BLK_LEN);
-		displaylist_color(dl,
-						  DIM_LIGHT(vertex_light[5], NULL, false, luminance));
-		displaylist_texcoord(dl, tex_coords[(tex_rotate + 1) % 4][0],
-							 tex_coords[(tex_rotate + 1) % 4][1]);
-		displaylist_pos(dl, x * BLK_LEN + BLK_LEN, y * BLK_LEN + c,
-						z * BLK_LEN + BLK_LEN);
-		displaylist_color(dl,
-						  DIM_LIGHT(vertex_light[6], NULL, false, luminance));
-		displaylist_texcoord(dl, tex_coords[(tex_rotate + 2) % 4][0],
-							 tex_coords[(tex_rotate + 2) % 4][1]);
-		displaylist_pos(dl, x * BLK_LEN, y * BLK_LEN + d,
-						z * BLK_LEN + BLK_LEN);
-		displaylist_color(dl,
-						  DIM_LIGHT(vertex_light[7], NULL, false, luminance));
-		displaylist_texcoord(dl, tex_coords[(tex_rotate + 3) % 4][0],
-							 tex_coords[(tex_rotate + 3) % 4][1]);
-	}
+    bool is_curve = (shape >= 6 && shape <= 9);
 
-	return 1;
+    if (is_curve && blocks[this->block->type]->render_block_data.rail_curved_possible) {
+        tex = tex_atlas_lookup(TEXAT_RAIL_CURVED);
+    }
+
+    uint8_t tx = TEX_OFFSET(TEXTURE_X(tex));
+    uint8_t ty = TEX_OFFSET(TEXTURE_Y(tex));
+    uint8_t uv[4][2] = {
+        { tx,      ty      },
+        { tx + 16, ty      },
+        { tx + 16, ty + 16 },
+        { tx,      ty + 16 },
+    };
+
+    // vertex heights: flat or sloped (16 = flat, 272 = 16+256)
+    uint16_t h[4] = {16, 16, 16, 16};
+    if (is_slope) {
+        switch (shape) {
+            case 2: h[1] = h[2] = 272; break;
+            case 3: h[0] = h[3] = 272; break;
+            case 4: h[0] = h[1] = 272; break;
+            case 5: h[2] = h[3] = 272; break;
+        }
+    }
+
+    for (int i = 0; i < 4; i++) {
+        int vi = (tex_rotate + i) & 3;
+        displaylist_pos(dl,
+            x * BLK_LEN + ((i == 1 || i == 2) ? BLK_LEN : 0),
+            y * BLK_LEN + h[i],
+            z * BLK_LEN + ((i >= 2) ? BLK_LEN : 0)
+        );
+        displaylist_color(dl,
+            DIM_LIGHT(vertex_light[4 + i], NULL, false, luminance)
+        );
+        displaylist_texcoord(dl,
+            uv[vi][0], uv[vi][1]
+        );
+    }
+
+    return 1;
 }
-
 
 // todo: This is currently mostly copied from block-rail. Adapt this to:
 // - show corner/intersection texture where needed
