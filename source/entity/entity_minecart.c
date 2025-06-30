@@ -36,65 +36,70 @@
 #include "../item/items.h"
 
 
-// ---- Server-side tick: simple rail following + gravity ----
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
-
-	// movement logic:
-
-    // copy old pos
     glm_vec3_copy(e->pos, e->pos_old);
 
-    // determine block below
     int bx = (int)floorf(e->pos[0]);
     int by = (int)floorf(e->pos[1] - 0.1f);
     int bz = (int)floorf(e->pos[2]);
+
     struct block_data below = world_get_block(&gstate.world, bx, by, bz);
 
-    if (below.type == BLOCK_RAIL) {
-        uint8_t meta = below.metadata & 0x7;
-        int dx = 0, dz = 0;
-        switch (meta) {
-            case 0: dz =  1; break;
-            case 1: dx =  1; break;
-            case 2: dz = -1; break;
-            case 3: dx = -1; break;
-        }
-        e->vel[0] += dx * 0.02f;
-        e->vel[2] += dz * 0.02f;
-        e->vel[1]  = 0.0f;
-    } else {
-        e->vel[2] = 0.0f;
-        e->vel[0] = 0.0f;
+    if (below.type != BLOCK_RAIL && below.type != BLOCK_POWERED_RAIL) {
+        e->data.minecart.speed = 0.0f;
+        return false;
     }
 
-    // friction
-    e->vel[0] *= 0.98f;
-    e->vel[1] *= 0.98f;
-    e->vel[2] *= 0.98f;
+    uint8_t meta = below.metadata & 0xF;
+    int dx = 0, dy = 0, dz = 0;
 
-    // apply movement
-    glm_vec3_add(e->pos, e->vel, e->pos);
-    return false; // never destroy
+    switch (meta) {
+        case 0:  dz =  1; break;            // NS
+        case 1:  dx =  1; break;            // EW
+        case 2:  dx = -1; dy = 1; break;    // slope W
+        case 3:  dx =  1; dy = 1; break;    // slope E
+        case 4:  dz = -1; dy = 1; break;    // slope N
+        case 5:  dz =  1; dy = 1; break;    // slope S
+        case 6:  dx =  1; dz =  1; break;   // SE
+        case 7:  dx = -1; dz =  1; break;   // SW
+        case 8:  dx = -1; dz = -1; break;   // NW
+        case 9:  dx =  1; dz = -1; break;   // NE
+        default: break;
+    }
 
+    bool powered = false;
+    if (below.type == BLOCK_POWERED_RAIL) {
+        powered = true;
+    }
 
-	// Wagoniëntiteit blijft gewoon op z’n plek staan; geen beweging/val
-//	e->vel[0] = 0.0f;
-//	e->vel[1] = 0.0f;
-//	e->vel[2] = 0.0f;
-	return false;
+    if (powered) {
+        if (e->data.minecart.speed < 0.01f) {
+            e->data.minecart.speed = 0.05f;
+        } else {
+            e->data.minecart.speed += 0.01f;
+            if (e->data.minecart.speed > 0.2f)
+                e->data.minecart.speed = 0.2f;
+        }
+    }
+
+    float spd = e->data.minecart.speed;
+    e->pos[0] += dx * spd;
+    e->pos[1] += dy * spd;
+    e->pos[2] += dz * spd;
+
+    e->data.minecart.rail_meta = meta;
+
+    return false;
 }
 
-// ---- Client-side tick just mirrors server logic ----
 static bool minecart_client_tick(struct entity* e) {
     return minecart_server_tick(e, NULL);
 }
 
 static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta) {
-    // 1) Interpolate position exactly like monster does
     vec3 pos_lerp;
     glm_vec3_lerp(e->pos_old, e->pos, tick_delta, pos_lerp);
 
-    // 2) Figure out which block the minecart is “in”
     struct block_data in_block;
     entity_get_block(e,
         floorf(pos_lerp[0]),
@@ -103,20 +108,51 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
         &in_block
     );
 
-    // 3) Update the minecart’s lighting using that block’s torch+sky
-    //    (same packing as entity_monster: torch in high nibble, sky in low nibble)
     render_entity_update_light(
         (in_block.torch_light << 4) | (in_block.sky_light)
     );
 
-    // 4) Build model→view matrix just like render_monster did
+    struct block_data rail_block;
+    int bx = (int)floorf(pos_lerp[0]);
+    int by = (int)floorf(pos_lerp[1] - 0.1f);
+    int bz = (int)floorf(pos_lerp[2]);
+    entity_get_block(e, bx, by, bz, &rail_block);
+
+    float yaw_deg = 0.0f;
+    float pitch_deg = 0.0f;
+    float y_offset = 0.0f;
+    if (rail_block.type == BLOCK_RAIL) {
+        uint8_t meta = rail_block.metadata & 0xF;
+
+        switch (meta) {
+            case 0:  yaw_deg =   0.0f; break;   // NS
+            case 1:  yaw_deg =  90.0f; break;   // EW
+            case 2:  yaw_deg =  90.0f; pitch_deg =  45.0f; y_offset = 0.5f; break; // slope W
+            case 3:  yaw_deg =  90.0f; pitch_deg = -45.0f; y_offset = 0.5f; break; // slope E
+            case 4:  yaw_deg =   0.0f; pitch_deg =  45.0f; y_offset = 0.5f; break; // slope S
+            case 5:  yaw_deg =   0.0f; pitch_deg = -45.0f; y_offset = 0.5f; break; // slope N
+            case 6:  yaw_deg =  135.0f; break; // SE curve
+            case 7:  yaw_deg = -135.0f; break; // SW curve
+            case 8:  yaw_deg =  -45.0f; break; // NW curve
+            case 9:  yaw_deg =   45.0f; break; // NE curve
+            default: break;
+        }
+    }
+
     mat4 model, mv;
-    glm_translate_make(model, pos_lerp);
+    glm_translate_make(model, (vec3){
+        pos_lerp[0],
+        pos_lerp[1] + y_offset,
+        pos_lerp[2]
+    });
+
+    glm_rotate_y(model, glm_rad(-yaw_deg), model);
+    glm_rotate_x(model, glm_rad(pitch_deg), model);
+
     glm_mat4_mul(view, model, mv);
 
-    // 5) Finally draw the minecart cube with the current lighting
     render_entity_minecart(mv);
-    // 6) (Optional) if you have a shadow routine, set up a small AABB and call it:
+
     struct AABB bbox;
     aabb_setsize_centered(&bbox, 0.25F, 0.25F, 0.25F);
     aabb_translate(&bbox,
@@ -142,10 +178,16 @@ static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
     return 1;
 }
 
-static bool onRightClick(struct entity *e) {
+static bool onRightClick(struct entity* e) {
     assert(e);
-    // TODO: add usage logic.
-    return true;
+
+    if (!e->data.minecart.occupied) {
+        // TODO: add user as "rider"
+        e->data.minecart.occupied = true;
+        return true;
+    }
+
+    return false;
 }
 
 static bool onLeftClick(struct entity *e) {
@@ -154,7 +196,6 @@ static bool onLeftClick(struct entity *e) {
     return true;
 }
 
-// ---- Factory: initialize entity fields, including item_data ----
 void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->name 	   = "Minecart";
     e->id          = id;
@@ -167,9 +208,8 @@ void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->getBoundingBox = getBoundingBox;
     e->leftClickText = NULL;
     e->onLeftClick   = onLeftClick;
-    e->rightClickText = "Use";
+    e->rightClickText = e->data.minecart.occupied ? "Dismount" : "Ride";
     e->onRightClick   = onRightClick;
-
 
     // zero vectors
     glm_vec3_zero(e->pos);
@@ -178,11 +218,11 @@ void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     glm_vec2_zero(e->orient);
     glm_vec2_zero(e->orient_old);
 
-    // setup item_data for render
     e->data.minecart.item.id         = ITEM_MINECART;
     e->data.minecart.item.durability = 0;
     e->data.minecart.item.count      = 1;
+    e->data.minecart.speed = 0.0f;
 
-    // default initialization (world registration, networking)
+
     entity_default_init(e, server, world);
 }

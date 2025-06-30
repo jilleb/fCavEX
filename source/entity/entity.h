@@ -101,13 +101,13 @@ struct entity {
 		    int fuse;
 		} monster;
         struct entity_minecart {
-            // no extra fields needed for basic minecart
+			float speed;
+			uint8_t rail_meta; // metadata of rail underneath
+			bool occupied;
             // future data (e.g., rail_state, custom flags) can go here
 			struct item_data item;   // houdt id, count, durability
 
         } minecart;
-
-
 	} data;
 };
 

@@ -341,7 +341,7 @@ void render_entity_minecart(mat4 view) {
    // glm_rotate_y(mv, GLM_PI_2, mv);
     gfx_matrix_modelview(mv);
 
-    gfx_bind_texture(&texture_minecart); // 64×32 PNG direct gebonden
+    gfx_bind_texture(&texture_minecart);
     displaylist_reset(&dl);
 
 
@@ -440,8 +440,9 @@ void render_entity_minecart(mat4 view) {
 		frontSideDirection
     );
 
+    displaylist_render_immediate(&dl, 24*5);
+
     gfx_lighting(true);
-    gfx_lighting(false);
     gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 }
 
