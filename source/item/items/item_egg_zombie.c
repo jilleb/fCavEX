@@ -26,9 +26,7 @@
 static bool onItemPlace(struct server_local* s, struct item_data* it,
 						struct block_info* where, struct block_info* on,
 						enum side on_side) {
-	// TODO: spawn a zombie
 	server_local_spawn_monster((vec3) {where->x, where->y, where->z}, MONSTER_CREEPER, s);
-
 	return false; // spawn eggs have infinite uses
 }
 
