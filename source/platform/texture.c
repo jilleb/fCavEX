@@ -90,8 +90,6 @@ void tex_init() {
 	void* output = tex_atlas_block("terrain.png", &w, &h);
 	if(output){
 		tex_gfx_load(&texture_terrain, output, w, h, TEX_FMT_RGBA16, false);
-		printf("texture_terrain loaded: data=%p, w=%zu, h=%zu\n", texture_terrain.data, texture_terrain.width, texture_terrain.height);
-
 	}
 
 

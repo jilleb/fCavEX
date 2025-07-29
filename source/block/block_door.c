@@ -17,6 +17,12 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//todo: fix door logic, as it currently isn't opening nicely..
+// this is caused by dual opening function: open manually or toggle open/close status by redstone.
+// best would be to add something that looks at the neighbour state change
+//todo; fix rendering of the door in various metadata positions
+
+
 #include "../network/server_local.h"
 #include "blocks.h"
 
