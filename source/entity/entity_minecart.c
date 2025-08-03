@@ -82,12 +82,25 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
         }
     }
 
+    e->data.minecart.speed *= 0.97f;
+    if (fabsf(e->data.minecart.speed) < 0.001f)
+        e->data.minecart.speed = 0.0f;
+
     float spd = e->data.minecart.speed;
     e->pos[0] += dx * spd;
     e->pos[1] += dy * spd;
     e->pos[2] += dz * spd;
 
     e->data.minecart.rail_meta = meta;
+
+    // if there's a rider, update his position to cart
+    if (e->data.minecart.occupied && e->data.minecart.occupant_id != 0) {
+        struct entity* rider = *dict_entity_get(gstate.entities, e->data.minecart.occupant_id);
+        if (rider) {
+            glm_vec3_copy(e->pos, rider->pos);
+            glm_vec3_copy(e->pos, rider->pos_old);
+        }
+    }
 
     return false;
 }
@@ -167,12 +180,12 @@ static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
     assert(e && out);
     aabb_setsize_centered_offset(
         out,
-        1.0f,    // sx
-        0.625f,  // sy
-        1.25f,   // sz
-        0.0f,    // ox
-        0.3125f,    // oy
-        0.1f    // oz
+        0.8f,   // sx
+        0.5f,   // sy
+        1.0f,   // sz
+        0.0f,   // ox
+        0.25f,  // oy
+        0.0f    // oz
     );
     aabb_translate(out, e->pos[0], e->pos[1], e->pos[2]);
     return 1;
@@ -181,12 +194,24 @@ static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
 static bool onRightClick(struct entity* e) {
     assert(e);
 
-    if (!e->data.minecart.occupied) {
-        // TODO: add user as "rider"
+    struct entity* player = gstate.local_player;
+    if (!e->data.minecart.occupied && player) {
+        // Mount minecart: set as occupied and record occupant id
         e->data.minecart.occupied = true;
+        e->data.minecart.occupant_id = player->id;
+        player->data.local_player.riding_entity_id = e->id;
+        e->rightClickText = "Dismount";
+        return true;
+    } else if (e->data.minecart.occupied && player && e->data.minecart.occupant_id == player->id) {
+        // Dismount: clear occupant
+        e->data.minecart.occupied = false;
+        e->data.minecart.occupant_id = 0;
+        player->data.local_player.riding_entity_id = 0;
+        // Move player a bit up to avoid stuck in cart
+        player->pos[1] += 1.2f;
+        e->rightClickText = "Ride";
         return true;
     }
-
     return false;
 }
 
@@ -222,7 +247,8 @@ void entity_minecart(uint32_t id, struct entity* e, bool server, void* world) {
     e->data.minecart.item.durability = 0;
     e->data.minecart.item.count      = 1;
     e->data.minecart.speed = 0.0f;
-
+    e->data.minecart.occupied = false;
+    e->data.minecart.occupant_id = 0;
 
     entity_default_init(e, server, world);
 }

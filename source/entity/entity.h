@@ -55,6 +55,7 @@ struct entity {
 	void* world;
 	int delay_destroy;
 	short health;
+	struct item_data drop_item;
 
 	vec3 pos;
 	vec3 pos_old;

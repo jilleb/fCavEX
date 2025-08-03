@@ -151,7 +151,7 @@ static bool entity_server_tick(struct entity* e, struct server_local* s) {
 
 	if(e->delay_destroy > 0) {
 		e->delay_destroy--;
-	} else if(e->data.item.age >= 2 * 20
+	} else if(e->data.item.age >= 2 * 4
 			  && glm_vec3_distance2(
 					 e->pos,
 					 (vec3) {s->player.x, s->player.y - 0.6F, s->player.z})
@@ -245,6 +245,7 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 
     e->name = "Item";
 	e->id = id;
+//	e->drop_item = NULL;
 	e->tick_server = entity_server_tick;
 	e->tick_client = entity_client_tick;
 	e->render = entity_render;

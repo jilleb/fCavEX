@@ -60,6 +60,48 @@ static bool test_in_liquid(struct AABB* entity, struct block_info* blk_info) {
 static bool entity_tick(struct entity* e) {
 	assert(e);
 
+    // MINECART CONTROL: check if player is riding a cart
+    if(e->data.local_player.riding_entity_id != 0) {
+        struct entity* cart = *dict_entity_get(gstate.entities, e->data.local_player.riding_entity_id);
+        if (cart && cart->type == ENTITY_MINECART && cart->data.minecart.occupied && cart->data.minecart.occupant_id == e->id) {
+            // Only allow control if we're really the rider
+
+            // Handle forward/backward input (increase/decrease cart speed)
+            if(input_held(IB_FORWARD))
+                cart->data.minecart.speed += 0.01f;
+            if(input_held(IB_BACKWARD))
+                cart->data.minecart.speed -= 0.01f;
+
+            // Clamp speed to a reasonable limit
+            if(cart->data.minecart.speed > 0.3f)
+                cart->data.minecart.speed = 0.3f;
+            if(cart->data.minecart.speed < -0.3f)
+                cart->data.minecart.speed = -0.3f;
+
+            // Handle dismount
+            if(input_pressed(IB_JUMP)) {
+                cart->data.minecart.occupied = false;
+                cart->data.minecart.occupant_id = 0;
+                e->data.local_player.riding_entity_id = 0;
+                // Move player up so not stuck in cart
+                e->pos[1] += 1.2f;
+            }
+
+            // Always copy cart position to player
+            e->pos[0] = cart->pos[0];
+            e->pos[1] = cart->pos[1] + 0.6f;
+            e->pos[2] = cart->pos[2];
+            e->pos_old[0] = e->pos[0];
+            e->pos_old[1] = e->pos[1];
+            e->pos_old[2] = e->pos[2];
+
+            return false; // skip walking physics
+        } else {
+            // Safety fallback: rider mismatch, force dismount
+            e->data.local_player.riding_entity_id = 0;
+        }
+    }
+
 
 	glm_vec3_copy(e->pos, e->pos_old);
 	glm_vec2_copy(e->orient, e->orient_old);
