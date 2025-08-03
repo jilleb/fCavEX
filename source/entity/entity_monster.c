@@ -124,7 +124,7 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
     entity_damp_velocity(e, 0.005f);
 
     if (e->health <= 0 && e->data.monster.fuse < 0) {
-            e->data.monster.fuse = 30;
+            e->data.monster.fuse = 8; // was 30 but that's wayyyy too long
             e->ai_state = AI_FUSE;
         }
 
@@ -143,6 +143,11 @@ static bool server_tick_creeper(struct entity* e, struct server_local* s) {
             particle_generate_explosion_smoke(center, 3.0f);
             server_world_explode(s, center, 3.0f);
             e->delay_destroy = 0;
+            server_local_spawn_item(center,
+                    &e->drop_item,
+                    true,
+                    s
+                );
         }
         return false;  // sla rest van AI over zolang we fuseren
     }
@@ -280,6 +285,11 @@ void entity_monster(uint32_t id,
     entity_default_init(e, server, world);
     e->id = id;
     e->type = ENTITY_MONSTER;
+    e->drop_item = (struct item_data){
+        .id         = ITEM_GUNPOWDER,
+        .durability = 0,
+        .count      = 1
+    };
     e->name = "Monster";
     e->data.monster.id = monster_id;
     e->data.monster.head_yaw = 0.0f;
