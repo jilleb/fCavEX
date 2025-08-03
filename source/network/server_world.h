@@ -84,5 +84,6 @@ void server_world_random_tick(struct server_world* w, struct random_gen* g,
 							  w_coord_t pz, w_coord_t dist);
 void server_world_explode(struct server_local *s, vec3 center, float power);
 
+bool server_world_find_empty_spot_nearby(const float pos[3], const struct server_world *world, float out_pos[3]);
 
 #endif

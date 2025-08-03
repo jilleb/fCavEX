@@ -581,3 +581,30 @@ void server_world_explode(struct server_local *s, vec3 center, float power) {
         }
     }
 }
+
+
+bool server_world_find_empty_spot_nearby(const float pos[3], const struct server_world *world, float out_pos[3]){
+	const float offs[][3] = {
+        { 1.0f, 0.0f,  0.0f }, { -1.0f, 0.0f,  0.0f },
+        { 0.0f, 0.0f,  1.0f }, {  0.0f, 0.0f, -1.0f },
+        { 1.0f, 0.0f,  1.0f }, { -1.0f, 0.0f, -1.0f },
+        { 0.0f, 1.0f,  0.0f }, // bovenop als laatste
+    };
+    int num_offsets = sizeof(offs) / sizeof(offs[0]);
+    for (int i = 0; i < num_offsets; ++i) {
+        float nx = pos[0] + offs[i][0];
+        float ny = pos[1] + offs[i][1];
+        float nz = pos[2] + offs[i][2];
+        int tx = (int)floorf(nx);
+        int ty = (int)floorf(ny);
+        int tz = (int)floorf(nz);
+        struct block_data bd;
+        server_world_get_block(world, tx, ty, tz, &bd);
+        if (!blocks[bd.type] || !blocks[bd.type]->getBoundingBox) {
+            out_pos[0] = nx; out_pos[1] = ny; out_pos[2] = nz;
+            return true;
+        }
+    }
+    return false;
+}
+
