@@ -89,7 +89,7 @@ static bool entity_tick(struct entity* e) {
 
             // Always copy cart position to player
             e->pos[0] = cart->pos[0];
-            e->pos[1] = cart->pos[1] + 0.6f;
+            e->pos[1] = cart->pos[1] + 1.0f;
             e->pos[2] = cart->pos[2];
             e->pos_old[0] = e->pos[0];
             e->pos_old[1] = e->pos[1];

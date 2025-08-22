@@ -86,6 +86,7 @@ struct entity {
 		struct entity_local_player {
 			int jump_ticks;
 			bool capture_input;
+			uint32_t riding_entity_id;
 		} local_player;
 		struct entity_item {
 			struct item_data item;
@@ -105,7 +106,10 @@ struct entity {
 			float speed;
 			uint8_t rail_meta; // metadata of rail underneath
 			bool occupied;
-            // future data (e.g., rail_state, custom flags) can go here
+			uint8_t occupant_id;
+		    int8_t hx, hz;         // cart-heading in XZ (unit grid: -1,0,+1)
+		    uint8_t last_meta;
+
 			struct item_data item;   // houdt id, count, durability
 
         } minecart;
