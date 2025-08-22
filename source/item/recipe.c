@@ -374,6 +374,11 @@ void recipe_init() {
 		false);
 	recipe_add(
 		recipes_crafting,
+		(struct item_data) {.id = ITEM_BUCKET, .durability = 0, .count = 1}, 3, 2,
+		(uint8_t[]) {1, 0, 1, 0, 1, 0}, (struct item_data) {.id = ITEM_IRON},
+		false);
+	recipe_add(
+		recipes_crafting,
 		(struct item_data) {.id = BLOCK_RAIL, .durability = 0, .count = 16}, 3,
 		3, (uint8_t[]) {1, 0, 1, 1, 2, 1, 1, 0, 1},
 		(struct item_data) {.id = ITEM_IRON}, false,
