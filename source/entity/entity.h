@@ -86,7 +86,6 @@ struct entity {
 		struct entity_local_player {
 			int jump_ticks;
 			bool capture_input;
-			uint32_t riding_entity_id;
 		} local_player;
 		struct entity_item {
 			struct item_data item;

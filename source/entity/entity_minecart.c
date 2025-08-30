@@ -17,6 +17,11 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// todo: Powered rails with redstone logic
+// todo: Detector rails
+// todo: Polish the movement
+// todo: Bounding box behavior (not clipping through blocks and such
+
 #include "../block/blocks_data.h"
 #include "../game/game_state.h"
 #include "../network/client_interface.h"
@@ -101,26 +106,66 @@ static inline void seed_heading(uint8_t meta, float px, float pz, float spd, int
     }
 }
 
+// Try to find a rail at (bx, by, bz); if not found, also try by+1 and by-1.
+// Returns 1 and fills *out/*out_by when a rail is found, else 0.
+static inline int get_rail_with_y_fallback(int bx, int by, int bz,
+                                           struct block_data* out, int* out_by) {
+    struct block_data b0 = world_get_block(&gstate.world, bx, by, bz);
+    if (b0.type == BLOCK_RAIL || b0.type == BLOCK_POWERED_RAIL) {
+        *out = b0; *out_by = by; return 1;
+    }
+    struct block_data b1 = world_get_block(&gstate.world, bx, by + 1, bz);
+    if (b1.type == BLOCK_RAIL || b1.type == BLOCK_POWERED_RAIL) {
+        *out = b1; *out_by = by + 1; return 1;
+    }
+    struct block_data b2 = world_get_block(&gstate.world, bx, by - 1, bz);
+    if (b2.type == BLOCK_RAIL || b2.type == BLOCK_POWERED_RAIL) {
+        *out = b2; *out_by = by - 1; return 1;
+    }
+    return 0;
+}
 
-
+// Absolute height on a slope tile (linear, center-based).
+// by is the chosen rail-block Y (after fallback), cx/cz are centers of the current tile.
+// current_y is used for non-slope metas.
+static inline float slope_height(uint8_t meta, int by,
+                                 float x, float z, float cx, float cz,
+                                 float current_y)
+{
+    switch (meta) {
+        case 2: /* up to W (-X) */ return (float)by + 0.5f - (x - cx);
+        case 3: /* up to E (+X) */ return (float)by + 0.5f + (x - cx);
+        case 4: /* up to N (-Z) */ return (float)by + 0.5f - (z - cz);
+        case 5: /* up to S (+Z) */ return (float)by + 0.5f + (z - cz);
+        default: return current_y; // non-slope
+    }
+}
+// Keep comments in English per project style.
+// Keep comments in English per project style.
 static bool minecart_server_tick(struct entity* e, struct server_local* s) {
-    // Keep old pos for interpolation
+    // Provide a stable previous for interpolation in this sim step.
     glm_vec3_copy(e->pos, e->pos_old);
 
-    // Find rail under cart
+    // Find base block coords under cart
     int bx = (int)floorf(e->pos[0]);
-    int by = (int)floorf(e->pos[1] - 0.1f);
+    int by_guess = (int)floorf(e->pos[1] - 0.1f);
     int bz = (int)floorf(e->pos[2]);
 
-    struct block_data below = world_get_block(&gstate.world, bx, by, bz);
-    if (below.type != BLOCK_RAIL && below.type != BLOCK_POWERED_RAIL) {
+    // Robust rail lookup with ±1Y fallback (crucial at slope seams)
+    struct block_data below;
+    int rail_y = by_guess;
+    if (!get_rail_with_y_fallback(bx, by_guess, bz, &below, &rail_y)) {
         e->data.minecart.speed = 0.0f;
         return false;
     }
 
+    // Stable centers for THIS tile (prevents micro drift across frames)
+    float cx = (float)bx + 0.5f;
+    float cz = (float)bz + 0.5f;
+
     uint8_t meta = below.metadata & 0xF;
 
-    // Powered rail simple boost/limit (unchanged behavior)
+    // Powered rail boost/limit (unchanged)
     if (below.type == BLOCK_POWERED_RAIL) {
         if (e->data.minecart.speed < 0.01f) {
             e->data.minecart.speed = 0.05f;
@@ -138,113 +183,96 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
 
     float spd = e->data.minecart.speed;
     if (spd == 0.0f) {
-        // Still update stored metadata; nothing else to do.
+        // Keep meta and exit; do NOT touch rider here.
         e->data.minecart.rail_meta = meta;
         e->data.minecart.last_meta = meta;
         return false;
     }
 
     // Ensure heading exists; use the persistent hx,hz in entity.h
-    // hx,hz describe the cart's "forward" orientation; the *effective* move
-    // direction per tick is (hx,hz) * sign(spd).
     if (e->data.minecart.hx == 0 && e->data.minecart.hz == 0) {
         seed_heading(meta, e->pos[0], e->pos[2], spd, &e->data.minecart.hx, &e->data.minecart.hz);
     }
 
-    int sgn = (spd >= 0.0f) ? +1 : -1;
+    int sgn    = (spd >= 0.0f) ? +1 : -1;
     int cur_dx = e->data.minecart.hx * sgn;
     int cur_dz = e->data.minecart.hz * sgn;
 
-    // Compute tile center and clamp the perpendicular axis to keep us on rails.
-    float cx = tile_center(e->pos[0]);
-    float cz = tile_center(e->pos[2]);
-
-    // Helper lambdas (C99 inline style)
+    // Cheap helpers
     #define MOVE_ALONG_X(amount) do { e->pos[0] += (amount) * (float)cur_dx; } while (0)
     #define MOVE_ALONG_Z(amount) do { e->pos[2] += (amount) * (float)cur_dz; } while (0)
 
-    // For straights/slopes we always keep the perpendicular axis at center.
-    // For curves we also force the perpendicular axis to the center while we
-    // approach the middle of the tile.
     switch (meta) {
         // --- Straight NS ---
         case 0:
-            e->pos[0] = cx; // lock X
+            e->pos[0] = cx;                // lock X
             MOVE_ALONG_Z(fabsf(spd));
             break;
 
         // --- Straight EW ---
         case 1:
-            e->pos[2] = cz; // lock Z
+            e->pos[2] = cz;                // lock Z
             MOVE_ALONG_X(fabsf(spd));
             break;
 
         // --- Slopes EW (2: up to W, 3: up to E) ---
-        case 2: // ascend West (-x when going up)
-        case 3: { // ascend East (+x when going up)
-            e->pos[2] = cz; // lock Z
-            // Move on X
-            MOVE_ALONG_X(fabsf(spd));
-            // Simple Y ramp: go up if moving toward the ascending direction
-            int up_dir = (meta == 2) ? -1 : +1;           // up to W or up to E
-            int going  = cur_dx;                          // current x move dir
-            float dy   = (going == up_dir ? +1.0f : -1.0f) * 0.5f * fabsf(spd);
-            e->pos[1] += dy;
+        case 2: // ascend West (-X uphill)
+        case 3: { // ascend East (+X uphill)
+            e->pos[2] = cz;                // lock Z (unchanged)
+            MOVE_ALONG_X(fabsf(spd));      // move along X (unchanged)
+
+            // Deterministic absolute Y from tile center (no accumulation drift)
+            float y = slope_height(meta, rail_y, e->pos[0], e->pos[2], cx, cz, e->pos[1]);
+            // Clamp to [rail_y, rail_y+1] to avoid tiny float overshoot
+            if (y < (float)rail_y) y = (float)rail_y;
+            if (y > (float)rail_y + 1.0f) y = (float)rail_y + 1.0f;
+            e->pos[1] = y;
             break;
         }
 
         // --- Slopes NS (4: up to N, 5: up to S) ---
-        case 4:
-        case 5: {
-            e->pos[0] = cx; // lock X
-            // Move on Z
-            MOVE_ALONG_Z(fabsf(spd));
-            int up_dir = (meta == 4) ? -1 : +1;           // up to N or up to S
-            int going  = cur_dz;                          // current z move dir
-            float dy   = (going == up_dir ? +1.0f : -1.0f) * 0.5f * fabsf(spd);
-            e->pos[1] += dy;
+        case 4: // ascend North (-Z uphill)
+        case 5: { // ascend South (+Z uphill)
+            e->pos[0] = cx;                // lock X (unchanged)
+            MOVE_ALONG_Z(fabsf(spd));      // move along Z (unchanged)
+
+            float y = slope_height(meta, rail_y, e->pos[0], e->pos[2], cx, cz, e->pos[1]);
+            if (y < (float)rail_y) y = (float)rail_y;
+            if (y > (float)rail_y + 1.0f) y = (float)rail_y + 1.0f;
+            e->pos[1] = y;
             break;
         }
 
         // --- Curves (center -> turn -> out) ---
         case 6: case 7: case 8: case 9: {
-            // Force perpendicular axis to center while approaching middle
             if (cur_dx != 0) e->pos[2] = cz; else e->pos[0] = cx;
 
-            // Distance to center along current axis
-            float dist_to_center = (cur_dx != 0) ? (cx - e->pos[0]) * (float)cur_dx
-                                                 : (cz - e->pos[2]) * (float)cur_dz;
+            float dist_to_center = (cur_dx != 0)
+                ? (cx - e->pos[0]) * (float)cur_dx
+                : (cz - e->pos[2]) * (float)cur_dz;
+
             float step = fabsf(spd);
 
             if (dist_to_center > MC_EPS) {
-                // We are not yet at the center: move toward it (but not past it)
                 float move = (step <= dist_to_center) ? step : dist_to_center;
                 if (cur_dx != 0) MOVE_ALONG_X(move); else MOVE_ALONG_Z(move);
-
-                // If we exactly hit center and have leftover, handle below
                 if (step <= dist_to_center + 1e-6f) break;
                 step -= dist_to_center;
-            } else {
-                // Already at/near center
             }
 
-            // At center now: turn according to curve, using *effective* in-dir
             int out_dx = cur_dx, out_dz = cur_dz;
             curve_turn(meta, cur_dx, cur_dz, &out_dx, &out_dz);
 
-            // Apply leftover step along the outgoing axis
             if (out_dx != 0) { e->pos[2] = cz; e->pos[0] += step * (float)out_dx; }
             else              { e->pos[0] = cx; e->pos[2] += step * (float)out_dz; }
 
-            // Update persistent forward heading (hx,hz) so that
-            // hx*sgn == out_dx and hz*sgn == out_dz
             e->data.minecart.hx = (int8_t)(out_dx * sgn);
             e->data.minecart.hz = (int8_t)(out_dz * sgn);
             break;
         }
 
         default:
-            // Unknown meta: do nothing but stop drift
+            // Unknown meta: clamp to center to avoid drifting off-rail
             e->pos[0] = cx;
             e->pos[2] = cz;
             break;
@@ -254,16 +282,11 @@ static bool minecart_server_tick(struct entity* e, struct server_local* s) {
     e->data.minecart.rail_meta = meta;
     e->data.minecart.last_meta = meta;
 
-    // Keep rider glued on top of cart (unchanged behavior)
-    if (e->data.minecart.occupied && e->data.minecart.occupant_id != 0) {
-        struct entity* rider = *dict_entity_get(gstate.entities, e->data.minecart.occupant_id);
-        if (rider) {
-            glm_vec3_copy(e->pos, rider->pos);
-            glm_vec3_copy(e->pos, rider->pos_old);
-        }
-    }
+    // IMPORTANT: do NOT touch rider here. Local player handles camera attach.
+
     return false;
 }
+
 
 static bool minecart_client_tick(struct entity* e) {
     return minecart_server_tick(e, NULL);
@@ -351,28 +374,32 @@ static size_t getBoundingBox(const struct entity *e, struct AABB *out) {
     return 1;
 }
 
-static bool onRightClick(struct entity* e) {
-    assert(e);
+// entity_minecart.c (of waar je onRightClick staat)
 
-    struct entity* player = gstate.local_player;
-    if (!e->data.minecart.occupied && player) {
-        // Mount minecart: set as occupied and record occupant id
-        e->data.minecart.occupied = true;
-        e->data.minecart.occupant_id = player->id;
-        player->data.local_player.riding_entity_id = e->id;
-        e->rightClickText = "Dismount";
-        return true;
-    } else if (e->data.minecart.occupied && player && e->data.minecart.occupant_id == player->id) {
-        // Dismount: clear occupant
-        e->data.minecart.occupied = false;
-        e->data.minecart.occupant_id = 0;
-        player->data.local_player.riding_entity_id = 0;
-        // Move player a bit up to avoid stuck in cart
-        player->pos[1] += 1.2f;
-        e->rightClickText = "Ride";
-        return true;
-    }
-    return false;
+static bool onRightClick(struct entity* e) {
+	assert(e);
+
+	struct entity* player = gstate.local_player;
+	if(!player) return false;
+
+	if(!e->data.minecart.occupied) {
+		// Mount minecart
+		e->data.minecart.occupied    = true;
+		e->data.minecart.occupant_id = player->id;
+		e->rightClickText = "Dismount";
+		return true;
+	}
+	else if(e->data.minecart.occupied &&
+	        e->data.minecart.occupant_id == player->id) {
+		// Dismount
+		e->data.minecart.occupied    = false;
+		e->data.minecart.occupant_id = 0;
+		player->pos[1] += 1.2f; // avoid being stuck
+		e->rightClickText = "Ride";
+		return true;
+	}
+
+	return false;
 }
 
 static bool onLeftClick(struct entity *e) {
