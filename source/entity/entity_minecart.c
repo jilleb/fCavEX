@@ -327,10 +327,10 @@ static void entity_minecart_render(struct entity* e, mat4 view, float tick_delta
             case 3:  yaw_deg =  90.0f; pitch_deg = -45.0f; y_offset = 0.5f; break; // slope E
             case 4:  yaw_deg =   0.0f; pitch_deg =  45.0f; y_offset = 0.5f; break; // slope S
             case 5:  yaw_deg =   0.0f; pitch_deg = -45.0f; y_offset = 0.5f; break; // slope N
-            case 6:  yaw_deg =  135.0f; break; // SE curve
-            case 7:  yaw_deg = -135.0f; break; // SW curve
-            case 8:  yaw_deg =  -45.0f; break; // NW curve
-            case 9:  yaw_deg =   45.0f; break; // NE curve
+            case 9:  yaw_deg =  135.0f; break; // SE curve
+            case 8:  yaw_deg = -135.0f; break; // SW curve
+            case 7:  yaw_deg =  -45.0f; break; // NW curve
+            case 6:  yaw_deg =   45.0f; break; // NE curve
             default: break;
         }
     }
