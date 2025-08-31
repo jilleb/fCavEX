@@ -62,7 +62,7 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		.torch_light = 15,
 	});
 
-	return true;
+	return false;
 }
 
 struct item item_flint_steel = {
