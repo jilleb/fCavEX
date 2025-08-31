@@ -22,48 +22,57 @@
 #include "../../network/server_interface.h"
 #include "../../block/blocks.h"
 
-//static bool onItemPlace(struct server_local* s, struct item_data* it,
-//						struct block_info* where, struct block_info* on,
-//						enum side on_side) {
-//	if (!on || !on->block) return false;
-//
-//	// Check if the clicked block is flammable
-//	if (!blocks[on->block->type] || !blocks[on->block->type]->flammable)
-//		return false;
-//
-//	int tx = on->x;
-//	int ty = on->y;
-//	int tz = on->z;
-//
-//	// Determine the target block based on click side
-//	switch (on_side) {
-//		case SIDE_TOP:    ty += 1; break;
-//		case SIDE_BOTTOM: ty -= 1; break;
-//		case SIDE_FRONT:  tz += 1; break;
-//		case SIDE_BACK:   tz -= 1; break;
-//		case SIDE_LEFT:   tx -= 1; break;
-//		case SIDE_RIGHT:  tx += 1; break;
-//		default: break;
-//	}
-//
-//	struct block_data blk;
-//	if (!server_world_get_block(&s->world, tx, ty, tz, &blk))
-//		return false;
-//
-//	// Only if the target block is air
-//	if (blk.type != BLOCK_AIR)
-//		return false;
-//
-//	// Place fire
-//	server_world_set_block(s, tx, ty, tz, (struct block_data) {
-//		.type = BLOCK_FIRE,
-//		.metadata = 0,
-//		.sky_light = 0,
-//		.torch_light = 15,
-//	});
-//
-//	return true;
-//}
+static bool onItemPlace(struct server_local* s, struct item_data* it,
+                        struct block_info* where, struct block_info* on,
+                        enum side on_side)
+{
+    if (!s || !it || !on || !on->block) return false;
+
+    // Compute placement cell adjacent to the clicked face
+    int x = on->x, y = on->y, z = on->z;
+    switch (on_side) {
+        case SIDE_TOP:    y += 1; break;
+        case SIDE_BOTTOM: y -= 1; break;
+        case SIDE_FRONT:  z += 1; break;
+        case SIDE_BACK:   z -= 1; break;
+        case SIDE_LEFT:   x -= 1; break;
+        case SIDE_RIGHT:  x += 1; break;
+        default: break;
+    }
+
+    // Only place into AIR to keep logic simple and cheap
+    struct block_data bd;
+    if (!server_world_get_block(&s->world, x, y, z, &bd)) return false;
+    if (bd.type != BLOCK_AIR) return false;
+
+    // Place still water (reuse current light values from the AIR cell)
+    server_world_set_block(s, x, y, z, (struct block_data){
+        .type        = BLOCK_LAVA_STILL,
+        .metadata    = 0,
+        .sky_light   = bd.sky_light,
+        .torch_light = bd.torch_light,
+    });
+
+    // Swap the actually-held hotbar slot back to an empty bucket
+    struct inventory* inv = &s->player.inventory;
+    const size_t hotbar_rel = inventory_get_hotbar(inv);           // 0..8
+    const size_t slot_abs   = INVENTORY_SLOT_HOTBAR + hotbar_rel;  // absolute index (e.g. 36..44)
+
+    const struct item_data new_it = { .id = ITEM_BUCKET, .count = 1, .durability = 0 };
+    inventory_set_slot(inv, slot_abs, new_it);
+
+    // Notify client for this slot
+    set_inv_slot_t changes; set_inv_slot_init(changes);
+    set_inv_slot_push(changes, slot_abs);
+    server_local_send_inv_changes(changes, inv, WINDOWC_INVENTORY);
+    set_inv_slot_clear(changes);
+
+    // Mirror local copy
+    *it = new_it;
+
+    // IMPORTANT: return false so the engine does NOT consume the item again
+    return false;
+}
 
 struct item item_bucket_lava = {
 	.name = "Lava Bucket",
